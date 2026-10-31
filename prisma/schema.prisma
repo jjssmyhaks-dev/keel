@@ -1,0 +1,527 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+model User {
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  name                String
+  passwordHash        String?
+  avatarUrl           String?
+  timezone            String    @default("Asia/Kolkata")
+  emailVerifiedAt     DateTime?
+  twoFactorSecret     String?
+  twoFactorEnabledAt  DateTime?
+  notificationPrefs   String    @default("{}")
+  isPlatformAdmin     Boolean   @default(false)
+  onboardedAt         DateTime?
+  createdAt           DateTime  @default(now())
+  deletedAt           DateTime?
+  memberships         Membership[]
+  sessions            Session[]
+  ownedAgents         Agent[]   @relation("AgentOwner")
+  notifications       Notification[]
+}
+
+model Session {
+  id          String    @id
+  userId      String
+  tokenHash   String    @unique
+  device      String?
+  ip          String?
+  userAgent   String?
+  lastSeen    DateTime  @default(now())
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model LoginToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  type      String
+  email     String?
+  userId    String?
+  orgId     String?
+  role      String?
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email])
+}
+
+model ChallengeUse {
+  id      String   @id @default(cuid())
+  key     String   @unique
+  agentId String
+  usedAt  DateTime @default(now())
+
+  @@index([agentId])
+  @@index([usedAt])
+}
+
+model RateLimitCounter {
+  key     String   @id
+  count   Int      @default(0)
+  resetAt DateTime
+
+  @@index([resetAt])
+}
+
+model Organization {
+  id              String    @id @default(cuid())
+  name            String
+  slug            String    @unique
+  plan            String    @default("free")
+  billingCurrency String    @default("USD")
+  billingEmail    String?
+  logoUrl         String?
+  createdAt       DateTime  @default(now())
+  deletedAt       DateTime?
+  memberships     Membership[]
+  projects        Project[]
+  invitations     Invitation[]
+  usageRecords    UsageRecord[]
+  invoices        Invoice[]
+  notifications   Notification[]
+}
+
+model Membership {
+  id        String       @id @default(cuid())
+  orgId     String
+  userId    String
+  role      String
+  createdAt DateTime     @default(now())
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, userId])
+}
+
+model Invitation {
+  id        String       @id @default(cuid())
+  orgId     String
+  email     String
+  role      String
+  tokenHash String       @unique
+  invitedBy String?
+  expiresAt DateTime
+  acceptedAt DateTime?
+  createdAt DateTime     @default(now())
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+}
+
+model Project {
+  id           String    @id @default(cuid())
+  orgId        String
+  name         String
+  keyEncrypted String?
+  archivedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  org          Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  environments Environment[]
+
+  @@index([orgId])
+}
+
+model Environment {
+  id                 String     @id @default(cuid())
+  projectId          String
+  type               String
+  settingsJson       String     @default("{}")
+  productionUnlockedAt DateTime?
+  createdAt          DateTime   @default(now())
+  project            Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  apiKeys            ApiKey[]
+  agents             Agent[]
+  credentials        Credential[]
+  grants             Grant[]
+  approvalPolicies   ApprovalPolicy[]
+  approvalRequests   ApprovalRequest[]
+  auditEvents        AuditEvent[]
+  webhooks           WebhookEndpoint[]
+  alerts             AlertRule[]
+  delegations        Delegation[]
+  permissionChanges  PermissionChange[]
+  idempotencyKeys    IdempotencyRecord[]
+
+  @@unique([projectId, type])
+  @@index([projectId])
+}
+
+model ApiKey {
+  id            String      @id @default(cuid())
+  environmentId String
+  name          String      @default("Default key")
+  type          String
+  keyHash       String      @unique
+  prefix        String
+  lastUsedAt    DateTime?
+  revokedAt     DateTime?
+  createdAt     DateTime    @default(now())
+  environment   Environment @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+
+  @@index([environmentId])
+}
+
+model Agent {
+  id                  String     @id @default(cuid())
+  environmentId       String
+  name                String
+  description         String?
+  ownerUserId         String?
+  status              String     @default("active")
+  publicKey           String?
+  fingerprint         String
+  keyMode             String     @default("platform")
+  tagsJson            String     @default("[]")
+  autonomousMode      Boolean    @default(false)
+  safeLaunchUntil     DateTime?
+  framework           String?
+  promotedFromAgentId String?
+  lastActiveAt        DateTime?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  environment         Environment @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+  owner               User?      @relation("AgentOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  keys                AgentKey[]
+  grants              Grant[]
+  approvalPolicies    ApprovalPolicy[]
+  approvalRequests    ApprovalRequest[]
+  delegationsParent   Delegation[] @relation("DelegationParent")
+  delegationsChild    Delegation[] @relation("DelegationChild")
+
+  @@index([environmentId])
+  @@index([ownerUserId])
+}
+
+model AgentKey {
+  id                  String    @id @default(cuid())
+  agentId             String
+  publicKey           String
+  encryptedPrivateKey String?
+  status              String    @default("active")
+  createdAt           DateTime  @default(now())
+  rotatedAt           DateTime?
+  retireAt            DateTime?
+  agent               Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+}
+
+model Credential {
+  id               String       @id @default(cuid())
+  environmentId    String
+  connectorSlug    String
+  name             String
+  type             String
+  encryptedPayload String
+  dataKeyEncrypted String
+  metadataJson     String       @default("{}")
+  maskedHint       String       @default("")
+  status           String       @default("healthy")
+  healthDetail     String?
+  expiresAt        DateTime?
+  lastUsedAt       DateTime?
+  createdBy        String?
+  revokedAt        DateTime?
+  createdAt        DateTime     @default(now())
+  environment      Environment  @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+  grants           Grant[]
+  approvalRequests ApprovalRequest[]
+  healthEvents     ConnectionHealthEvent[]
+
+  @@index([environmentId])
+  @@index([connectorSlug])
+}
+
+model ConnectionHealthEvent {
+  id           String     @id @default(cuid())
+  credentialId String
+  result       String
+  detail       String?
+  checkedAt    DateTime   @default(now())
+  credential   Credential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+
+  @@index([credentialId])
+}
+
+model Grant {
+  id                 String       @id @default(cuid())
+  environmentId      String
+  agentId            String
+  credentialId       String
+  actionsJson        String       @default("[]")
+  resourcePattern    String       @default("*")
+  conditionsJson     String       @default("{}")
+  approvalMode       String?
+  purpose            String?
+  expiresAt          DateTime?
+  createdBy          String?
+  createdAt          DateTime     @default(now())
+  environment        Environment  @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+  agent              Agent        @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  credential         Credential   @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  approvalRequests   ApprovalRequest[]
+
+  @@unique([agentId, credentialId])
+  @@index([environmentId])
+}
+
+model ApprovalPolicy {
+  id            String      @id @default(cuid())
+  environmentId String
+  agentId       String?
+  actionPattern String
+  mode          String
+  createdAt     DateTime    @default(now())
+  environment   Environment @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+  agent         Agent?      @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([environmentId, agentId])
+}
+
+model ApprovalRequest {
+  id                String      @id @default(cuid())
+  environmentId     String
+  agentId           String
+  grantId           String?
+  credentialId      String?
+  action            String
+  summary           String
+  payloadJson       String      @default("{}")
+  redactedJson      String      @default("{}")
+  risk              String      @default("write")
+  status            String      @default("pending")
+  decisionNote      String?
+  token             String      @unique
+  requestId         String
+  executionResult   String?
+  expiresAt         DateTime
+  decidedBy         String?
+  decidedAt         DateTime?
+  createdAt         DateTime    @default(now())
+  environment       Environment @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+  agent             Agent       @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  grant             Grant?      @relation(fields: [grantId], references: [id], onDelete: SetNull)
+  credential        Credential? @relation(fields: [credentialId], references: [id], onDelete: SetNull)
+
+  @@index([environmentId, status])
+  @@index([agentId])
+}
+
+model AuditEvent {
+  id             String      @id @default(cuid())
+  environmentId  String
+  seq            Int
+  timestamp      DateTime    @default(now())
+  actorType      String
+  actorId        String?
+  actorName      String
+  action         String
+  resourceType   String
+  resourceId     String?
+  outcome        String
+  requestId      String
+  ip             String?
+  agentId        String?
+  payloadSummary String      @default("{}")
+  chainJson      String      @default("[]")
+  prevHash       String
+  hash           String
+  environment    Environment @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+
+  @@unique([environmentId, seq])
+  @@index([environmentId, timestamp])
+  @@index([agentId])
+}
+
+model TokenBlocklist {
+  id        String   @id
+  agentId   String
+  expiresAt DateTime
+  revokedAt DateTime @default(now())
+}
+
+model WebhookEndpoint {
+  id            String      @id @default(cuid())
+  environmentId String
+  url           String
+  secret        String
+  eventsJson    String      @default("[]")
+  status        String      @default("active")
+  lastDeliveryAt DateTime?
+  createdAt     DateTime    @default(now())
+  environment   Environment @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+  deliveries    WebhookDelivery[]
+}
+
+model WebhookDelivery {
+  id          String          @id @default(cuid())
+  webhookId   String
+  eventId     String
+  event       String
+  payload     String
+  statusCode  Int?
+  attempt     Int             @default(1)
+  nextRetryAt DateTime?
+  deliveredAt DateTime?
+  error       String?
+  createdAt   DateTime        @default(now())
+  webhook     WebhookEndpoint @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+}
+
+model Promotion {
+  id          String    @id @default(cuid())
+  devAgentId  String
+  prodAgentId String?
+  orgId       String
+  diffJson    String    @default("{}")
+  readinessJson String  @default("{}")
+  approvedBy  String?
+  status      String    @default("pending")
+  createdAt   DateTime  @default(now())
+  rolledBackAt DateTime?
+}
+
+model PermissionChange {
+  id            String      @id @default(cuid())
+  environmentId String
+  agentId       String
+  credentialId  String?
+  actorId       String?
+  actorName     String
+  change        String
+  beforeJson    String      @default("{}")
+  afterJson     String      @default("{}")
+  createdAt     DateTime    @default(now())
+  environment   Environment @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+
+  @@index([environmentId, createdAt])
+}
+
+model UsageRecord {
+  id        String       @id @default(cuid())
+  orgId     String
+  metric    String
+  quantity  Int
+  period    String
+  createdAt DateTime     @default(now())
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, metric, period])
+}
+
+model Invoice {
+  id         String       @id @default(cuid())
+  orgId      String
+  number     String
+  amount     Int
+  currency   String
+  status     String
+  providerId String?
+  issuedAt   DateTime     @default(now())
+  org        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+}
+
+model AlertRule {
+  id            String      @id @default(cuid())
+  environmentId String
+  type          String
+  configJson    String      @default("{}")
+  channelsJson  String      @default("[]")
+  enabled       Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  environment   Environment @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String        @id @default(cuid())
+  orgId     String
+  userId    String?
+  type      String
+  title     String
+  body      String
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime      @default(now())
+  org       Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user      User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, createdAt])
+}
+
+model Delegation {
+  id             String      @id @default(cuid())
+  environmentId  String
+  parentAgentId  String
+  childAgentId   String
+  scopesJson     String      @default("[]")
+  restrictionsJson String    @default("{}")
+  depth          Int         @default(1)
+  purpose        String?
+  expiresAt      DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime    @default(now())
+  environment    Environment @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+  parent         Agent       @relation("DelegationParent", fields: [parentAgentId], references: [id], onDelete: Cascade)
+  child          Agent       @relation("DelegationChild", fields: [childAgentId], references: [id], onDelete: Cascade)
+
+  @@index([environmentId])
+}
+
+model IdempotencyRecord {
+  id            String      @id @default(cuid())
+  environmentId String
+  key           String
+  requestHash   String
+  statusCode    Int
+  responseJson  String
+  createdAt     DateTime    @default(now())
+  environment   Environment @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+
+  @@unique([environmentId, key])
+}
+
+model EndUser {
+  id             String    @id @default(cuid())
+  projectId      String
+  externalUserId String
+  email          String?
+  createdAt      DateTime  @default(now())
+  deletedAt      DateTime?
+  consents       Consent[]
+
+  @@unique([projectId, externalUserId])
+}
+
+model Consent {
+  id               String    @id @default(cuid())
+  endUserId        String
+  projectId        String
+  agentId          String
+  scopesJson       String    @default("[]")
+  consentTextVersion String
+  grantedAt        DateTime  @default(now())
+  expiresAt        DateTime?
+  revokedAt        DateTime?
+  ip               String?
+  userAgent        String?
+  endUser          EndUser   @relation(fields: [endUserId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+}

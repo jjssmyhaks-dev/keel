@@ -1,0 +1,16 @@
+{
+  "name": "@keel/cli",
+  "version": "1.0.0",
+  "description": "Command line interface for Keel — agents, vault, grants, approvals, calls and audit.",
+  "license": "MIT",
+  "homepage": "https://keel.dev/docs/cli",
+  "type": "commonjs",
+  "bin": { "keel": "dist/keel.js" },
+  "files": ["dist", "README.md"],
+  "engines": { "node": ">=20" },
+  "dependencies": { "@keel/sdk": "^1.0.0" },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}
