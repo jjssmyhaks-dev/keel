@@ -5,7 +5,7 @@ import { CtaSection } from "@/components/landing/cta-section";
 import { FooterSection } from "@/components/landing/footer-section";
 
 export const metadata: Metadata = {
-  title: "About — Keel",
+  title: "About",
   description: "Why we build identity and governance for autonomous software.",
 };
 

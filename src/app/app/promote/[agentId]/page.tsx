@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getContext } from "@/lib/session";
@@ -7,6 +8,8 @@ import { connector } from "@/lib/connectors";
 import { PageHeader, Panel, Notice, RiskBadge, relativeTime } from "@/components/app/ui";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Promote agent" };
 
 const ERROR_COPY: Record<string, string> = {
   permission: "Only owners and admins can promote agents to production.",

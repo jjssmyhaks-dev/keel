@@ -14,7 +14,7 @@ import { evaluatePolicy, envSettings, globMatch } from "@/lib/policy";
 import { executeAction } from "@/lib/proxy";
 import { createApprovalRequest } from "@/lib/approvals";
 import { auditEvent } from "@/lib/audit";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/rate-limit";
 import { sha256 } from "@/lib/crypto";
 import { serializeApproval } from "@/lib/serializers";
 import { appUrl } from "@/lib/email";
@@ -53,10 +53,13 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
         `No ${connectorDef.name} connection is available to this agent. Link one in the vault, then grant access.`,
       );
     }
+    if (credential.revokedAt || credential.status === "revoked") {
+      throw new ApiError(403, "credential_revoked", `The ${connectorDef.name} connection has been revoked. Link a new one before calling it.`);
+    }
 
     const settings = envSettings(auth.environment);
     const limit = settings.agentRateLimitPerMinute ?? 120;
-    const rate = checkRateLimit(`proxy:${auth.agent.id}`, limit);
+    const rate = await consumeRateLimit(`proxy:${auth.agent.id}`, limit);
     if (!rate.allowed) {
       throw new ApiError(429, "rate_limited", `Rate limit of ${limit} calls/minute reached for this agent.`);
     }
@@ -171,6 +174,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
         payloadSummary: {
           action: actionName,
           resource: body.resource,
+          credentialId: credential.id,
           risk: decision.risk,
           reason: decision.reason,
           source: decision.source,

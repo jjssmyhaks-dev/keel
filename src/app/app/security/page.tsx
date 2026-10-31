@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
@@ -11,6 +12,8 @@ import {
 import { PageHeader, Panel, Stat, StatusBadge, Notice, formatDate } from "@/components/app/ui";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Security" };
 
 const ALERT_TYPES = [
   { value: "call_spike", label: "Call spike", detail: "More calls than usual in a window." },
@@ -294,7 +297,7 @@ export default async function SecurityPage({
             <ul className="space-y-2 text-[11px] leading-relaxed text-black/55 dark:text-muted-foreground">
               <li>Master key → project key → per-credential data key.</li>
               <li>AES-256-GCM with authenticated encryption on every payload.</li>
-              <li>Secrets are injected at the edge; agent processes never receive them.</li>
+              <li>Secrets are injected inside the proxy; agent processes never receive them.</li>
               <li>Agent private keys are sealed with the same envelope when Keel-managed.</li>
               <li>Logs redact connector-specific fields before they are written.</li>
             </ul>

@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 
 const metrics = [
-  { value: 12847392, label: "Governed calls this month", sublabel: "across every environment" },
-  { value: 99.99, suffix: "%", label: "Token issuance availability", sublabel: "rolling 90 days" },
-  { value: 41, prefix: "<", suffix: "ms", label: "Policy + vault overhead", sublabel: "p95, excluding upstream" },
+  { value: 0, label: "Secrets exposed to agent processes", sublabel: "by design, not by policy" },
+  { value: 5, suffix: " min", label: "Default agent token lifetime", sublabel: "EdDSA, short-lived" },
+  { value: 15, suffix: " s", label: "Upstream call timeout", sublabel: "failures surface fast" },
 ];
 
 function AnimatedNumber({ end, prefix = "", suffix = "", decimals = 0 }: { end: number; prefix?: string; suffix?: string; decimals?: number }) {
@@ -149,14 +149,7 @@ function GridBackdrop() {
 
 export function MetricsSection() {
   const [visible, setVisible] = useState(false);
-  const [clock, setClock] = useState<Date | null>(null);
   const ref = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    setClock(new Date());
-    const t = setInterval(() => setClock(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(([e]) => e.isIntersecting && setVisible(true), { threshold: 0.1 });
@@ -172,11 +165,8 @@ export function MetricsSection() {
           <div className="lg:col-span-8">
             <div className="flex items-center gap-4 mb-6">
               <span className="flex items-center gap-2 px-3 py-1 bg-[#eca8d6]/15 text-[#8c3f72] text-[10px] font-mono uppercase tracking-widest">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#b0568f] live-dot" />
-                live
-              </span>
-              <span className="text-[11px] font-mono text-muted-foreground">
-                {clock ? `${clock.toLocaleTimeString("en-GB")} UTC` : ""}
+                <span className="w-1.5 h-1.5 rounded-full bg-[#b0568f]" />
+                by the numbers
               </span>
             </div>
             <h2
@@ -209,7 +199,6 @@ export function MetricsSection() {
               <div className="text-4xl md:text-5xl font-display tracking-tight mb-5 whitespace-nowrap">
                 <AnimatedNumber
                   end={metric.value}
-                  prefix={metric.prefix}
                   suffix={metric.suffix}
                   decimals={metric.suffix === "%" ? 2 : 0}
                 />
@@ -228,11 +217,10 @@ export function MetricsSection() {
             visible ? "opacity-100" : "opacity-0"
           }`}
         >
-          <span>agent.tokens_issued</span>
-          <span>proxy.decision_latency</span>
-          <span>approval.response_time</span>
-          <span>vault.refresh_jobs</span>
-          <span className="text-foreground">+ 38 more metrics</span>
+          <span>proxy.calls</span>
+          <span>policy.decisions</span>
+          <span>approval.decisions</span>
+          <span>audit.events</span>
         </div>
       </div>
     </section>

@@ -4,7 +4,7 @@ import { Navigation } from "@/components/landing/navigation";
 import { FooterSection } from "@/components/landing/footer-section";
 
 export const metadata: Metadata = {
-  title: "Contact — Keel",
+  title: "Contact",
   description: "Talk to the Keel team about agents, security reviews, billing or support.",
 };
 

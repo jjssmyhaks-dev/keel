@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Callout, DocsAside, DocsShell } from "@/components/docs/docs-shell";
 
 export const metadata: Metadata = {
-  title: "API reference — Keel",
+  title: "API reference",
   description: "REST API for agents, credentials, grants, approvals, audit and webhooks.",
 };
 

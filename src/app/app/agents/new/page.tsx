@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getContext } from "@/lib/session";
 import { createAgentAction } from "@/app/app/actions";
 import { PageHeader, Notice } from "@/components/app/ui";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "New agent" };
 
 export default async function NewAgentPage({
   searchParams,

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
@@ -5,6 +6,8 @@ import { CONNECTORS, connector } from "@/lib/connectors";
 import { PageHeader, Panel, Stat, StatusBadge, relativeTime, EmptyState, formatDate } from "@/components/app/ui";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Vault" };
 
 export default async function VaultPage({
   searchParams,
@@ -38,7 +41,7 @@ export default async function VaultPage({
       <PageHeader
         eyebrow="Vault · connections"
         title="The secret stays here."
-        description="Credentials are sealed with envelope encryption. Agents never see them — the proxy injects them at the edge, one call at a time."
+        description="Credentials are sealed with envelope encryption. Agents never see them — the proxy injects them, one call at a time."
         actions={
           <Link href="/app/vault/new" className="border border-black bg-black px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white hover:bg-[#eca8d6] hover:text-black">
             Add connection

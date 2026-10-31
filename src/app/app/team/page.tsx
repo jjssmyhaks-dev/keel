@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { getContext, ROLE_META, ROLES } from "@/lib/session";
 import { inviteMemberAction, changeRoleAction, removeMemberAction, cancelInvitationAction } from "@/app/app/actions";
@@ -5,6 +6,8 @@ import { ConfirmButton } from "@/components/app/confirm-button";
 import { PageHeader, Panel, Stat, Notice, EmptyState, relativeTime, formatDate } from "@/components/app/ui";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Team" };
 
 export default async function TeamPage({
   searchParams,

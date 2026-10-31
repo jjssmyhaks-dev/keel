@@ -3,7 +3,7 @@ import Link from "next/link";
 import { DocsAside, DocsShell } from "@/components/docs/docs-shell";
 
 export const metadata: Metadata = {
-  title: "TypeScript SDK — Keel docs",
+  title: "TypeScript SDK",
   description: "Typed client for Keel agents, vault, grants, approvals, proxy and audit.",
 };
 

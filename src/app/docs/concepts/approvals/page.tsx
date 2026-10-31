@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Callout, DocsAside, DocsShell } from "@/components/docs/docs-shell";
 
 export const metadata: Metadata = {
-  title: "Approvals — Keel docs",
+  title: "Approvals",
   description: "Human-in-the-loop decisions for risky agent actions, with signed links and safe execution.",
 };
 

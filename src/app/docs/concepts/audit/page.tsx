@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Callout, DocsAside, DocsShell } from "@/components/docs/docs-shell";
 
 export const metadata: Metadata = {
-  title: "Audit trail — Keel docs",
+  title: "Audit trail",
   description: "A tamper-evident, hash-chained record of every identity, permission, proxy and approval event.",
 };
 

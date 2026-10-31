@@ -3,21 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { CONNECTORS } from "@/lib/connectors";
 
-const connectors = [
-  { name: "Slack", slug: "slack", category: "Comms", actions: 14 },
-  { name: "GitHub", slug: "github", category: "Code", actions: 22 },
-  { name: "Gmail", slug: "gmail", category: "Email", actions: 9 },
-  { name: "Google Drive", slug: "google-drive", category: "Docs", actions: 11 },
-  { name: "Notion", slug: "notion", category: "Docs", actions: 8 },
-  { name: "Linear", slug: "linear", category: "PM", actions: 12 },
-  { name: "Stripe", slug: "stripe", category: "Finance", actions: 16 },
-  { name: "HubSpot", slug: "hubspot", category: "CRM", actions: 10 },
-  { name: "Salesforce", slug: "salesforce", category: "CRM", actions: 13 },
-  { name: "Jira", slug: "jira", category: "PM", actions: 15 },
-  { name: "OpenAI", slug: "openai", category: "LLM", actions: 4 },
-  { name: "Snowflake", slug: "snowflake", category: "Data", actions: 7 },
-];
+const totalActions = CONNECTORS.reduce((sum, c) => sum + c.actions.length, 0);
 
 const modes = [
   {
@@ -40,7 +28,7 @@ const modes = [
   },
 ];
 
-const slugs = ["slack", "github", "gmail", "stripe", "notion", "jira"];
+const slugs = CONNECTORS.map((c) => c.slug);
 
 export function ConnectorsSection() {
   const [visible, setVisible] = useState(false);
@@ -90,7 +78,7 @@ export function ConnectorsSection() {
         <div className="flex w-max animate-marquee gap-10 whitespace-nowrap">
           {[...Array(2)].map((_, dup) => (
             <div key={dup} className="flex gap-10" aria-hidden={dup === 1}>
-              {[...slugs, "salesforce", "snowflake", "hubspot", "openai", "linear", "drive"].map((slug) => (
+              {[...slugs, ...slugs].map((slug) => (
                 <span key={`${dup}-${slug}`} className="font-mono text-[11px] text-muted-foreground/50 flex items-center gap-2">
                   <span className="w-1 h-1 rounded-full bg-[#eca8d6]/60" />
                   {slug}
@@ -103,9 +91,10 @@ export function ConnectorsSection() {
 
       <div className="relative z-10 max-w-[1400px] mx-auto px-6 lg:px-12 mt-14">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {connectors.map((c, index) => (
-            <div
-              key={c.name}
+          {CONNECTORS.map((c, index) => (
+            <Link
+              key={c.slug}
+              href={`/docs/connectors/${c.slug}`}
               onMouseEnter={() => setHovered(index)}
               onMouseLeave={() => setHovered(null)}
               className={`group relative overflow-hidden border p-6 lg:p-7 transition-all duration-500 ${
@@ -122,11 +111,13 @@ export function ConnectorsSection() {
               >
                 {c.category}
               </span>
-              <div className="w-10 h-10 mb-10 flex items-center justify-center border border-foreground/15 font-display text-lg">
-                {c.name.charAt(0)}
+              <div className="w-10 h-10 mb-10 flex items-center justify-center border border-foreground/15 font-mono text-[11px]">
+                {c.mark}
               </div>
               <span className="font-medium block text-[15px]">{c.name}</span>
-              <span className="text-[11px] font-mono text-muted-foreground mt-1 block">{c.actions} actions</span>
+              <span className="text-[11px] font-mono text-muted-foreground mt-1 block">
+                {c.actions.length} actions · {c.version}
+              </span>
               <div className="absolute bottom-0 left-0 right-0 h-px bg-foreground/20 overflow-hidden">
                 <div
                   className={`h-full bg-foreground transition-all duration-500 ${
@@ -134,7 +125,7 @@ export function ConnectorsSection() {
                   }`}
                 />
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 
@@ -164,9 +155,9 @@ export function ConnectorsSection() {
         >
           <div className="flex flex-wrap gap-12">
             {[
-              { value: "40+", label: "connectors" },
-              { value: "OAuth 2.0", label: "with PKCE, built in" },
-              { value: "18", label: "manifest fields validated" },
+              { value: String(CONNECTORS.length), label: "connectors, all live" },
+              { value: String(totalActions), label: "governed actions" },
+              { value: "4", label: "risk levels enforced" },
             ].map((stat) => (
               <div key={stat.label} className="flex items-baseline gap-3">
                 <span className="text-3xl font-display">{stat.value}</span>

@@ -858,12 +858,12 @@ async function main() {
     { agent: atlas, connector: "openai", action: "openai.chat_completion", risk: "financial", resource: "gpt-4.1-mini", latency: 912 },
     { agent: atlas, connector: "github", action: "github.create_issue", risk: "write", resource: "acme/checkout#142", latency: 268 },
     { agent: concierge, connector: "slack", action: "slack.post_message", risk: "write", resource: "#support-billing", latency: 201 },
-    { agent: concierge, connector: "gmail", action: "gmail.read_message", risk: "read", resource: "18c2b7f9", latency: 244 },
+    { agent: concierge, connector: "google", action: "gmail.read_message", risk: "read", resource: "18c2b7f9", latency: 244 },
     { agent: concierge, connector: "hubspot", action: "hubspot.create_contact", risk: "write", resource: "contacts/5128491", latency: 322 },
     { agent: ledger, connector: "stripe", action: "stripe.list_charges", risk: "read", resource: "acct_northwind", latency: 176 },
     { agent: ledger, connector: "stripe", action: "stripe.create_refund", risk: "financial", resource: "acct_northwind", latency: 491 },
     { agent: atlasProd, connector: "slack", action: "slack.post_message", risk: "write", resource: "#research-launch", latency: 233 },
-    { agent: conciergeProd, connector: "gmail", action: "gmail.send_message", risk: "write", resource: "support@northwind.dev", latency: 512 },
+    { agent: conciergeProd, connector: "google", action: "gmail.send_message", risk: "write", resource: "support@northwind.dev", latency: 512 },
     { agent: atlasProd, connector: "stripe", action: "stripe.list_charges", risk: "read", resource: "acct_northwind", latency: 198 },
     { agent: scout, connector: "slack", action: "slack.post_message", risk: "write", resource: "#research-digest", latency: 209 },
   ];
@@ -894,6 +894,10 @@ async function main() {
   }
   events.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
+  const credentialByEnvConnector = new Map(
+    Object.values(credentials).map((credential) => [`${credential.env.id}:${credential.connectorSlug}`, credential.id]),
+  );
+
   for (const event of events) {
     const { item } = event;
     await auditEvent({
@@ -902,7 +906,7 @@ async function main() {
       actorId: item.agent.id,
       actorName: item.agent.name,
       action: "proxy.call",
-      resourceType: "connection",
+      resourceType: "connector",
       resourceId: item.connector,
       outcome: event.outcome as "allowed" | "approved" | "denied" | "error",
       agentId: item.agent.id,
@@ -917,6 +921,7 @@ async function main() {
       payloadSummary: {
         action: item.action,
         connector: item.connector,
+        credentialId: credentialByEnvConnector.get(`${event.env.id}:${item.connector}`),
         risk: item.risk,
         resource: item.resource,
         latencyMs: item.latency,

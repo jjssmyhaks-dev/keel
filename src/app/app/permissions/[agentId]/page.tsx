@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
@@ -8,6 +9,8 @@ import { ConfirmButton } from "@/components/app/confirm-button";
 import { PageHeader, Panel, StatusBadge, RiskBadge, Notice, relativeTime, formatDate } from "@/components/app/ui";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Permissions" };
 
 const ERROR_COPY: Record<string, string> = {
   permission: "Your role cannot change grants in this environment.",
@@ -308,7 +311,7 @@ export default async function PermissionEditorPage({
           <Panel title="How a call is evaluated" hint="In order" bodyClassName="p-4">
             <ol className="space-y-2.5 text-[11px] leading-relaxed text-black/60 dark:text-muted-foreground">
               {[
-                "Token signature and revocation are checked at the edge.",
+                "Token signature and revocation are checked on every call.",
                 "Agent must be active and the connection must not be revoked.",
                 "A grant must exist, and it must not be expired.",
                 "The action must be named in the grant (or covered by a wildcard).",

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
@@ -6,6 +7,8 @@ import { verifyAuditAction } from "@/app/app/actions";
 import { PageHeader, Panel, Stat, StatusBadge, RiskBadge, Notice, relativeTime, formatDate, EmptyState } from "@/components/app/ui";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Activity" };
 
 const PAGE_SIZE = 40;
 

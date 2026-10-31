@@ -3,7 +3,7 @@ import Link from "next/link";
 import { LegalShell } from "@/components/legal/legal-shell";
 
 export const metadata: Metadata = {
-  title: "Terms — Keel",
+  title: "Terms",
   description: "The agreement that governs your use of Keel, the hosted service and self-hosted deployments.",
 };
 
@@ -65,8 +65,7 @@ export default function TermsPage() {
       <p>
         Plans, included call volumes and overage rates are described on the{" "}
         <Link href="/pricing">pricing page</Link>, which forms part of these terms. Fees are billed in advance
-        monthly or annually. Indian customers are billed in INR through Razorpay with GST; other customers in USD
-        through Stripe.
+        monthly or annually. Indian customers are billed in INR with GST; other customers in USD.
       </p>
       <ul>
         <li>Overage is metered per proxied call and invoiced at the end of the billing period.</li>

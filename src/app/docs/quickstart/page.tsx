@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Callout, DocsAside, DocsShell } from "@/components/docs/docs-shell";
+import { demoLoginEnabled } from "@/lib/demo";
 
 export const metadata: Metadata = {
-  title: "Quickstart — Keel",
+  title: "Quickstart",
   description: "Register an agent, connect a provider, grant one action and make your first governed call.",
 };
 
@@ -29,11 +30,13 @@ export default function QuickstartPage() {
         />
       }
     >
-      <Callout title="Using the demo workspace">
-        The hosted demo ships with <code>demo@keel.dev</code> and the development key{" "}
-        <code>sk_dev_demo_northwind_2026</code>. The examples below work against it without registering anything. Do
-        not use demo keys in production.
-      </Callout>
+      {demoLoginEnabled() ? (
+        <Callout title="Using the demo workspace">
+          The hosted demo ships with <code>demo@keel.dev</code> and the development key{" "}
+          <code>sk_dev_demo_northwind_2026</code>. The examples below work against it without registering anything. Do
+          not use demo keys in production.
+        </Callout>
+      ) : null}
 
       <h2 id="install">1. Install and authenticate</h2>
       <p>

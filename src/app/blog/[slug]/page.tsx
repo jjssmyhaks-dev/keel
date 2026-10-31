@@ -13,7 +13,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const item = post(slug);
-  if (!item) return { title: "Blog — Keel" };
+  if (!item) return { title: "Blog" };
   return { title: `${item.title} — Keel`, description: item.description };
 }
 

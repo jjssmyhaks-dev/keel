@@ -1,11 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
 import { PLANS, formatPrice, planFor, OVERAGE } from "@/lib/plans";
 import { periodKey } from "@/lib/proxy";
 import { PageHeader, Panel, Stat, Notice, StatusBadge, formatDate } from "@/components/app/ui";
+import { requestPlanChangeAction } from "@/app/app/actions";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Billing" };
 
 function meter(used: number, limit: number) {
   if (limit < 0) return { pct: 0, label: "Unlimited", tone: "text-[#2f7d5c]" };
@@ -40,7 +44,9 @@ export default async function BillingPage({
   const agentMeter = meter(agentCount, plan.limits.agents);
   const credentialMeter = meter(credentialCount, plan.limits.credentials);
 
-  const upgradePlans = PLANS.filter((candidate) => candidate.key !== plan.key);
+  const upgradePlans = PLANS.filter(
+    (candidate) => PLANS.findIndex((entry) => entry.key === candidate.key) > PLANS.findIndex((entry) => entry.key === plan.key),
+  );
 
   return (
     <div>
@@ -56,6 +62,11 @@ export default async function BillingPage({
       />
 
       {query.error ? <Notice kind="error">Only the owner can change organization billing details.</Notice> : null}
+      {query.requested ? (
+        <Notice kind="ok">
+          Plan change requested. Billing will confirm by email — the current plan stays active until then.
+        </Notice>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Plan" value={plan.name} detail={`${formatPrice(plan, currency)} / month`} accent />
@@ -165,17 +176,33 @@ export default async function BillingPage({
 
           <Panel title="Change plan" hint="Upgrade or talk to sales" bodyClassName="p-0">
             <div className="divide-y divide-black/10 dark:divide-border">
-              {upgradePlans.map((candidate) => (
-                <Link key={candidate.key} href={candidate.key === "enterprise" ? "/contact" : "/pricing"} className="flex items-center gap-3 px-4 py-2.5 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[12px] font-medium">{candidate.name}</p>
-                    <p className="font-mono text-[9px] text-black/40 dark:text-muted-foreground">{formatPrice(candidate, currency)} / month</p>
-                  </div>
-                  <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/40 dark:text-muted-foreground">
-                    {candidate.key === "enterprise" ? "Contact" : "Choose"} →
-                  </span>
-                </Link>
-              ))}
+              {upgradePlans.map((candidate) =>
+                candidate.key === "enterprise" ? (
+                  <Link key={candidate.key} href="/contact" className="flex items-center gap-3 px-4 py-2.5 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[12px] font-medium">{candidate.name}</p>
+                      <p className="font-mono text-[9px] text-black/40 dark:text-muted-foreground">Custom pricing</p>
+                    </div>
+                    <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/40 dark:text-muted-foreground">
+                      Contact →
+                    </span>
+                  </Link>
+                ) : (
+                  <form key={candidate.key} action={requestPlanChangeAction} className="flex items-center gap-3 px-4 py-2 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
+                    <input type="hidden" name="plan" value={candidate.key} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[12px] font-medium">{candidate.name}</p>
+                      <p className="font-mono text-[9px] text-black/40 dark:text-muted-foreground">{formatPrice(candidate, currency)} / month</p>
+                    </div>
+                    <button
+                      type="submit"
+                      className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/45 underline-offset-2 hover:text-black hover:underline dark:text-muted-foreground dark:hover:text-foreground"
+                    >
+                      Request →
+                    </button>
+                  </form>
+                ),
+              )}
             </div>
           </Panel>
         </div>

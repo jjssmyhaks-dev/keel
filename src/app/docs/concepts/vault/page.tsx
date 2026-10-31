@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Callout, DocsAside, DocsShell } from "@/components/docs/docs-shell";
 
 export const metadata: Metadata = {
-  title: "Credential vault — Keel docs",
+  title: "Credential vault",
   description: "Envelope-encrypted credentials that agents can use but never read.",
 };
 
@@ -39,7 +39,7 @@ export default function VaultPage() {
             └─ AES-256-GCM(secret, data key)`}</pre>
       <p>
         Decryption happens only inside the proxy, in memory, immediately before a provider call. The plaintext is not
-        written to logs, audit events or approval payloads. Deleting a credential destroys its wrapped data key, which
+        written to logs, audit events or approval payloads. Revoking a credential destroys its wrapped data key, which
         makes the ciphertext unrecoverable even if a database backup survives.
       </p>
       <Callout title="Deployments and key custody">

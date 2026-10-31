@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
@@ -7,6 +8,8 @@ import { planFor } from "@/lib/plans";
 import { PageHeader, Stat, Panel, StatusBadge, RiskBadge, relativeTime, EmptyState } from "@/components/app/ui";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Overview" };
 
 export default async function OverviewPage() {
   const ctx = await getContext();

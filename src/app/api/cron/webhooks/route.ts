@@ -23,10 +23,22 @@ async function run(req: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  const now = Date.now();
   const retried = await retryPendingWebhooks(25);
-  const [challenges, counters] = await Promise.all([
-    db.challengeUse.deleteMany({ where: { usedAt: { lt: new Date(Date.now() - 24 * 60 * 60_000) } } }),
+  const [challenges, counters, blocklist, idempotency, loginTokens, deliveries] = await Promise.all([
+    db.challengeUse.deleteMany({ where: { usedAt: { lt: new Date(now - 24 * 60 * 60_000) } } }),
     pruneRateLimitCounters(),
+    db.tokenBlocklist.deleteMany({ where: { expiresAt: { lt: new Date(now) } } }),
+    db.idempotencyRecord.deleteMany({ where: { createdAt: { lt: new Date(now - 7 * 24 * 60 * 60_000) } } }),
+    db.loginToken.deleteMany({
+      where: {
+        OR: [
+          { expiresAt: { lt: new Date(now - 24 * 60 * 60_000) } },
+          { usedAt: { lt: new Date(now - 24 * 60 * 60_000) } },
+        ],
+      },
+    }),
+    db.webhookDelivery.deleteMany({ where: { createdAt: { lt: new Date(now - 30 * 24 * 60 * 60_000) } } }),
   ]);
 
   return NextResponse.json({
@@ -34,6 +46,10 @@ async function run(req: Request) {
     webhooks: retried,
     prunedChallenges: challenges.count,
     prunedRateLimits: counters.count,
+    prunedBlocklist: blocklist.count,
+    prunedIdempotency: idempotency.count,
+    prunedLoginTokens: loginTokens.count,
+    prunedDeliveries: deliveries.count,
   });
 }
 

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
@@ -9,11 +10,14 @@ import { PageHeader, Panel, StatusBadge, RiskBadge, Notice, relativeTime, format
 
 export const dynamic = "force-dynamic";
 
+export const metadata: Metadata = { title: "Connection" };
+
 const ERROR_COPY: Record<string, string> = {
   permission: "Your role cannot change connections in this environment.",
   production: "Only owners and admins can change production connections.",
   missing: "That connection no longer exists.",
   secret: "Paste a new secret before rotating.",
+  revoked: "This connection was revoked. Create a new one instead of rotating it.",
 };
 
 export default async function CredentialDetailPage({
@@ -50,9 +54,19 @@ export default async function CredentialDetailPage({
   const recentCalls = await db.auditEvent.findMany({
     where: {
       environmentId: ctx.environment.id,
-      resourceType: "credential",
-      resourceId: credential.id,
       action: "proxy.call",
+      OR: [
+        { payloadSummary: { contains: credential.id } },
+        ...(credential.grants.length
+          ? [
+              {
+                resourceType: { in: ["connector", "connection"] },
+                resourceId: credential.connectorSlug,
+                agentId: { in: credential.grants.map((grant) => grant.agent.id) },
+              },
+            ]
+          : []),
+      ],
     },
     orderBy: { seq: "desc" },
     take: 6,
@@ -114,11 +128,11 @@ export default async function CredentialDetailPage({
                 <div className="mt-2 space-y-2">
                   <div>
                     <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/35 dark:text-muted-foreground">Ciphertext</p>
-                    <p className="mt-0.5 break-all font-mono text-[10px] text-black/60 dark:text-muted-foreground">{credential.encryptedPayload.slice(0, 120)}…</p>
+                    <p className="mt-0.5 break-all font-mono text-[10px] text-black/60 dark:text-muted-foreground">{credential.encryptedPayload ? `${credential.encryptedPayload.slice(0, 120)}…` : "Destroyed on revocation"}</p>
                   </div>
                   <div>
                     <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/35 dark:text-muted-foreground">Wrapped data key</p>
-                    <p className="mt-0.5 break-all font-mono text-[10px] text-black/60 dark:text-muted-foreground">{credential.dataKeyEncrypted.slice(0, 120)}…</p>
+                    <p className="mt-0.5 break-all font-mono text-[10px] text-black/60 dark:text-muted-foreground">{credential.dataKeyEncrypted ? `${credential.dataKeyEncrypted.slice(0, 120)}…` : "Destroyed on revocation"}</p>
                   </div>
                 </div>
               </details>

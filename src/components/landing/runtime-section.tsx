@@ -4,11 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowRight } from "lucide-react";
 
 const components = [
-  { name: "Connector registry", detail: "Versioned manifests, staged rollouts, health" },
+  { name: "Connector registry", detail: "Versioned manifests, scopes, allowed hosts" },
   { name: "Policy hook", detail: "Grants, risk levels, approval routing" },
   { name: "Action executor", detail: "Schema validation, credential injection" },
   { name: "Response normalizer", detail: "Error mapping, field redaction" },
-  { name: "Rate limiter & queue", detail: "Per-credential limits, polite backoff" },
+  { name: "Rate limiter", detail: "Per-agent limits, enforced in Postgres" },
   { name: "Health monitor", detail: "Token validity, scope drift, broken links" },
 ];
 
@@ -16,7 +16,7 @@ const guarantees = [
   { k: "allow-list", v: "Only hosts declared in the connector manifest" },
   { k: "injection", v: "Secrets decrypted in memory, only for the executor" },
   { k: "redaction", v: "Configured fields never reach logs" },
-  { k: "retries", v: "429 and 5xx backoff with circuit breaking" },
+  { k: "timeouts", v: "15-second upstream limit; failures are surfaced, never swallowed" },
 ];
 
 function FlowDiagram() {
@@ -164,9 +164,9 @@ export function RuntimeSection() {
           >
             <FlowDiagram />
             <div className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-3 font-mono text-[10px] text-white/30">
-              <span>streaming pass-through</span>
+              <span>response normalization</span>
               <span>idempotency keys</span>
-              <span>circuit breakers</span>
+              <span>15s upstream timeout</span>
               <span className="text-[#eca8d6]/70">raw key reveal: off by default</span>
             </div>
           </div>

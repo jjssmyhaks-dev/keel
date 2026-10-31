@@ -3,17 +3,13 @@ import Link from "next/link";
 import { LegalShell } from "@/components/legal/legal-shell";
 
 export const metadata: Metadata = {
-  title: "Data processing agreement — Keel",
+  title: "Data processing agreement",
   description: "How Keel processes workspace data on your behalf, where it is stored, and who helps us run the service.",
 };
 
 const subprocessors = [
-  ["Amazon Web Services", "EU (Frankfurt), us-east-1", "Hosting, managed database, encrypted object storage", "GDPR, SCCs"],
-  ["Cloudflare", "Global edge", "DNS, DDoS protection, TLS termination", "SCCs"],
-  ["Paddle / Stripe", "EU, United States", "Subscription billing in USD", "SCCs, PCI DSS"],
-  ["Razorpay", "India", "Subscription billing in INR and GST invoicing", "India DPDP"],
-  ["Postmark", "United States", "Transactional email — sign-in, approvals, security alerts", "SCCs"],
-  ["Sentry", "EU", "Error tracking with request bodies disabled", "SCCs"],
+  ["Neon", "AWS ap-southeast-1 (Singapore)", "Application hosting, managed Postgres, encrypted backups", "GDPR, SCCs"],
+  ["Resend", "United States", "Transactional email — sign-in, approvals, security alerts", "SCCs"],
 ];
 
 export default function DpaPage() {

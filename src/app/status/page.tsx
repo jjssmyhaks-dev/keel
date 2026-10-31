@@ -8,7 +8,7 @@ import { FooterSection } from "@/components/landing/footer-section";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Status — Keel",
+  title: "Status",
   description: "Live status for the Keel control plane, proxy and audit pipeline.",
 };
 

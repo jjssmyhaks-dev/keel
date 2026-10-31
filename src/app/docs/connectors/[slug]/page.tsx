@@ -11,7 +11,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const def = connector(slug);
-  if (!def) return { title: "Connector — Keel docs" };
+  if (!def) return { title: "Connector" };
   return {
     title: `${def.name} connector — Keel docs`,
     description: def.description,

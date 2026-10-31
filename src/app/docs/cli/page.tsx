@@ -3,7 +3,7 @@ import Link from "next/link";
 import { DocsAside, DocsShell } from "@/components/docs/docs-shell";
 
 export const metadata: Metadata = {
-  title: "CLI — Keel docs",
+  title: "CLI",
   description: "Operate Keel from the terminal: agents, vault, grants, approvals, audit and promotion.",
 };
 

@@ -12,7 +12,7 @@ import { generateAgentIdentity, sha256, verifyAgentSignature } from "@/lib/crypt
 import { signAgentToken } from "@/lib/jwt";
 import { auditEvent } from "@/lib/audit";
 import { dispatchEvent } from "@/lib/webhooks";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/rate-limit";
 import { serializeAgent } from "@/lib/serializers";
 import { promoteAgent, previewPromotion } from "@/lib/promotion";
 
@@ -47,7 +47,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string; ac
       if (agent.status !== "active") {
         throw new ApiError(403, "agent_inactive", `Agent is ${agent.status} and cannot receive tokens.`);
       }
-      const limit = checkRateLimit(`token:${agent.id}`, 120);
+      const limit = await consumeRateLimit(`token:${agent.id}`, 120);
       if (!limit.allowed) throw new ApiError(429, "rate_limited", "Too many token requests for this agent.");
 
       const key = body.keyId

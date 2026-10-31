@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
@@ -5,6 +6,8 @@ import { CONNECTORS, connector, actionFor } from "@/lib/connectors";
 import { PageHeader, Panel, Stat, StatusBadge, EmptyState } from "@/components/app/ui";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Permissions" };
 
 export default async function PermissionsPage() {
   const ctx = await getContext();

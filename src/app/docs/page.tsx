@@ -4,7 +4,7 @@ import { ArrowUpRight } from "lucide-react";
 import { DocsAside, DocsShell } from "@/components/docs/docs-shell";
 
 export const metadata: Metadata = {
-  title: "Documentation — Keel",
+  title: "Documentation",
   description: "Give AI agents a short-lived identity, a credential vault they can use but never read, and permissions a human approved.",
 };
 

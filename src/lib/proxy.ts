@@ -157,6 +157,7 @@ export async function executeAction(opts: {
         payloadSummary: {
           action: action.name,
           resource: opts.resource,
+          credentialId: credential.id,
           error: error instanceof Error ? error.message : "upstream_failure",
           input: redacted,
         },
@@ -192,6 +193,7 @@ export async function executeAction(opts: {
     payloadSummary: {
       action: action.name,
       resource: opts.resource,
+      credentialId: credential.id,
       status: result.status,
       latencyMs: result.latencyMs,
       mock: result.mock,

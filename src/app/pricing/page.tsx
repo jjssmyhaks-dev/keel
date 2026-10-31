@@ -7,7 +7,7 @@ import { FooterSection } from "@/components/landing/footer-section";
 import { OVERAGE } from "@/lib/plans";
 
 export const metadata: Metadata = {
-  title: "Pricing — Keel",
+  title: "Pricing",
   description: "Simple usage-based pricing for agent identity, vault and governance. USD and INR.",
 };
 
@@ -26,7 +26,7 @@ const faqs = [
   },
   {
     q: "Can I pay in INR?",
-    a: "Yes. Indian customers pay through Razorpay with GST invoices. International customers pay through Stripe in USD.",
+    a: "Yes. Indian customers are invoiced in INR with GST; international customers in USD. Paid plans are activated once the invoice clears — request a change from Billing or email hello@keel.dev.",
   },
   {
     q: "What happens when I downgrade?",

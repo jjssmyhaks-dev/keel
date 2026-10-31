@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Callout, DocsAside, DocsShell } from "@/components/docs/docs-shell";
 
 export const metadata: Metadata = {
-  title: "Agent identity — Keel docs",
+  title: "Agent identity",
   description: "Ed25519 keypairs, short-lived EdDSA JWTs, revocation and delegation for AI agents.",
 };
 

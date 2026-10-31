@@ -3,7 +3,7 @@ import Link from "next/link";
 import { LegalShell } from "@/components/legal/legal-shell";
 
 export const metadata: Metadata = {
-  title: "Privacy — Keel",
+  title: "Privacy",
   description: "What Keel collects, why, how long we keep it, and the choices you have.",
 };
 
@@ -19,8 +19,10 @@ export default function PrivacyPage() {
       <h2 id="summary">The short version</h2>
       <p>
         We collect what is needed to run the service and nothing more. We do not sell data, we do not train models on
-        your traffic, and we do not read decrypted credentials. You can export or delete almost everything through the
-        dashboard or API, and deletion is real deletion — not a flag.
+        your traffic, and we do not read decrypted credentials. You can export your audit log and remove agents,
+        connections and API keys from the dashboard. Workspace and account deletion requests go to{" "}
+        <a href="mailto:legal@keel.dev">legal@keel.dev</a> and are completed within 30 days, including the associated
+        rows in live systems.
       </p>
 
       <h2 id="controller">Who is responsible</h2>
@@ -85,8 +87,9 @@ export default function PrivacyPage() {
         </tbody>
       </table>
       <p>
-        We do not collect payment card numbers. Card data is handled by Stripe or Razorpay and never reaches Keel
-        servers. Product analytics are aggregate and do not include prompt content, response bodies or credentials.
+        We do not collect payment card numbers. Where card payment is enabled, card data is handled by our payment
+        processor and never reaches Keel servers. Product analytics are aggregate and do not include prompt content,
+        response bodies or credentials.
       </p>
 
       <h2 id="credentials">A note on credentials and payloads</h2>
@@ -111,8 +114,8 @@ export default function PrivacyPage() {
 
       <h2 id="sharing">Who else sees it</h2>
       <p>
-        We share data with subprocessors that host and operate the service: cloud infrastructure, email delivery,
-        error tracking and payment processing. The current list, regions and purposes are in the{" "}
+        We share data with subprocessors that host and operate the service: cloud infrastructure, managed database
+        and email delivery. The current list, regions and purposes are in the{" "}
         <Link href="/legal/dpa#subprocessors">DPA subprocessor table</Link>. Each subprocessor is bound by written
         confidentiality and data-protection terms.
       </p>
@@ -124,7 +127,7 @@ export default function PrivacyPage() {
 
       <h2 id="transfers">International transfers</h2>
       <p>
-        The hosted service runs in the EU. Support and engineering access is global, restricted to named staff, and
+        The hosted service runs in Singapore. Support and engineering access is global, restricted to named staff, and
         logged. Transfers outside the EEA rely on the European Commission&apos;s Standard Contractual Clauses, with a
         transfer impact assessment available to customers on request. Self-hosted deployments keep all workspace
         data in your own infrastructure.

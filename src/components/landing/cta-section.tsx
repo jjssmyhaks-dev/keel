@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
-export function CtaSection() {
+export function CtaSection({ demoEnabled = false }: { demoEnabled?: boolean }) {
   const [visible, setVisible] = useState(false);
   const [mouse, setMouse] = useState({ x: 50, y: 50 });
   const ref = useRef<HTMLDivElement>(null);
@@ -70,9 +70,11 @@ export function CtaSection() {
                   Read the quickstart
                 </Link>
               </div>
-              <p className="text-[11px] text-muted-foreground mt-8 font-mono">
-                Or sign in with the demo workspace → demo@keel.dev
-              </p>
+              {demoEnabled ? (
+                <p className="text-[11px] text-muted-foreground mt-8 font-mono">
+                  Or sign in with the demo workspace → demo@keel.dev
+                </p>
+              ) : null}
             </div>
 
             <div className="lg:col-span-4 font-mono text-[10px] leading-[1.9] text-muted-foreground border-l border-foreground/10 pl-6 hidden lg:block">

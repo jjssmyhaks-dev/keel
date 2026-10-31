@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
@@ -8,6 +9,8 @@ import { PageHeader, Panel, StatusBadge, RiskBadge, Notice, relativeTime, format
 import { appUrl } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Approval" };
 
 const ERROR_COPY: Record<string, string> = {
   permission: "Only owners, admins and approvers can decide requests.",

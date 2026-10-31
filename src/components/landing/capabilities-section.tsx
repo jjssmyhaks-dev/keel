@@ -18,7 +18,7 @@ const capabilities = [
     title: "Vault",
     description:
       "Credentials are sealed with envelope encryption. Agents borrow access through the proxy and never see the raw value.",
-    detail: "AES-256-GCM · KMS-wrapped",
+    detail: "AES-256-GCM · envelope encryption",
   },
   {
     number: "03",

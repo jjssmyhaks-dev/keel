@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
@@ -5,6 +6,8 @@ import { markNotificationsReadAction } from "@/app/app/actions";
 import { PageHeader, Panel, EmptyState, relativeTime } from "@/components/app/ui";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Notifications" };
 
 const TYPE_LABEL: Record<string, string> = {
   approval: "Approval",

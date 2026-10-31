@@ -71,6 +71,9 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     if (body.status && ["healthy", "broken", "expiring"].includes(body.status)) data.status = body.status;
 
     const secretChanged = body.secret !== undefined;
+    if (secretChanged && credential.revokedAt) {
+      throw new ApiError(409, "credential_revoked", "This connection was revoked. Create a new one instead of rotating it.");
+    }
     if (secretChanged) {
       const incoming = body.secret;
       if (incoming === null || incoming === undefined) {
@@ -137,7 +140,12 @@ export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }
 
     const updated = await db.credential.update({
       where: { id: credential.id },
-      data: { revokedAt: new Date(), status: "revoked" },
+      data: {
+        revokedAt: new Date(),
+        status: "revoked",
+        encryptedPayload: "",
+        dataKeyEncrypted: "",
+      },
     });
 
     const id2 = requestId();

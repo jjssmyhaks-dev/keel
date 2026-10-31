@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Callout, DocsAside, DocsShell } from "@/components/docs/docs-shell";
 
 export const metadata: Metadata = {
-  title: "MCP server — Keel docs",
+  title: "MCP server",
   description: "Expose Keel-governed tools to Claude, Cursor and other MCP hosts.",
 };
 

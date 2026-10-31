@@ -11,6 +11,7 @@ import { decideApproval } from "@/lib/approvals";
 import { signAgentToken } from "@/lib/jwt";
 import { promoteAgent } from "@/lib/promotion";
 import { sendEmail, appUrl } from "@/lib/email";
+import { PLANS } from "@/lib/plans";
 
 function str(form: FormData, key: string) {
   return String(form.get(key) ?? "").trim();
@@ -361,6 +362,7 @@ export async function rotateCredentialAction(formData: FormData) {
     where: { id: credentialId, environmentId: ctx.environment.id },
   });
   if (!credential) redirect(`${back}?error=missing`);
+  if (credential.revokedAt) redirect(`${back}?error=revoked`);
   const secret = str(formData, "secret");
   if (!secret) redirect(`${back}?error=secret`);
 
@@ -410,7 +412,12 @@ export async function revokeCredentialAction(formData: FormData) {
   const meta = await orgActor(ctx);
   await db.credential.update({
     where: { id: credential.id },
-    data: { revokedAt: new Date(), status: "revoked" },
+    data: {
+      revokedAt: new Date(),
+      status: "revoked",
+      encryptedPayload: "",
+      dataKeyEncrypted: "",
+    },
   });
   await auditEvent({
     environmentId: ctx.environment.id,
@@ -895,6 +902,49 @@ export async function updateOrganizationAction(formData: FormData) {
   redirect("/app/settings?saved=1");
 }
 
+export async function requestPlanChangeAction(formData: FormData) {
+  const ctx = await getContext();
+  if (!ctx.capabilities.manageBilling) redirect("/app/billing?error=permission");
+  const planKey = str(formData, "plan");
+  const plan = PLANS.find((candidate) => candidate.key === planKey && candidate.key !== "enterprise");
+  if (!plan) redirect("/app/billing?error=plan");
+
+  const meta = await orgActor(ctx);
+  await db.notification.create({
+    data: {
+      orgId: ctx.org.id,
+      type: "billing",
+      title: `Plan change requested: ${plan.name}`,
+      body: `${ctx.user.name} requested a move from ${ctx.org.plan} to ${plan.name}. Billing will confirm by email.`,
+      href: "/app/billing",
+    },
+  });
+  await auditEvent({
+    environmentId: ctx.environment.id,
+    actorType: "human",
+    actorId: meta.actorId,
+    actorName: meta.actorName,
+    action: "billing.plan_requested",
+    resourceType: "organization",
+    resourceId: ctx.org.id,
+    outcome: "recorded",
+    ip: meta.ip,
+    payloadSummary: { from: ctx.org.plan, to: plan.key, billingEmail: ctx.org.billingEmail ?? ctx.user.email },
+  });
+
+  const to = ctx.org.billingEmail || ctx.user.email;
+  await sendEmail({
+    to,
+    subject: `Keel plan change requested — ${plan.name}`,
+    text: `Hi ${ctx.user.name},\n\nWe received a request to move ${ctx.org.name} from ${ctx.org.plan} to ${plan.name}. A member of the billing team will reply to confirm pricing and activation.\n\nCurrent workspace: ${appUrl("/app/billing")}\n\n— Keel`,
+    html: `<p>Hi ${ctx.user.name},</p><p>We received a request to move <strong>${ctx.org.name}</strong> from ${ctx.org.plan} to <strong>${plan.name}</strong>. A member of the billing team will reply to confirm pricing and activation.</p><p><a href="${appUrl("/app/billing")}">Open billing</a></p><p>— Keel</p>`,
+  }).catch(() => null);
+
+  revalidatePath("/app/billing");
+  revalidatePath("/app/notifications");
+  redirect(`/app/billing?requested=${plan.key}`);
+}
+
 export async function updateProjectAction(formData: FormData) {
   const ctx = await getContext();
   if (!ctx.capabilities.manageSecurity) redirect("/app/settings?error=permission");
@@ -951,7 +1001,21 @@ export async function verifyAuditAction(formData: FormData) {
   const back = str(formData, "back") || "/app/activity";
   const { verifyAuditChain } = await import("@/lib/audit");
   const result = await verifyAuditChain(ctx.environment.id);
+  const meta = await requestMeta();
+  await auditEvent({
+    environmentId: ctx.environment.id,
+    actorType: "human",
+    actorId: ctx.user.id,
+    actorName: ctx.user.name,
+    action: "audit.verified",
+    resourceType: "environment",
+    resourceId: ctx.environment.id,
+    outcome: result.valid ? "recorded" : "error",
+    ip: meta.ip,
+    payloadSummary: { checked: result.checked, valid: result.valid },
+  });
   revalidatePath(back);
+  revalidatePath("/app/security");
   redirect(`${back}?verified=${result.valid ? "ok" : "broken"}&checked=${result.checked}`);
 }
 

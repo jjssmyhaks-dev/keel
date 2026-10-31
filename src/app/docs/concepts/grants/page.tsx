@@ -3,7 +3,7 @@ import Link from "next/link";
 import { DocsAside, DocsShell } from "@/components/docs/docs-shell";
 
 export const metadata: Metadata = {
-  title: "Grants — Keel docs",
+  title: "Grants",
   description: "Scope an agent to specific connector actions, resources, conditions and approval modes.",
 };
 

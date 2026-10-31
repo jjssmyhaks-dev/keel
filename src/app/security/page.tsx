@@ -4,7 +4,7 @@ import { Navigation } from "@/components/landing/navigation";
 import { FooterSection } from "@/components/landing/footer-section";
 
 export const metadata: Metadata = {
-  title: "Security — Keel",
+  title: "Security",
   description: "How Keel protects agent identity, credentials, approvals and the audit trail.",
 };
 
@@ -111,16 +111,16 @@ export default function SecurityPage() {
           <div>
             <p className="mono-label text-foreground/40 mb-3">Data residency</p>
             <p className="text-[13px] leading-relaxed text-foreground/60">
-              The hosted service currently runs in the EU (Frankfurt) with encrypted backups in a second EU region.
-              Enterprise deployments can choose a region; self-hosted deployments run entirely in your infrastructure.
+              The hosted service currently runs in Singapore (ap-southeast-1) on Neon Postgres, with encrypted backups
+              in the same region. Enterprise deployments can choose a region; self-hosted deployments run entirely in
+              your infrastructure.
             </p>
           </div>
           <div>
             <p className="mono-label text-foreground/40 mb-3">Incident response</p>
             <p className="text-[13px] leading-relaxed text-foreground/60">
               Confirmed customer-impacting incidents are acknowledged within one hour and updated at least every four
-              hours. Post-incident reviews are written for every Sev-1 and shared with affected customers.
-            </p>
+              hours. Post-incident reviews are written for every Sev-1 and shared with affected customers.            </p>
           </div>
         </div>
       </section>

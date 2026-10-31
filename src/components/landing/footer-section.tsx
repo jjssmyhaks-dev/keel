@@ -33,9 +33,9 @@ const footerLinks = {
 };
 
 const socials = [
-  { name: "GitHub", href: "https://github.com" },
-  { name: "X", href: "https://x.com" },
-  { name: "LinkedIn", href: "https://linkedin.com" },
+  { name: "GitHub", href: "https://github.com/jjssmyhaks-dev/keel" },
+  { name: "Status", href: "/status" },
+  { name: "Security", href: "/security" },
 ];
 
 function Horizon() {

@@ -12,6 +12,7 @@ import { MetricsSection } from "@/components/landing/metrics-section";
 import { PricingSection } from "@/components/landing/pricing-section";
 import { CtaSection } from "@/components/landing/cta-section";
 import { FooterSection } from "@/components/landing/footer-section";
+import { demoLoginEnabled } from "@/lib/demo";
 
 export const metadata: Metadata = {
   title: "Keel — Identity, vault and governance for AI agents",
@@ -33,7 +34,7 @@ export default function LandingPage() {
       <DevelopersSection />
       <MetricsSection />
       <PricingSection />
-      <CtaSection />
+      <CtaSection demoEnabled={demoLoginEnabled()} />
       <FooterSection />
     </main>
   );

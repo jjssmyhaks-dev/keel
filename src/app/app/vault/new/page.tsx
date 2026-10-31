@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getContext } from "@/lib/session";
 import { CONNECTORS, connector, type AuthMethod } from "@/lib/connectors";
@@ -5,6 +6,8 @@ import { createCredentialAction } from "@/app/app/actions";
 import { PageHeader, Notice } from "@/components/app/ui";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "New connection" };
 
 const ERROR_COPY: Record<string, string> = {
   connector: "Pick a service to connect.",
@@ -35,7 +38,7 @@ export default async function NewConnectionPage({
         <PageHeader
           eyebrow="Vault · add connection"
           title="Pick a service."
-          description="Each connection is sealed individually. Agents never receive the secret — the proxy injects it at the edge for allowed calls only."
+          description="Each connection is sealed individually. Agents never receive the secret — the proxy injects it for allowed calls only."
           actions={
             <Link href="/app/vault" className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card">
               Back to vault

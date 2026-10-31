@@ -5,7 +5,7 @@ import { FooterSection } from "@/components/landing/footer-section";
 import { POSTS } from "@/lib/blog";
 
 export const metadata: Metadata = {
-  title: "Blog — Keel",
+  title: "Blog",
   description: "Notes on agent identity, governance and audit from the Keel team.",
 };
 

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
@@ -6,6 +7,8 @@ import { connector } from "@/lib/connectors";
 import { PageHeader, Panel, Stat, StatusBadge, RiskBadge, TabLinks, EmptyState, relativeTime, formatDate } from "@/components/app/ui";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Approvals" };
 
 const TABS = ["pending", "approved", "denied", "expired", "all"] as const;
 

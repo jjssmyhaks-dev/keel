@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
 import { PageHeader, Panel, StatusBadge, TabLinks, relativeTime, EmptyState, Notice } from "@/components/app/ui";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Agents" };
 
 export default async function AgentsPage({
   searchParams,

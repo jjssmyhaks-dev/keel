@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Callout, DocsAside, DocsShell } from "@/components/docs/docs-shell";
 
 export const metadata: Metadata = {
-  title: "Environments and promotion — Keel docs",
+  title: "Environments and promotion",
   description: "Keep development and production isolated, then promote a tested agent with a reviewed grant diff.",
 };
 

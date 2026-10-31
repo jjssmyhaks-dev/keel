@@ -4,15 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import { Lock, KeyRound, ShieldCheck, Timer, EyeOff, GitBranch, Globe2, ScrollText } from "lucide-react";
 
 const features = [
-  { icon: KeyRound, title: "Envelope encryption", body: "Every secret has its own data key. Project keys wrap data keys. A KMS master key wraps project keys." },
-  { icon: Timer, title: "Five-minute tokens", body: "Agent tokens expire by default. Revocation is cached at the edge so a killed agent stays dead." },
+  { icon: KeyRound, title: "Envelope encryption", body: "Every secret has its own data key. Project keys wrap data keys. A master key from your secret manager wraps project keys." },
+  { icon: Timer, title: "Five-minute tokens", body: "Agent tokens expire by default, and every request checks the shared blocklist, so a killed agent stays dead." },
   { icon: EyeOff, title: "No raw reveal", body: "The vault shows a masked last-four and nothing else. Raw key reveal is opt-in, admin-approved and audited." },
   { icon: GitBranch, title: "Hash-chained log", body: "Each audit event commits the hash of the one before it. Verify any window and detect tampering." },
   { icon: Globe2, title: "Host allow-lists", body: "Credentials only travel to hosts declared in the connector manifest. No arbitrary exfiltration." },
-  { icon: ScrollText, title: "Retention policy", body: "7 days on free, 90 on growth, custom on enterprise. Export to CSV, JSON or your SIEM." },
+  { icon: ScrollText, title: "Retention policy", body: "7 days on free, 90 on Pro, a year on Scale, custom on enterprise. Export to CSV or JSONL, or stream via webhooks." },
 ];
 
-const controls = ["SOC 2 controls", "GDPR", "India DPDP", "ISO 27001"];
+const controls = ["SOC 2-aligned controls", "GDPR", "India DPDP", "Audit export"];
 
 export function SecuritySection() {
   const [visible, setVisible] = useState(false);

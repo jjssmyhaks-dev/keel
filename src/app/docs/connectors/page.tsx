@@ -5,7 +5,7 @@ import { DocsShell } from "@/components/docs/docs-shell";
 import { CONNECTORS } from "@/lib/connectors";
 
 export const metadata: Metadata = {
-  title: "Connectors — Keel docs",
+  title: "Connectors",
   description: "The integrations Keel governs, with exact actions, risk levels and scopes.",
 };
 

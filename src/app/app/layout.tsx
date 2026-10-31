@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
 import { AppShell } from "@/components/app/app-shell";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: { default: "Dashboard", template: "%s · Keel" },
+  robots: { index: false, follow: false },
+};
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const ctx = await getContext();
