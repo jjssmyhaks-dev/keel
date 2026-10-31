@@ -140,7 +140,7 @@ export function SecuritySection() {
           </span>
           <span className="flex items-center gap-2 font-mono text-[11px]">
             <ShieldCheck className="w-4 h-4 text-[#b0568f]" />
-            status.keel.dev · all systems operational
+            status page · all systems operational
           </span>
         </div>
       </div>

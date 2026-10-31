@@ -175,7 +175,7 @@ export function FooterSection() {
               <span className="w-2 h-2 rounded-full bg-[#eca8d6]" />
               All systems operational
             </span>
-            <span className="font-mono text-[11px]">Mumbai · London · Ashburn</span>
+            <span className="font-mono text-[11px]">Bengaluru · Singapore</span>
           </div>
         </div>
       </div>

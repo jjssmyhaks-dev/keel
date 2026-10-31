@@ -176,7 +176,7 @@ export function HeroSection() {
           {[
             { value: "5 min", label: "to your first authenticated call" },
             { value: "300s", label: "agent token lifetime, by default" },
-            { value: "<50 ms", label: "policy + vault overhead at p95" },
+            { value: "15s", label: "upstream call timeout" },
           ].map((stat) => (
             <div key={stat.label} className="flex flex-col gap-1.5">
               <span className="text-2xl lg:text-4xl font-display text-white">{stat.value}</span>

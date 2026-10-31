@@ -172,7 +172,7 @@ export function PricingSection({ standalone = false }: { standalone?: boolean })
             </span>
             <span className="flex items-center gap-2">
               <Check className="w-3.5 h-3.5 text-[#b0568f]" />
-              Stripe and Razorpay
+              USD and INR billing
             </span>
             <span className="flex items-center gap-2">
               <Check className="w-3.5 h-3.5 text-[#b0568f]" />
