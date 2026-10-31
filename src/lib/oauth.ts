@@ -1,4 +1,4 @@
-type Provider = "google" | "github";
+export type Provider = "google" | "github";
 
 type ProviderConfig = {
   clientId: string;
@@ -34,6 +34,10 @@ export function providerConfig(provider: string): ProviderConfig | null {
     };
   }
   return null;
+}
+
+export function configuredProviders(): Provider[] {
+  return (["google", "github"] as const).filter((provider) => providerConfig(provider) !== null);
 }
 
 export const OAuthCookie = {

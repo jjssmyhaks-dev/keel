@@ -7,9 +7,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { OAuthButtons } from "../oauth-buttons";
+import type { Provider } from "@/lib/oauth";
 import { signUpAction, type FormState } from "../actions";
 
-export function SignUpForm({ plan, next }: { plan?: string; next?: string }) {
+export function SignUpForm({
+  plan,
+  next,
+  providers,
+}: {
+  plan?: string;
+  next?: string;
+  providers: Provider[];
+}) {
   const [state, action, pending] = useActionState<FormState, FormData>(signUpAction, {});
 
   return (
@@ -31,13 +40,17 @@ export function SignUpForm({ plan, next }: { plan?: string; next?: string }) {
         </div>
       )}
 
-      <OAuthButtons mode="sign-up" />
+      {providers.length > 0 && (
+        <>
+          <OAuthButtons providers={providers} />
 
-      <div className="my-6 flex items-center gap-3">
-        <span className="h-px flex-1 bg-foreground/10" />
-        <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">or with email</span>
-        <span className="h-px flex-1 bg-foreground/10" />
-      </div>
+          <div className="my-6 flex items-center gap-3">
+            <span className="h-px flex-1 bg-foreground/10" />
+            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">or with email</span>
+            <span className="h-px flex-1 bg-foreground/10" />
+          </div>
+        </>
+      )}
 
       <form action={action} className="space-y-4">
         <input type="hidden" name="next" value={next || ""} />

@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { demoLoginEnabled } from "@/lib/demo";
+import { configuredProviders } from "@/lib/oauth";
 import { SignInForm } from "./sign-in-form";
 
 export const metadata: Metadata = { title: "Sign in" };
 
 const notices: Record<string, string> = {
   "password-reset": "Password updated. Sign in with your new password.",
-  "oauth-not-configured": "Google and GitHub sign-in are not configured on this deployment. Use your email and password or a magic link.",
+  "oauth-not-configured": "That sign-in method is not configured on this deployment. Use your email and password or a magic link.",
   "oauth-cancelled": "Sign-in was cancelled.",
   "oauth-state": "That sign-in attempt could not be verified. Please try again.",
   "oauth-failed": "We could not complete the provider sign-in. Try another method.",
@@ -29,7 +30,7 @@ export default async function SignInPage({
           {notices[notice]}
         </div>
       )}
-      <SignInForm next={next} demoEnabled={demoLoginEnabled()} />
+      <SignInForm next={next} demoEnabled={demoLoginEnabled()} providers={configuredProviders()} />
     </div>
   );
 }
