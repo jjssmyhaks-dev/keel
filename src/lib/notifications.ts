@@ -8,15 +8,27 @@ export async function notify(opts: {
   body: string;
   href?: string;
 }) {
-  await db.notification.create({
-    data: {
-      orgId: opts.orgId,
-      userId: opts.userId ?? null,
-      type: opts.type,
-      title: opts.title,
-      body: opts.body,
-      href: opts.href,
-    },
+  const base = {
+    orgId: opts.orgId,
+    type: opts.type,
+    title: opts.title,
+    body: opts.body,
+    href: opts.href,
+  };
+  if (opts.userId) {
+    await db.notification.create({ data: { ...base, userId: opts.userId } });
+    return;
+  }
+  const members = await db.membership.findMany({
+    where: { orgId: opts.orgId },
+    select: { userId: true },
+  });
+  if (!members.length) {
+    await db.notification.create({ data: { ...base, userId: null } });
+    return;
+  }
+  await db.notification.createMany({
+    data: members.map((member) => ({ ...base, userId: member.userId })),
   });
 }
 

@@ -14,7 +14,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const ctx = await getContext();
   const [pendingApprovals, unreadNotifications] = await Promise.all([
     db.approvalRequest.count({ where: { environmentId: ctx.environment.id, status: "pending", expiresAt: { gt: new Date() } } }),
-    db.notification.count({ where: { orgId: ctx.org.id, userId: ctx.user.id, readAt: null } }),
+    db.notification.count({
+      where: { orgId: ctx.org.id, readAt: null, OR: [{ userId: ctx.user.id }, { userId: null }] },
+    }),
   ]);
 
   return (

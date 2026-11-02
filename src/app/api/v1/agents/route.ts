@@ -66,10 +66,10 @@ export async function POST(req: Request) {
     }
     if (name.length < 2) throw new ApiError(422, "invalid_name", "Agent name must be at least 2 characters.");
     if (ctx.environment.type === "production") {
-      const access = productionAccess(ctx.organization.plan);
+      const access = productionAccess(ctx.organization.plan, ctx.organization.planStatus);
       if (!access.allowed) throw new ApiError(402, "plan_required", access.message);
     }
-    const quota = await checkPlanLimit(ctx.organization.id, "agents", ctx.organization.plan);
+    const quota = await checkPlanLimit(ctx.organization.id, "agents", ctx.organization.plan, ctx.organization.planStatus);
     if (!quota.allowed) {
       throw new ApiError(402, "plan_limit_reached", quota.message, {
         used: quota.used,

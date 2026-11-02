@@ -15,19 +15,24 @@ export default async function OverviewPage() {
   const ctx = await getContext();
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-  const [agents, credentials, pending, recent, monthUsage, dayEvents] = await Promise.all([
+  const [agents, totalAgents, activeAgents, credentials, pending, pendingCount, recent, monthUsage, dayEvents] = await Promise.all([
     db.agent.findMany({
       where: { environmentId: ctx.environment.id },
       include: { grants: true },
       orderBy: { lastActiveAt: "desc" },
       take: 6,
     }),
+    db.agent.count({ where: { environmentId: ctx.environment.id } }),
+    db.agent.count({ where: { environmentId: ctx.environment.id, status: "active" } }),
     db.credential.findMany({ where: { environmentId: ctx.environment.id } }),
     db.approvalRequest.findMany({
       where: { environmentId: ctx.environment.id, status: "pending", expiresAt: { gt: new Date() } },
       include: { agent: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
       take: 4,
+    }),
+    db.approvalRequest.count({
+      where: { environmentId: ctx.environment.id, status: "pending", expiresAt: { gt: new Date() } },
     }),
     db.auditEvent.findMany({
       where: { environmentId: ctx.environment.id },
@@ -47,7 +52,6 @@ export default async function OverviewPage() {
   const usedCalls = monthUsage?.quantity ?? 0;
   const callLimit = plan.limits.callsPerMonth;
   const callPercent = callLimit > 0 ? Math.min(100, Math.round((usedCalls / callLimit) * 100)) : 0;
-  const activeAgents = agents.filter((agent) => agent.status === "active").length;
   const broken = credentials.filter((c) => c.status === "broken" || c.status === "expiring" || (c.expiresAt && c.expiresAt < new Date(Date.now() + 3 * 86400_000)));
   const unverified = credentials.filter((c) => !c.revokedAt && c.status === "unverified").length;
 
@@ -68,8 +72,8 @@ export default async function OverviewPage() {
         eyebrow={`${ctx.environment.type === "production" ? "Production" : "Development"} · ${new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}`}
         title={`${greeting}, ${firstName}.`}
         description={
-          pending.length
-            ? `${pending.length} approval${pending.length === 1 ? "" : "s"} are waiting on a human decision. Everything else is moving.`
+          pendingCount
+            ? `${pendingCount} approval${pendingCount === 1 ? "" : "s"} are waiting on a human decision. Everything else is moving.`
             : "The fleet is quiet. Every call is attributed, and every credential stays in the vault."
         }
         actions={
@@ -78,7 +82,7 @@ export default async function OverviewPage() {
               href="/app/approvals"
               className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card"
             >
-              Approvals {pending.length ? `(${pending.length})` : ""}
+              Approvals {pendingCount ? `(${pendingCount})` : ""}
             </Link>
             <Link
               href="/app/agents/new"
@@ -91,10 +95,10 @@ export default async function OverviewPage() {
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Active agents" value={activeAgents} detail={`${agents.length} identities in this environment`} accent />
+        <Stat label="Active agents" value={activeAgents} detail={`${totalAgents} identit${totalAgents === 1 ? "y" : "ies"} in this environment`} accent />
         <Stat label="Calls this month" value={usedCalls.toLocaleString("en-IN")} detail={callLimit > 0 ? `${callPercent}% of ${callLimit.toLocaleString("en-IN")} included` : "Unlimited"} />
         <Stat label="Connections" value={credentials.filter((c) => !c.revokedAt).length} detail={broken.length ? `${broken.length} need attention` : unverified ? `${unverified} unverified` : "All verified"} />
-        <Stat label="Pending approvals" value={pending.length} detail={pending.length ? "Oldest needs a decision" : "Nothing waiting"} />
+        <Stat label="Pending approvals" value={pendingCount} detail={pendingCount ? "Oldest needs a decision" : "Nothing waiting"} />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.55fr_1fr]">

@@ -46,17 +46,35 @@ async function usedFor(orgId: string, kind: LimitKind) {
   }
 }
 
+const ACTIVE_STATUSES = new Set(["active", "trialing"]);
+
+export function isBillingActive(planStatus?: string | null) {
+  return !planStatus || ACTIVE_STATUSES.has(planStatus);
+}
+
+export function effectivePlan(planKey: string, planStatus?: string | null) {
+  if (!isBillingActive(planStatus) && planFor(planKey).production) return planFor("free");
+  return planFor(planKey);
+}
+
 export async function checkPlanLimit(
   orgId: string,
   kind: LimitKind,
   knownPlan?: string,
+  knownPlanStatus?: string,
 ): Promise<LimitCheck> {
   let planKey = knownPlan;
-  if (!planKey) {
-    const org = await db.organization.findUnique({ where: { id: orgId }, select: { plan: true } });
-    planKey = org?.plan ?? "free";
+  let planStatus = knownPlanStatus;
+  if (!planKey || planStatus === undefined) {
+    const org = await db.organization.findUnique({
+      where: { id: orgId },
+      select: { plan: true, planStatus: true },
+    });
+    planKey = planKey ?? org?.plan ?? "free";
+    planStatus = planStatus ?? org?.planStatus ?? "active";
   }
-  const plan = planFor(planKey);
+  const suspended = !isBillingActive(planStatus) && planFor(planKey).production;
+  const plan = suspended ? planFor("free") : planFor(planKey);
   const limit =
     kind === "agents"
       ? plan.limits.agents
@@ -75,13 +93,24 @@ export async function checkPlanLimit(
     planName: plan.name,
     message: allowed
       ? ""
-      : `The ${plan.name} plan includes ${limit.toLocaleString("en-IN")} ${NOUN[kind]}. ${used.toLocaleString("en-IN")} ${
-          used === 1 ? "is" : "are"
-        } already in use — upgrade the workspace to raise the limit.`,
+      : suspended
+        ? `Billing is ${planStatus}, so ${plan.name} limits apply: ${limit.toLocaleString("en-IN")} ${NOUN[kind]} with ${
+            used.toLocaleString("en-IN")
+          } in use. Update billing to restore the paid allowance.`
+        : `The ${plan.name} plan includes ${limit.toLocaleString("en-IN")} ${NOUN[kind]}. ${used.toLocaleString("en-IN")} ${
+            used === 1 ? "is" : "are"
+          } already in use — upgrade the workspace to raise the limit.`,
   };
 }
 
-export function productionAccess(planKey: string) {
+export function productionAccess(planKey: string, planStatus?: string | null) {
+  if (!isBillingActive(planStatus)) {
+    return {
+      allowed: false,
+      plan: planFor(planKey).key,
+      message: `Production writes are suspended while billing is ${planStatus}. Update billing to restore access.`,
+    };
+  }
   const plan = planFor(planKey);
   return {
     allowed: plan.production,
@@ -93,6 +122,9 @@ export function productionAccess(planKey: string) {
 }
 
 export async function productionAccessFor(orgId: string) {
-  const org = await db.organization.findUnique({ where: { id: orgId }, select: { plan: true } });
-  return productionAccess(org?.plan ?? "free");
+  const org = await db.organization.findUnique({
+    where: { id: orgId },
+    select: { plan: true, planStatus: true },
+  });
+  return productionAccess(org?.plan ?? "free", org?.planStatus);
 }

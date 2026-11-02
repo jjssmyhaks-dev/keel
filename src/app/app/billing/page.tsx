@@ -3,6 +3,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
 import { PLANS, formatPrice, planFor } from "@/lib/plans";
+import { effectivePlan, isBillingActive } from "@/lib/limits";
 import { periodKey } from "@/lib/proxy";
 import { priceIdFor, stripeConfigured } from "@/lib/stripe";
 import { PageHeader, Panel, Stat, Notice, StatusBadge, formatDate } from "@/components/app/ui";
@@ -29,7 +30,9 @@ export default async function BillingPage({
 }) {
   const ctx = await getContext();
   const query = await searchParams;
-  const plan = planFor(ctx.org.plan);
+  const subscribed = planFor(ctx.org.plan);
+  const billingActive = isBillingActive(ctx.org.planStatus);
+  const plan = effectivePlan(ctx.org.plan, ctx.org.planStatus);
   const currency = ctx.org.billingCurrency === "INR" ? "INR" : "USD";
   const period = periodKey();
   const stripeReady = stripeConfigured();
@@ -47,14 +50,14 @@ export default async function BillingPage({
   const credentialMeter = meter(credentialCount, plan.limits.credentials);
 
   const upgradePlans = PLANS.filter(
-    (candidate) => PLANS.findIndex((entry) => entry.key === candidate.key) > PLANS.findIndex((entry) => entry.key === plan.key),
+    (candidate) => PLANS.findIndex((entry) => entry.key === candidate.key) > PLANS.findIndex((entry) => entry.key === subscribed.key),
   );
 
   return (
     <div>
       <PageHeader
         eyebrow="Billing · plan and usage"
-        title={`${plan.name} plan · ${currency} billing.`}
+        title={`${subscribed.name} plan · ${currency} billing.`}
         description="Usage is metered per calendar month. Calls that are denied before execution do not count against the allowance."
         actions={
           <Link href="/pricing" className="border border-black bg-black px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white hover:bg-[#eca8d6] hover:text-black">
@@ -89,15 +92,15 @@ export default async function BillingPage({
           Plan change requested. Billing will follow up — the current plan stays active until then.
         </Notice>
       ) : null}
-      {ctx.org.planStatus !== "active" ? (
+      {!billingActive ? (
         <Notice kind="error">
-          Subscription status is <strong>{ctx.org.planStatus}</strong>. Paid limits and production writes stay suspended until
-          Stripe reports the subscription is active again.
+          Subscription status is <strong>{ctx.org.planStatus}</strong>. Free limits apply and production writes are disabled
+          until Stripe reports the subscription is active again.
         </Notice>
       ) : null}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Plan" value={plan.name} detail={`${formatPrice(plan, currency)} / month`} accent />
+        <Stat label="Plan" value={subscribed.name} detail={billingActive ? `${formatPrice(subscribed, currency)} / month` : `Billing ${ctx.org.planStatus} · ${plan.name} limits`} accent />
         <Stat label="Proxy calls" value={callsThisMonth.toLocaleString("en-IN")} detail={callsMeter.label} />
         <Stat label="Agents" value={agentCount} detail={agentMeter.label} />
         <Stat label="Connections" value={credentialCount} detail={credentialMeter.label} />
@@ -157,14 +160,14 @@ export default async function BillingPage({
               </div>
             ) : (
               <p className="px-4 py-6 text-[12px] text-black/45 dark:text-muted-foreground">
-                No invoices yet. The {plan.name} plan has no charge on file{plan.priceUsd === 0 ? " — it is free." : "."}
+                No invoices yet. The {subscribed.name} plan has no charge on file{subscribed.priceUsd === 0 ? " — it is free." : "."}
               </p>
             )}
           </Panel>
         </div>
 
         <div className="space-y-6">
-          <Panel title="Plan includes" hint={plan.description} bodyClassName="p-4">
+          <Panel title="Plan includes" hint={billingActive ? plan.description : "Free limits while billing is suspended"} bodyClassName="p-4">
             <ul className="space-y-1.5">
               {plan.features.map((feature) => (
                 <li key={feature} className="flex items-start gap-2 text-[12px] leading-relaxed">

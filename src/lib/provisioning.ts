@@ -1,5 +1,4 @@
 import { db } from "./db";
-import { generateApiKey } from "./crypto";
 import { auditEvent } from "./audit";
 import { slugify } from "./format";
 
@@ -55,31 +54,6 @@ export async function provisionOrganization(opts: {
   const dev = project.environments.find((e) => e.type === "development")!;
   const prod = project.environments.find((e) => e.type === "production")!;
 
-  const keys: Record<string, { secret: string; publishable: string }> = {};
-  for (const env of [dev, prod]) {
-    const secret = generateApiKey(env.type, "secret");
-    const publishable = generateApiKey(env.type, "publishable");
-    await db.apiKey.createMany({
-      data: [
-        {
-          environmentId: env.id,
-          name: "Default secret key",
-          type: "secret",
-          keyHash: secret.keyHash,
-          prefix: secret.prefix,
-        },
-        {
-          environmentId: env.id,
-          name: "Default publishable key",
-          type: "publishable",
-          keyHash: publishable.keyHash,
-          prefix: publishable.prefix,
-        },
-      ],
-    });
-    keys[env.type] = { secret: secret.key, publishable: publishable.key };
-  }
-
   await auditEvent({
     environmentId: dev.id,
     actorType: "human",
@@ -98,7 +72,6 @@ export async function provisionOrganization(opts: {
     project,
     development: dev,
     production: prod,
-    keys,
   };
 }
 

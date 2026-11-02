@@ -63,10 +63,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
 
     const org = auth.environment.project.org;
     if (auth.environment.type === "production") {
-      const access = productionAccess(org.plan);
+      const access = productionAccess(org.plan, org.planStatus);
       if (!access.allowed) throw new ApiError(402, "plan_required", access.message);
     }
-    const quota = await checkPlanLimit(org.id, "calls", org.plan);
+    const quota = await checkPlanLimit(org.id, "calls", org.plan, org.planStatus);
     if (!quota.allowed) {
       throw new ApiError(402, "plan_limit_reached", quota.message, {
         used: quota.used,

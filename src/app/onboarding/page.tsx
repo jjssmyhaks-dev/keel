@@ -96,8 +96,8 @@ export default async function OnboardingPage() {
                 <span className="font-mono text-[10px] text-muted-foreground">created · locked until Pro</span>
               </div>
               <div className="flex items-center justify-between px-4 py-3">
-                <span className="text-sm">Default API keys</span>
-                <span className="font-mono text-[10px] text-muted-foreground">masked · rotate to reveal</span>
+                <span className="text-sm">API keys</span>
+                <span className="font-mono text-[10px] text-muted-foreground">create in Developers · shown once</span>
               </div>
             </div>
 

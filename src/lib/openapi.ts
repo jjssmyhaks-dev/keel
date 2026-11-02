@@ -528,6 +528,37 @@ export function buildOpenApiDocument() {
           responses: { "201": { description: "Endpoint created. The signing secret is returned once." } },
         },
       },
+      "/webhooks/{id}": {
+        get: {
+          tags: ["Webhooks"],
+          summary: "Retrieve a webhook endpoint and recent deliveries",
+          parameters: [idParam],
+          responses: { "200": { description: "Endpoint with its 50 most recent delivery attempts" } },
+        },
+        patch: {
+          tags: ["Webhooks"],
+          summary: "Update a webhook endpoint",
+          parameters: [idParam],
+          requestBody: {
+            required: true,
+            content: json({
+              type: "object",
+              properties: {
+                url: { type: "string", format: "uri" },
+                events: { type: "array", items: { type: "string", enum: WEBHOOK_EVENTS.map((e) => e.value) } },
+                status: { type: "string", enum: ["active", "disabled"] },
+              },
+            }),
+          },
+          responses: { "200": { description: "Updated endpoint" } },
+        },
+        delete: {
+          tags: ["Webhooks"],
+          summary: "Delete a webhook endpoint",
+          parameters: [idParam],
+          responses: { "200": { description: "Endpoint deleted" } },
+        },
+      },
       "/jwks": {
         get: {
           tags: ["Tokens"],

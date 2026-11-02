@@ -67,10 +67,10 @@ export async function POST(req: Request) {
       throw new ApiError(422, "secret_required", "Provide the credential secret.");
     }
     if (auth.environment.type === "production") {
-      const access = productionAccess(auth.organization.plan);
+      const access = productionAccess(auth.organization.plan, auth.organization.planStatus);
       if (!access.allowed) throw new ApiError(402, "plan_required", access.message);
     }
-    const quota = await checkPlanLimit(auth.organization.id, "credentials", auth.organization.plan);
+    const quota = await checkPlanLimit(auth.organization.id, "credentials", auth.organization.plan, auth.organization.planStatus);
     if (!quota.allowed) {
       throw new ApiError(402, "plan_limit_reached", quota.message, {
         used: quota.used,

@@ -3,7 +3,7 @@ import { generateAgentIdentity } from "./crypto";
 import { auditEvent } from "./audit";
 import { dispatchEvent } from "./webhooks";
 import { notify } from "./notifications";
-import { checkPlanLimit } from "./limits";
+import { checkPlanLimit, isBillingActive } from "./limits";
 
 type Readiness = { level: "pass" | "warn" | "fail"; label: string; detail: string }[];
 
@@ -20,7 +20,7 @@ export async function previewPromotion(devAgentId: string) {
   if (dev.status === "revoked") return { ok: false as const, error: "Revoked agents cannot be promoted." };
 
   const org = dev.environment.project.org;
-  const planOk = ["pro", "scale", "enterprise"].includes(org.plan);
+  const planOk = isBillingActive(org.planStatus) && ["pro", "scale", "enterprise"].includes(org.plan);
   const prodEnv = dev.environment.project.environments.find((e) => e.type === "production");
   if (!prodEnv) return { ok: false as const, error: "This project has no production environment." };
 
@@ -46,7 +46,9 @@ export async function previewPromotion(devAgentId: string) {
   readiness.push(
     planOk
       ? { level: "pass", label: "Plan allows promotion", detail: `${org.plan} includes production environments.` }
-      : { level: "fail", label: "Paid plan required", detail: "Promotion requires Pro or higher." },
+      : !isBillingActive(org.planStatus)
+        ? { level: "fail", label: "Billing inactive", detail: `Production promotion is blocked while billing is ${org.planStatus}.` }
+        : { level: "fail", label: "Paid plan required", detail: "Promotion requires Pro or higher." },
   );
   readiness.push(
     existing
@@ -133,9 +135,12 @@ export async function promoteAgent(opts: {
   if (!["pro", "scale", "enterprise"].includes(org.plan)) {
     return { ok: false as const, error: "Promotion requires the Pro plan or higher." };
   }
+  if (!isBillingActive(org.planStatus)) {
+    return { ok: false as const, error: `Promotion is blocked while billing is ${org.planStatus}. Update billing to continue.` };
+  }
   if (!opts.userEmailVerified) return { ok: false as const, error: "Verify your email address before promoting to production." };
 
-  const quota = await checkPlanLimit(org.id, "agents", org.plan);
+  const quota = await checkPlanLimit(org.id, "agents", org.plan, org.planStatus);
   if (!quota.allowed) return { ok: false as const, error: quota.message };
 
   const prodEnv = dev.environment.project.environments.find((e) => e.type === "production");

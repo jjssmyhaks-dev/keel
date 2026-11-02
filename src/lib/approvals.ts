@@ -211,14 +211,16 @@ export async function decideApproval(opts: {
     } else {
       const org = await db.organization.findUnique({
         where: { id: approval.environment.project.orgId },
-        select: { plan: true },
+        select: { plan: true, planStatus: true },
       });
       const plan = org?.plan ?? "free";
-      if (approval.environment.type === "production" && !productionAccess(plan).allowed) {
+      const planStatus = org?.planStatus ?? "active";
+      const access = productionAccess(plan, planStatus);
+      if (approval.environment.type === "production" && !access.allowed) {
         status = "failed";
-        result = { error: productionAccess(plan).message };
+        result = { error: access.message };
       } else {
-        const quota = await checkPlanLimit(approval.environment.project.orgId, "calls", plan);
+        const quota = await checkPlanLimit(approval.environment.project.orgId, "calls", plan, planStatus);
         if (!quota.allowed) {
           status = "failed";
           result = { error: quota.message };

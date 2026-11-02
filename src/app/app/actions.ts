@@ -164,24 +164,24 @@ export async function rotateAgentKeyAction(formData: FormData) {
   const sealed = await encryptSecret(ctx.project.id, { privateKey: identity.privateKey });
   const meta = await orgActor(ctx);
 
-  await db.$transaction([
-    db.agent.update({
+  await db.$transaction(async (tx) => {
+    await tx.agent.update({
       where: { id: agent.id },
       data: { publicKey: identity.publicKey, fingerprint: identity.fingerprint },
-    }),
-    db.agentKey.create({
+    });
+    const newKey = await tx.agentKey.create({
       data: {
         agentId: agent.id,
         publicKey: identity.publicKey,
         encryptedPrivateKey: JSON.stringify(sealed),
         status: "active",
       },
-    }),
-    db.agentKey.updateMany({
-      where: { agentId: agent.id },
+    });
+    await tx.agentKey.updateMany({
+      where: { agentId: agent.id, id: { not: newKey.id } },
       data: { status: "rotating", retireAt: new Date(Date.now() + 7 * 86400_000) },
-    }),
-  ]);
+    });
+  });
 
   await auditEvent({
     environmentId: ctx.environment.id,
@@ -204,8 +204,8 @@ export async function createAgentAction(formData: FormData) {
   const ctx = await getContext();
   if (!ctx.capabilities.manageAgents) redirect("/app/agents?error=permission");
   if (ctx.isProduction && !ctx.capabilities.writeProduction) redirect("/app/agents?error=production");
-  if (ctx.isProduction && !productionAccess(ctx.org.plan).allowed) redirect("/app/agents/new?error=plan");
-  if (!(await checkPlanLimit(ctx.org.id, "agents", ctx.org.plan)).allowed) {
+  if (ctx.isProduction && !productionAccess(ctx.org.plan, ctx.org.planStatus).allowed) redirect("/app/agents/new?error=plan");
+  if (!(await checkPlanLimit(ctx.org.id, "agents", ctx.org.plan, ctx.org.planStatus)).allowed) {
     redirect("/app/agents/new?error=limit");
   }
 
@@ -322,10 +322,10 @@ export async function createCredentialAction(formData: FormData) {
   const connectorSlug = str(formData, "connector");
   const name = str(formData, "name").slice(0, 80);
 
-  if (ctx.isProduction && !productionAccess(ctx.org.plan).allowed) {
+  if (ctx.isProduction && !productionAccess(ctx.org.plan, ctx.org.planStatus).allowed) {
     redirect(`/app/vault/new?connector=${connectorSlug}&error=plan`);
   }
-  if (!(await checkPlanLimit(ctx.org.id, "credentials", ctx.org.plan)).allowed) {
+  if (!(await checkPlanLimit(ctx.org.id, "credentials", ctx.org.plan, ctx.org.planStatus)).allowed) {
     redirect(`/app/vault/new?connector=${connectorSlug}&error=limit`);
   }
 
@@ -702,7 +702,7 @@ export async function issueTokenAction(
 export async function inviteMemberAction(formData: FormData) {
   const ctx = await getContext();
   if (!ctx.capabilities.manageTeam) redirect("/app/team?error=permission");
-  if (!(await checkPlanLimit(ctx.org.id, "members", ctx.org.plan)).allowed) redirect("/app/team?error=limit");
+  if (!(await checkPlanLimit(ctx.org.id, "members", ctx.org.plan, ctx.org.planStatus)).allowed) redirect("/app/team?error=limit");
   const email = str(formData, "email").toLowerCase();
   const role = str(formData, "role") || "developer";
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) redirect("/app/team?error=email");
@@ -1261,7 +1261,7 @@ export async function markNotificationsReadAction(formData: FormData) {
   const ctx = await getContext();
   const back = str(formData, "back") || "/app";
   await db.notification.updateMany({
-    where: { orgId: ctx.org.id, userId: ctx.user.id, readAt: null },
+    where: { orgId: ctx.org.id, readAt: null, OR: [{ userId: ctx.user.id }, { userId: null }] },
     data: { readAt: new Date() },
   });
   revalidatePath("/app", "layout");
