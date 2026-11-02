@@ -1,5 +1,27 @@
-export type Risk = "read" | "write" | "destructive" | "financial";
+import { EXTRA_CONNECTORS } from "./connectors/catalog";
+
+export type Risk = "read" | "write" | "destructive" | "financial" | "admin";
 export type AuthMethod = "oauth" | "api_key" | "bearer" | "basic";
+
+export type CredentialField = {
+  key: string;
+  label: string;
+  secret?: boolean;
+  required?: boolean;
+  multiline?: boolean;
+  placeholder?: string;
+  help?: string;
+};
+
+export type ConnectorInjection = {
+  type: "header" | "query";
+  name: string;
+  prefix?: string;
+  field?: string;
+  basic?: { usernameField: string; passwordField: string };
+  extraHeaders?: { name: string; field?: string; value?: string; prefix?: string }[];
+  queryParams?: { name: string; field?: string; value?: string }[];
+};
 
 export type ConnectorAction = {
   name: string;
@@ -9,8 +31,14 @@ export type ConnectorAction = {
   path: string;
   risk: Risk;
   resourceLabel?: string;
+  host?: string;
+  hostTemplate?: string;
+  baseUrlField?: string;
+  authField?: string;
+  extraHeaders?: ConnectorInjection["extraHeaders"];
+  queryParams?: ConnectorInjection["queryParams"];
   fields?: { key: string; label: string; placeholder?: string; required?: boolean }[];
-  mock?: Record<string, unknown>;
+  mock?: unknown;
 };
 
 export type Connector = {
@@ -24,7 +52,14 @@ export type Connector = {
   authMethods: { type: AuthMethod; label: string }[];
   defaultAuth: AuthMethod;
   hosts: string[];
-  injection: { type: "header" | "query"; name: string; prefix?: string };
+  injection: ConnectorInjection;
+  credentialFields?: CredentialField[];
+  requireAnyFields?: string[];
+  baseUrlField?: string;
+  hostTemplate?: string;
+  allowAnyPublicHost?: boolean;
+  authStrategy?: "snowflake-jwt";
+  bodyParams?: { name: string; field: string }[];
   scopes: { value: string; label: string; optional?: boolean }[];
   resourceLabel: string;
   resourcePlaceholder: string;
@@ -201,7 +236,7 @@ export const CONNECTORS: Connector[] = [
   {
     slug: "google",
     name: "Google Workspace",
-    category: "Google Workspace",
+    category: "Productivity",
     description: "Gmail, Calendar and Drive through one verified OAuth connection.",
     color: "#1A73E8",
     mark: "GW",
@@ -375,7 +410,7 @@ export const CONNECTORS: Connector[] = [
   {
     slug: "hubspot",
     name: "HubSpot",
-    category: "CRM",
+    category: "Commerce",
     description: "Contacts, deals and engagements with scoped CRM access.",
     color: "#FF7A59",
     mark: "HS",
@@ -430,7 +465,7 @@ export const CONNECTORS: Connector[] = [
   {
     slug: "stripe",
     name: "Stripe",
-    category: "Payments",
+    category: "Commerce",
     description: "Payments and refunds. Every financial action requires approval in production.",
     color: "#635BFF",
     mark: "ST",
@@ -506,7 +541,7 @@ export const CONNECTORS: Connector[] = [
   {
     slug: "openai",
     name: "OpenAI",
-    category: "AI",
+    category: "AI & data",
     description: "Model calls with per-agent spend caps and token accounting.",
     color: "#10A37F",
     mark: "OA",
@@ -569,7 +604,7 @@ export const CONNECTORS: Connector[] = [
   {
     slug: "anthropic",
     name: "Anthropic",
-    category: "AI",
+    category: "AI & data",
     description: "Claude model calls governed by spend caps and approval policies.",
     color: "#D97757",
     mark: "AN",
@@ -623,7 +658,7 @@ export const CONNECTORS: Connector[] = [
   {
     slug: "linear",
     name: "Linear",
-    category: "Productivity",
+    category: "Developer",
     description: "Create and triage issues in Linear teams.",
     color: "#5E6AD2",
     mark: "LN",
@@ -664,6 +699,7 @@ export const CONNECTORS: Connector[] = [
       },
     ],
   },
+  ...EXTRA_CONNECTORS,
 ];
 
 export const CONNECTOR_MAP = Object.fromEntries(CONNECTORS.map((c) => [c.slug, c]));
@@ -673,6 +709,7 @@ export const RISK_META: Record<Risk, { label: string; description: string; color
   write: { label: "Write", description: "Creates or changes data. Approval in production by default.", color: "#A56B18" },
   destructive: { label: "Destructive", description: "Deletes or merges. Always review before allowing.", color: "#B3402F" },
   financial: { label: "Financial", description: "Moves money or spends credits. Approval required.", color: "#7A3DB8" },
+  admin: { label: "Admin", description: "Changes access, configuration or infrastructure. Approval required.", color: "#25567A" },
 };
 
 export function connector(slug: string) {

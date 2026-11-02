@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "npm run typecheck",
     "typecheck": "next typegen && tsc --noEmit",
+    "connectors:check": "tsx scripts/check-connectors.mts",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "node --env-file=.env --import tsx prisma/seed.ts",

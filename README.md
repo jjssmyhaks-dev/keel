@@ -149,6 +149,7 @@ npm run dev             # Next dev server
 npm run build           # prisma generate + next build
 npm run start           # production server
 npm run typecheck       # next typegen + tsc --noEmit (npm run lint runs this)
+npm run connectors:check # validate connector manifests, action names, risks, hosts and mocks
 npm run db:seed         # reseed demo workspace (blocked in production unless ALLOW_DEMO_SEED=1)
 npm run db:migrate      # apply pending Prisma migrations to Neon
 npm run db:reset        # destructive: reset schema and reseed

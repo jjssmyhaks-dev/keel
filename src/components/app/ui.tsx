@@ -87,10 +87,11 @@ const RISK_STYLE: Record<Risk, string> = {
   write: "border-[#a56b18]/35 text-[#a56b18]",
   destructive: "border-[#b3402f]/35 text-[#b3402f]",
   financial: "border-[#7a3db8]/35 text-[#7a3db8]",
+  admin: "border-[#25567a]/35 text-[#25567a]",
 };
 
 export function RiskBadge({ risk }: { risk: string }) {
-  const key = (["read", "write", "destructive", "financial"].includes(risk) ? risk : "write") as Risk;
+  const key = (["read", "write", "destructive", "financial", "admin"].includes(risk) ? risk : "write") as Risk;
   return (
     <span className={`border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] ${RISK_STYLE[key]}`}>
       {key}

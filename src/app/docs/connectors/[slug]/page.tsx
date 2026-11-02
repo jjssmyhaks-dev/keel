@@ -23,6 +23,7 @@ const riskTone: Record<string, string> = {
   write: "#8a5a00",
   destructive: "#8c3225",
   financial: "#5b2f8c",
+  admin: "#25567a",
 };
 
 export default async function ConnectorDetailPage({ params }: { params: Promise<{ slug: string }> }) {

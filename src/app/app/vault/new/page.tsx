@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getContext } from "@/lib/session";
-import { CONNECTORS, connector, type AuthMethod } from "@/lib/connectors";
+import { CONNECTORS, connector } from "@/lib/connectors";
 import { ConnectorLogo } from "@/components/connector-logo";
 import { createCredentialAction } from "@/app/app/actions";
 import { PageHeader, Notice } from "@/components/app/ui";
@@ -15,13 +15,6 @@ const ERROR_COPY: Record<string, string> = {
   secret: "Paste a credential before saving.",
   permission: "Your role cannot add connections in this environment.",
   production: "Only owners and admins can add production connections.",
-};
-
-const AUTH_LABEL: Record<AuthMethod, string> = {
-  oauth: "OAuth 2.0",
-  api_key: "API key",
-  bearer: "Bearer token",
-  basic: "Basic auth",
 };
 
 export default async function NewConnectionPage({
@@ -77,7 +70,7 @@ export default async function NewConnectionPage({
               <div className="mt-3 flex flex-wrap gap-1 border-t border-black/10 pt-2.5 dark:border-border">
                 {item.authMethods.map((method) => (
                   <span key={method.type} className="border border-black/10 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-black/45 dark:border-border dark:text-muted-foreground">
-                    {AUTH_LABEL[method.type]}
+                    {method.label}
                   </span>
                 ))}
                 <span className="ml-auto font-mono text-[9px] text-black/30 dark:text-muted-foreground">v{item.version}</span>
@@ -152,24 +145,82 @@ export default async function NewConnectionPage({
               </select>
             </div>
 
-            <div>
-              <label htmlFor="secret" className="font-mono text-[9px] uppercase tracking-[0.18em] text-black/45 dark:text-muted-foreground">
-                Secret
-              </label>
-              <textarea
-                id="secret"
-                name="secret"
-                required
-                rows={3}
-                placeholder={def.defaultAuth === "api_key" ? "sk_live_…" : "xoxb-… or access token"}
-                spellCheck={false}
-                className="mt-1.5 w-full resize-none border border-black/15 bg-[#faf9f6] px-3 py-2 font-mono text-[12px] outline-none focus:border-black dark:border-border dark:bg-background"
-              />
-              <p className="mt-1 text-[10px] leading-relaxed text-black/40 dark:text-muted-foreground">
-                Encrypted with a per-connection data key before it is written. Only the last four characters are kept in
-                clear for identification.
-              </p>
-            </div>
+            {def.credentialFields?.length ? (
+              <div className="space-y-4">
+                <div className="border border-black/10 bg-[#faf9f6] px-3 py-2.5 dark:border-border dark:bg-background">
+                  <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                    Required fields
+                  </p>
+                  <p className="mt-1 text-[10px] leading-relaxed text-black/50 dark:text-muted-foreground">
+                    {def.requireAnyFields?.length
+                      ? `Provide ${def.requireAnyFields
+                          .map((key) => def.credentialFields?.find((field) => field.key === key)?.label ?? key)
+                          .join(" or ")}. Everything else is optional.`
+                      : "Fields marked * are required. Secrets are encrypted individually and never returned."}
+                  </p>
+                </div>
+                {def.credentialFields.map((field) => (
+                  <div key={field.key}>
+                    <label
+                      htmlFor={`field_${field.key}`}
+                      className="flex items-baseline gap-2 font-mono text-[9px] uppercase tracking-[0.18em] text-black/45 dark:text-muted-foreground"
+                    >
+                      <span>{field.label}{field.required ? " *" : ""}</span>
+                      {field.secret ? (
+                        <span className="border border-black/15 px-1 py-0.5 text-[8px] tracking-[0.14em] text-black/40 dark:border-border dark:text-muted-foreground">
+                          secret
+                        </span>
+                      ) : null}
+                    </label>
+                    {field.multiline ? (
+                      <textarea
+                        id={`field_${field.key}`}
+                        name={`field_${field.key}`}
+                        required={field.required}
+                        rows={4}
+                        placeholder={field.placeholder}
+                        spellCheck={false}
+                        autoComplete="off"
+                        className="mt-1.5 w-full resize-none border border-black/15 bg-[#faf9f6] px-3 py-2 font-mono text-[12px] outline-none focus:border-black dark:border-border dark:bg-background"
+                      />
+                    ) : (
+                      <input
+                        id={`field_${field.key}`}
+                        name={`field_${field.key}`}
+                        type={field.secret ? "password" : "text"}
+                        required={field.required}
+                        placeholder={field.placeholder}
+                        spellCheck={false}
+                        autoComplete="off"
+                        className="mt-1.5 w-full border border-black/15 bg-[#faf9f6] px-3 py-2 font-mono text-[12px] outline-none focus:border-black dark:border-border dark:bg-background"
+                      />
+                    )}
+                    {field.help ? (
+                      <p className="mt-1 text-[10px] leading-relaxed text-black/40 dark:text-muted-foreground">{field.help}</p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div>
+                <label htmlFor="secret" className="font-mono text-[9px] uppercase tracking-[0.18em] text-black/45 dark:text-muted-foreground">
+                  Secret
+                </label>
+                <textarea
+                  id="secret"
+                  name="secret"
+                  required
+                  rows={3}
+                  placeholder={def.defaultAuth === "api_key" ? "sk_live_…" : "xoxb-… or access token"}
+                  spellCheck={false}
+                  className="mt-1.5 w-full resize-none border border-black/15 bg-[#faf9f6] px-3 py-2 font-mono text-[12px] outline-none focus:border-black dark:border-border dark:bg-background"
+                />
+                <p className="mt-1 text-[10px] leading-relaxed text-black/40 dark:text-muted-foreground">
+                  Encrypted with a per-connection data key before it is written. Only the last four characters are kept in
+                  clear for identification.
+                </p>
+              </div>
+            )}
 
             <div className="border border-black/10 bg-[#faf9f6] p-3 dark:border-border dark:bg-background">
               <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
@@ -233,7 +284,7 @@ export default async function NewConnectionPage({
                 <li key={action.name} className="flex items-center gap-2 text-[11px]">
                   <span
                     className="border px-1 py-0.5 font-mono text-[8px] uppercase tracking-[0.1em]"
-                    style={{ color: action.risk === "read" ? "#2f7d5c" : action.risk === "destructive" ? "#b3402f" : action.risk === "financial" ? "#7a3db8" : "#a56b18" }}
+                    style={{ color: action.risk === "read" ? "#2f7d5c" : action.risk === "destructive" ? "#b3402f" : action.risk === "financial" ? "#7a3db8" : action.risk === "admin" ? "#25567a" : "#a56b18" }}
                   >
                     {action.method}
                   </span>

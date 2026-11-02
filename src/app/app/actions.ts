@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getContext, destroySession, setActiveEnvironment, requestMeta } from "@/lib/session";
-import { encryptSecret, generateAgentIdentity, generateApiKey, randomToken, sha256 } from "@/lib/crypto";
+import { encryptSecret, decryptSecret, generateAgentIdentity, generateApiKey, randomToken, sha256 } from "@/lib/crypto";
 import { auditEvent } from "@/lib/audit";
 import { dispatchEvent } from "@/lib/webhooks";
 import { decideApproval } from "@/lib/approvals";
@@ -309,16 +309,43 @@ export async function createCredentialAction(formData: FormData) {
 
   const connectorSlug = str(formData, "connector");
   const name = str(formData, "name").slice(0, 80);
-  const secret = str(formData, "secret");
-  const type = str(formData, "type") || "oauth";
 
   const { connector } = await import("@/lib/connectors");
   const connectorDef = connector(connectorSlug);
   if (!connectorDef) redirect("/app/vault/new?error=connector");
-  if (!secret) redirect("/app/vault/new?error=secret");
+  const secretsPath = `/app/vault/new?connector=${connectorSlug}&error=secret`;
 
-  const key = type === "api_key" ? "apiKey" : type === "oauth" ? "accessToken" : "token";
-  const sealed = await encryptSecret(ctx.project.id, { [key]: secret });
+  const type = str(formData, "type") || connectorDef.defaultAuth;
+  const payload: Record<string, unknown> = {};
+  const metadata: Record<string, unknown> = {};
+  let maskedHint = "";
+
+  if (connectorDef.credentialFields?.length) {
+    for (const field of connectorDef.credentialFields) {
+      const value = str(formData, `field_${field.key}`);
+      if (!value) continue;
+      payload[field.key] = value;
+      if (field.secret) {
+        if (!maskedHint) maskedHint = `••••${value.slice(-4)}`;
+      } else {
+        metadata[field.key] = value;
+      }
+    }
+    const missing = connectorDef.credentialFields.filter((field) => field.required && !payload[field.key]);
+    if (missing.length) redirect(secretsPath);
+    if (connectorDef.requireAnyFields?.length && !connectorDef.requireAnyFields.some((key) => payload[key])) {
+      redirect(secretsPath);
+    }
+    if (!maskedHint && connectorDef.credentialFields.some((field) => field.secret)) redirect(secretsPath);
+  } else {
+    const secret = str(formData, "secret");
+    if (!secret) redirect(secretsPath);
+    const key = type === "api_key" ? "apiKey" : type === "oauth" ? "accessToken" : "token";
+    payload[key] = secret;
+    maskedHint = `••••${secret.slice(-4)}`;
+  }
+
+  const sealed = await encryptSecret(ctx.project.id, payload);
   const credential = await db.credential.create({
     data: {
       environmentId: ctx.environment.id,
@@ -327,8 +354,8 @@ export async function createCredentialAction(formData: FormData) {
       type,
       encryptedPayload: sealed.encryptedPayload,
       dataKeyEncrypted: sealed.dataKeyEncrypted,
-      metadataJson: JSON.stringify({}),
-      maskedHint: `••••${secret.slice(-4)}`,
+      metadataJson: JSON.stringify(metadata),
+      maskedHint,
       status: "healthy",
       createdBy: ctx.user.id,
       healthEvents: { create: { result: "ok", detail: "Connection stored and encrypted." } },
@@ -363,12 +390,54 @@ export async function rotateCredentialAction(formData: FormData) {
   });
   if (!credential) redirect(`${back}?error=missing`);
   if (credential.revokedAt) redirect(`${back}?error=revoked`);
-  const secret = str(formData, "secret");
-  if (!secret) redirect(`${back}?error=secret`);
 
-  const key =
-    credential.type === "api_key" ? "apiKey" : credential.type === "oauth" ? "accessToken" : "token";
-  const sealed = await encryptSecret(ctx.project.id, { [key]: secret });
+  const { connector } = await import("@/lib/connectors");
+  const connectorDef = connector(credential.connectorSlug);
+  let sealed: { encryptedPayload: string; dataKeyEncrypted: string };
+  let maskedHint = credential.maskedHint;
+  let metadata: Record<string, unknown> = {};
+  try {
+    metadata = JSON.parse(credential.metadataJson || "{}") as Record<string, unknown>;
+  } catch {}
+
+  if (connectorDef?.credentialFields?.length) {
+    let existing: Record<string, unknown> = {};
+    if (credential.encryptedPayload && credential.dataKeyEncrypted) {
+      existing = (await decryptSecret(
+        ctx.project.id,
+        credential.encryptedPayload,
+        credential.dataKeyEncrypted,
+      )) as Record<string, unknown>;
+    }
+    const payload = { ...existing };
+    let changed = false;
+    for (const field of connectorDef.credentialFields) {
+      const value = str(formData, `field_${field.key}`);
+      if (!value) continue;
+      payload[field.key] = value;
+      changed = true;
+      if (field.secret) {
+        maskedHint = `••••${value.slice(-4)}`;
+      } else {
+        metadata[field.key] = value;
+      }
+    }
+    if (!changed) redirect(`${back}?error=secret`);
+    if (connectorDef.credentialFields.some((field) => field.required && !payload[field.key])) {
+      redirect(`${back}?error=secret`);
+    }
+    if (connectorDef.requireAnyFields?.length && !connectorDef.requireAnyFields.some((key) => payload[key])) {
+      redirect(`${back}?error=secret`);
+    }
+    sealed = await encryptSecret(ctx.project.id, payload);
+  } else {
+    const secret = str(formData, "secret");
+    if (!secret) redirect(`${back}?error=secret`);
+    const key =
+      credential.type === "api_key" ? "apiKey" : credential.type === "oauth" ? "accessToken" : "token";
+    sealed = await encryptSecret(ctx.project.id, { [key]: secret });
+    maskedHint = `••••${secret.slice(-4)}`;
+  }
   const meta = await orgActor(ctx);
 
   await db.credential.update({
@@ -376,7 +445,8 @@ export async function rotateCredentialAction(formData: FormData) {
     data: {
       encryptedPayload: sealed.encryptedPayload,
       dataKeyEncrypted: sealed.dataKeyEncrypted,
-      maskedHint: `••••${secret.slice(-4)}`,
+      metadataJson: JSON.stringify(metadata),
+      maskedHint,
       status: "healthy",
       healthDetail: null,
       revokedAt: null,

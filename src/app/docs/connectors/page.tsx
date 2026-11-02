@@ -18,7 +18,7 @@ export default function ConnectorsPage() {
       eyebrow="Integrations"
       title="Connectors"
       intro="A connector defines the provider endpoints Keel can call, the actions an agent may request, each action's risk level, and which fields are redacted. Grants reference these actions by name — there is no arbitrary URL proxying."
-      updated="31 October 2026"
+      updated="2 November 2026"
     >
       <p>
         Each connector pins its providers&apos; hosts and an injection rule for credentials. The proxy builds the URL from
@@ -75,6 +75,7 @@ export default function ConnectorsPage() {
           <tr><td><code>write</code></td><td>Creates or edits data; usually reversible.</td><td>Allow</td><td>Require approval</td></tr>
           <tr><td><code>destructive</code></td><td>Deletes or overwrites; hard to reverse.</td><td>Require approval</td><td>Require approval</td></tr>
           <tr><td><code>financial</code></td><td>Moves money or creates billable commitments.</td><td>Require approval</td><td>Require approval</td></tr>
+          <tr><td><code>admin</code></td><td>Changes access, configuration or infrastructure.</td><td>Require approval</td><td>Require approval</td></tr>
         </tbody>
       </table>
       <p>

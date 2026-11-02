@@ -19,6 +19,10 @@ export async function GET(req: Request) {
         version: connector.version,
         authMethods: connector.authMethods,
         defaultAuth: connector.defaultAuth,
+        credentialFields: connector.credentialFields ?? [
+          { key: "secret", label: "Secret", secret: true, required: true },
+        ],
+        requireAnyFields: connector.requireAnyFields ?? [],
         hosts: connector.hosts,
         injection: connector.injection,
         scopes: connector.scopes,

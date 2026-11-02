@@ -223,14 +223,49 @@ export default async function CredentialDetailPage({
           <Panel title="Rotate secret" hint="Replace without breaking grants" bodyClassName="p-4">
             <form action={rotateCredentialAction} className="space-y-3">
               <input type="hidden" name="credentialId" value={credential.id} />
-              <textarea
-                name="secret"
-                required
-                rows={3}
-                placeholder="Paste the replacement credential"
-                spellCheck={false}
-                className="w-full resize-none border border-black/15 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
-              />
+              {def?.credentialFields?.length ? (
+                def.credentialFields.map((field) => (
+                  <div key={field.key}>
+                    <label
+                      htmlFor={`rotate_${field.key}`}
+                      className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground"
+                    >
+                      {field.label}
+                      {field.required ? " *" : ""}
+                    </label>
+                    {field.multiline ? (
+                      <textarea
+                        id={`rotate_${field.key}`}
+                        name={`field_${field.key}`}
+                        rows={3}
+                        placeholder="Leave blank to keep current"
+                        spellCheck={false}
+                        autoComplete="off"
+                        className="mt-1 w-full resize-none border border-black/15 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                      />
+                    ) : (
+                      <input
+                        id={`rotate_${field.key}`}
+                        name={`field_${field.key}`}
+                        type={field.secret ? "password" : "text"}
+                        placeholder="Leave blank to keep current"
+                        spellCheck={false}
+                        autoComplete="off"
+                        className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                      />
+                    )}
+                  </div>
+                ))
+              ) : (
+                <textarea
+                  name="secret"
+                  required
+                  rows={3}
+                  placeholder="Paste the replacement credential"
+                  spellCheck={false}
+                  className="w-full resize-none border border-black/15 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                />
+              )}
               <button
                 disabled={!canManage || revoked}
                 className="w-full border border-black bg-black px-2 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-white hover:bg-[#eca8d6] hover:text-black disabled:opacity-40"

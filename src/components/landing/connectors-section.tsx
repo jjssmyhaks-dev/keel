@@ -30,11 +30,14 @@ const modes = [
 ];
 
 const slugs = CONNECTORS.map((c) => c.slug);
+const categories = ["All", ...Array.from(new Set(CONNECTORS.map((c) => c.category)))];
 
 export function ConnectorsSection() {
   const [visible, setVisible] = useState(false);
   const [hovered, setHovered] = useState<number | null>(null);
+  const [category, setCategory] = useState("All");
   const ref = useRef<HTMLElement>(null);
+  const shown = category === "All" ? CONNECTORS : CONNECTORS.filter((c) => c.category === category);
 
   useEffect(() => {
     const observer = new IntersectionObserver(([e]) => e.isIntersecting && setVisible(true), {
@@ -91,8 +94,30 @@ export function ConnectorsSection() {
       </div>
 
       <div className="relative z-10 max-w-[1400px] mx-auto px-6 lg:px-12 mt-14">
+        <div className={`flex flex-wrap items-center gap-2 mb-6 transition-opacity duration-700 ${visible ? "opacity-100" : "opacity-0"}`}>
+          {categories.map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => {
+                setCategory(item);
+                setHovered(null);
+              }}
+              className={`border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors ${
+                category === item
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-foreground/15 text-muted-foreground hover:border-foreground/40 hover:text-foreground"
+              }`}
+            >
+              {item}
+              <span className={`ml-2 ${category === item ? "text-background/60" : "text-muted-foreground/60"}`}>
+                {item === "All" ? CONNECTORS.length : CONNECTORS.filter((c) => c.category === item).length}
+              </span>
+            </button>
+          ))}
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {CONNECTORS.map((c, index) => (
+          {shown.map((c, index) => (
             <Link
               key={c.slug}
               href={`/docs/connectors/${c.slug}`}
@@ -156,9 +181,9 @@ export function ConnectorsSection() {
         >
           <div className="flex flex-wrap gap-12">
             {[
-              { value: String(CONNECTORS.length), label: "connectors, all live" },
+              { value: String(CONNECTORS.length), label: "connectors in the catalog" },
               { value: String(totalActions), label: "governed actions" },
-              { value: "4", label: "risk levels enforced" },
+              { value: "5", label: "risk levels enforced" },
             ].map((stat) => (
               <div key={stat.label} className="flex items-baseline gap-3">
                 <span className="text-3xl font-display">{stat.value}</span>

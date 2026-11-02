@@ -353,6 +353,9 @@ function approvalReason(risk: Risk, source: string, service: string, label: stri
   if (risk === "destructive") {
     return `Destructive actions require human approval. ${label} can remove or overwrite data in ${service}.`;
   }
+  if (risk === "admin") {
+    return `Admin actions require human approval. ${label} changes access, configuration or infrastructure in ${service}.`;
+  }
   return `Write actions require approval in production. ${label} would change data in ${service}.`;
 }
 
