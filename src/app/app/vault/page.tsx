@@ -3,6 +3,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
 import { CONNECTORS, connector } from "@/lib/connectors";
+import { ConnectorLogo } from "@/components/connector-logo";
 import { PageHeader, Panel, Stat, StatusBadge, relativeTime, EmptyState, formatDate } from "@/components/app/ui";
 
 export const dynamic = "force-dynamic";
@@ -100,10 +101,10 @@ export default async function VaultPage({
                   <div>
                     <div className="flex items-center gap-2.5">
                       <span
-                        className="flex size-8 items-center justify-center font-mono text-[10px] font-medium text-white"
+                        className="flex size-8 items-center justify-center text-white"
                         style={{ background: def?.color ?? "#333" }}
                       >
-                        {def?.mark ?? "??"}
+                        <ConnectorLogo slug={credential.connectorSlug} mark={def?.mark} mono className="size-4" />
                       </span>
                       <div className="min-w-0">
                         <p className="truncate text-[12px] font-medium">{credential.name}</p>

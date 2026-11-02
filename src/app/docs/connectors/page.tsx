@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { DocsShell } from "@/components/docs/docs-shell";
+import { ConnectorLogo } from "@/components/connector-logo";
 import { CONNECTORS } from "@/lib/connectors";
 
 export const metadata: Metadata = {
@@ -37,10 +38,10 @@ export default function ConnectorsPage() {
                 className="group flex items-start gap-4 bg-background p-5 hover:bg-foreground/[0.03]"
               >
                 <span
-                  className="flex size-9 shrink-0 items-center justify-center font-mono text-[10px] text-white"
+                  className="flex size-9 shrink-0 items-center justify-center text-white"
                   style={{ backgroundColor: connector.color }}
                 >
-                  {connector.mark}
+                  <ConnectorLogo slug={connector.slug} mark={connector.mark} mono className="size-5" />
                 </span>
                 <span className="min-w-0">
                   <span className="flex items-center gap-2">

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
 import { connector, actionFor } from "@/lib/connectors";
+import { ConnectorLogo } from "@/components/connector-logo";
 import { rotateCredentialAction, revokeCredentialAction } from "@/app/app/actions";
 import { ConfirmButton } from "@/components/app/confirm-button";
 import { PageHeader, Panel, StatusBadge, RiskBadge, Notice, relativeTime, formatDate, EmptyState } from "@/components/app/ui";
@@ -91,10 +92,10 @@ export default async function CredentialDetailPage({
 
       <div className="mb-6 flex flex-wrap items-center gap-3 border border-black/10 bg-white px-4 py-3 dark:border-border dark:bg-card">
         <span
-          className="flex size-7 items-center justify-center font-mono text-[10px] text-white"
+          className="flex size-7 items-center justify-center text-white"
           style={{ background: def?.color ?? "#333" }}
         >
-          {def?.mark ?? "??"}
+          <ConnectorLogo slug={credential.connectorSlug} mark={def?.mark} mono className="size-4" />
         </span>
         <StatusBadge status={revoked ? "revoked" : credential.status} />
         <span className="font-mono text-[10px] text-black/40 dark:text-muted-foreground">{credential.maskedHint || "••••"}</span>

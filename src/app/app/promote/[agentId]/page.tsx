@@ -5,6 +5,7 @@ import { getContext } from "@/lib/session";
 import { previewPromotion } from "@/lib/promotion";
 import { promoteAgentAction } from "@/app/app/actions";
 import { connector } from "@/lib/connectors";
+import { ConnectorLogo } from "@/components/connector-logo";
 import { PageHeader, Panel, Notice, RiskBadge, relativeTime } from "@/components/app/ui";
 
 export const dynamic = "force-dynamic";
@@ -112,8 +113,8 @@ export default async function PromotePage({
                   return (
                     <div key={`${row.connector}-${row.credentialName}`} className="px-4 py-3">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="flex size-6 items-center justify-center font-mono text-[9px] text-white" style={{ background: def?.color ?? "#333" }}>
-                          {def?.mark ?? "??"}
+                        <span className="flex size-6 items-center justify-center text-white" style={{ background: def?.color ?? "#333" }}>
+                          <ConnectorLogo slug={row.connector} mark={def?.mark} mono className="size-3.5" />
                         </span>
                         <span className="text-[12px] font-medium">{def?.name ?? row.connector}</span>
                         <span className="font-mono text-[9px] text-black/40 dark:text-muted-foreground">{row.credentialName}</span>

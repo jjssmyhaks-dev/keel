@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
 import { expireStaleApprovals } from "@/lib/approvals";
 import { connector } from "@/lib/connectors";
+import { ConnectorLogo } from "@/components/connector-logo";
 import { PageHeader, Panel, Stat, StatusBadge, RiskBadge, TabLinks, EmptyState, relativeTime, formatDate } from "@/components/app/ui";
 
 export const dynamic = "force-dynamic";
@@ -92,10 +93,10 @@ export default async function ApprovalsPage({
                   className="flex flex-wrap items-center gap-3 px-4 py-3 transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
                 >
                   <span
-                    className="flex size-8 shrink-0 items-center justify-center font-mono text-[10px] text-white"
+                    className="flex size-8 shrink-0 items-center justify-center text-white"
                     style={{ background: def?.color ?? "#333" }}
                   >
-                    {def?.mark ?? "??"}
+                    <ConnectorLogo slug={approval.credential?.connectorSlug ?? ""} mark={def?.mark} mono className="size-4" />
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px]">{approval.summary}</p>

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
 import { actionFor, connector } from "@/lib/connectors";
+import { ConnectorLogo } from "@/components/connector-logo";
 import { saveGrantAction } from "@/app/app/actions";
 import { ConfirmButton } from "@/components/app/confirm-button";
 import { PageHeader, Panel, StatusBadge, RiskBadge, Notice, relativeTime, formatDate } from "@/components/app/ui";
@@ -110,10 +111,10 @@ export default async function PermissionEditorPage({
                 <section key={credential.id} id={def.slug} className="border border-black/10 bg-white dark:border-border dark:bg-card">
                   <header className="flex flex-wrap items-center gap-2.5 border-b border-black/10 px-4 py-3 dark:border-border">
                     <span
-                      className="flex size-7 items-center justify-center font-mono text-[10px] text-white"
+                      className="flex size-7 items-center justify-center text-white"
                       style={{ background: def.color }}
                     >
-                      {def.mark}
+                      <ConnectorLogo slug={def.slug} mark={def.mark} mono className="size-4" />
                     </span>
                     <div className="min-w-0">
                       <p className="text-[12px] font-medium">{def.name}</p>

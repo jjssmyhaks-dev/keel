@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getContext } from "@/lib/session";
 import { CONNECTORS, connector, type AuthMethod } from "@/lib/connectors";
+import { ConnectorLogo } from "@/components/connector-logo";
 import { createCredentialAction } from "@/app/app/actions";
 import { PageHeader, Notice } from "@/components/app/ui";
 
@@ -57,10 +58,10 @@ export default async function NewConnectionPage({
             >
               <div className="flex items-center gap-2.5">
                 <span
-                  className="flex size-9 items-center justify-center font-mono text-[11px] font-medium text-white"
+                  className="flex size-9 items-center justify-center text-white"
                   style={{ background: item.color }}
                 >
-                  {item.mark}
+                  <ConnectorLogo slug={item.slug} mark={item.mark} mono className="size-5" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-[13px] font-medium">{item.name}</p>
@@ -199,8 +200,8 @@ export default async function NewConnectionPage({
         <aside className="space-y-4">
           <div className="border border-black/10 bg-black p-5 text-white dark:border-border">
             <div className="flex items-center gap-2">
-              <span className="flex size-7 items-center justify-center font-mono text-[10px]" style={{ background: def.color }}>
-                {def.mark}
+              <span className="flex size-7 items-center justify-center" style={{ background: def.color }}>
+                <ConnectorLogo slug={def.slug} mark={def.mark} mono className="size-4" />
               </span>
               <div>
                 <p className="text-[12px] font-medium">{def.name}</p>

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { CONNECTORS } from "@/lib/connectors";
+import { ConnectorLogo } from "@/components/connector-logo";
 
 const totalActions = CONNECTORS.reduce((sum, c) => sum + c.actions.length, 0);
 
@@ -111,8 +112,8 @@ export function ConnectorsSection() {
               >
                 {c.category}
               </span>
-              <div className="w-10 h-10 mb-10 flex items-center justify-center border border-foreground/15 font-mono text-[11px]">
-                {c.mark}
+              <div className="w-10 h-10 mb-10 flex items-center justify-center border border-foreground/15">
+                <ConnectorLogo slug={c.slug} mark={c.mark} className="w-5 h-5" />
               </div>
               <span className="font-medium block text-[15px]">{c.name}</span>
               <span className="text-[11px] font-mono text-muted-foreground mt-1 block">

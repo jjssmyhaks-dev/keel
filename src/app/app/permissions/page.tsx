@@ -3,6 +3,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
 import { CONNECTORS, connector, actionFor } from "@/lib/connectors";
+import { ConnectorLogo } from "@/components/connector-logo";
 import { PageHeader, Panel, Stat, StatusBadge, EmptyState } from "@/components/app/ui";
 
 export const dynamic = "force-dynamic";
@@ -92,11 +93,11 @@ export default async function PermissionsPage() {
                   {connectorsWithCredentials.map((def) => (
                     <th key={def.slug} className="px-3 py-3 text-center">
                       <span
-                        className="mx-auto flex size-6 items-center justify-center font-mono text-[9px] text-white"
+                        className="mx-auto flex size-6 items-center justify-center text-white"
                         style={{ background: def.color }}
                         title={def.name}
                       >
-                        {def.mark}
+                        <ConnectorLogo slug={def.slug} mark={def.mark} mono className="size-3.5" />
                       </span>
                       <span className="mt-1 block font-mono text-[8px] uppercase tracking-[0.1em] text-black/35 dark:text-muted-foreground">
                         {def.name.split(" ")[0]}

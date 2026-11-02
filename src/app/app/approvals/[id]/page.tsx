@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
 import { connector, actionFor } from "@/lib/connectors";
+import { ConnectorLogo } from "@/components/connector-logo";
 import { decideApprovalAction } from "@/app/app/actions";
 import { PageHeader, Panel, StatusBadge, RiskBadge, Notice, relativeTime, formatDate } from "@/components/app/ui";
 import { appUrl } from "@/lib/email";
@@ -86,10 +87,10 @@ export default async function ApprovalDetailPage({
 
       <div className="mb-6 flex flex-wrap items-center gap-3 border border-black/10 bg-white px-4 py-3 dark:border-border dark:bg-card">
         <span
-          className="flex size-8 items-center justify-center font-mono text-[10px] text-white"
+          className="flex size-8 items-center justify-center text-white"
           style={{ background: def?.color ?? "#333" }}
         >
-          {def?.mark ?? "??"}
+          <ConnectorLogo slug={approval.credential?.connectorSlug ?? ""} mark={def?.mark} mono className="size-4" />
         </span>
         <div className="min-w-0">
           <p className="text-[12px] font-medium">{def?.name ?? "Unknown service"}</p>
