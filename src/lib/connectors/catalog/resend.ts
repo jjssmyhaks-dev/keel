@@ -45,51 +45,51 @@ const resend: Connector = {
         { key: "subject", label: "Subject", placeholder: "Deploy finished", required: true },
         { key: "text", label: "Body", placeholder: "Build 1842 is live." },
       ],
-      mock: { id: "em_8f2a" },
+      sample: { id: "em_8f2a" },
     }),
     action("send_batch", "Send batch", "POST", "/emails/batch", "write", "Send up to the provider batch limit. More than 10 recipients needs approval.", {
       fields: [{ key: "emails", label: "Emails (JSON array)", placeholder: "[{…}]", required: true }],
-      mock: { data: [{ id: "em_8f2b" }, { id: "em_8f2c" }] },
+      sample: { data: [{ id: "em_8f2b" }, { id: "em_8f2c" }] },
     }),
     action("get_email", "Get email", "GET", "/emails/{id}", "read", "Read delivery status for one email.", {
       resourceLabel: "Email",
-      mock: { id: "em_8f2a", last_event: "delivered" },
+      sample: { id: "em_8f2a", last_event: "delivered" },
     }),
     action("list_domains", "List domains", "GET", "/domains", "read", "List sending domains and verification status.", {
-      mock: { data: [{ id: "d1", name: "acme.dev", status: "verified" }] },
+      sample: { data: [{ id: "d1", name: "acme.dev", status: "verified" }] },
     }),
     action("get_domain", "Get domain", "GET", "/domains/{id}", "read", "Read one sending domain.", {
       resourceLabel: "Domain",
-      mock: { id: "d1", name: "acme.dev", status: "verified" },
+      sample: { id: "d1", name: "acme.dev", status: "verified" },
     }),
     action("list_audiences", "List audiences", "GET", "/audiences", "read", "List audiences.", {
-      mock: { data: [{ id: "a1", name: "Product updates" }] },
+      sample: { data: [{ id: "a1", name: "Product updates" }] },
     }),
     action("list_contacts", "List contacts", "GET", "/contacts", "read", "List contacts in an audience.", {
       fields: [{ key: "audience_id", label: "Audience ID", placeholder: "a1" }],
-      mock: { data: [{ id: "c1", email: "[redacted]" }] },
+      sample: { data: [{ id: "c1", email: "[redacted]" }] },
     }),
     action("create_contact", "Create contact", "POST", "/contacts", "write", "Add a contact.", {
       fields: [
         { key: "email", label: "Email", placeholder: "ops@acme.dev", required: true },
         { key: "audience_id", label: "Audience ID", placeholder: "a1" },
       ],
-      mock: { id: "c2" },
+      sample: { id: "c2" },
     }),
     action("delete_contact", "Delete contact", "DELETE", "/contacts/{id}", "destructive", "Delete a contact.", {
       resourceLabel: "Contact",
-      mock: { id: "c2", deleted: true },
+      sample: { id: "c2", deleted: true },
     }),
     action("create_broadcast", "Create broadcast", "POST", "/broadcasts", "write", "Create a broadcast draft.", {
       fields: [
         { key: "audience_id", label: "Audience ID", placeholder: "a1", required: true },
         { key: "subject", label: "Subject", placeholder: "November update", required: true },
       ],
-      mock: { id: "b1", status: "draft" },
+      sample: { id: "b1", status: "draft" },
     }),
     action("send_broadcast", "Send broadcast", "POST", "/broadcasts/{id}/send", "financial", "Send a broadcast. Reaches many people, so it needs approval.", {
       resourceLabel: "Broadcast",
-      mock: { id: "b1", status: "queued" },
+      sample: { id: "b1", status: "queued" },
     }),
   ],
 };

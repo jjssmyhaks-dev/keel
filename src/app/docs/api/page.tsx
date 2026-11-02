@@ -145,7 +145,7 @@ Content-Type: application/json
   "status": "executed",
   "connector": "slack",
   "action": "slack.post_message",
-  "result": { "status": 200, "body": { "ok": true }, "latencyMs": 179, "mock": false },
+  "result": { "status": 200, "body": { "ok": true }, "latencyMs": 179, "truncated": false },
   "decision": { "effect": "allow", "risk": "write", "source": "grant.approval_mode" },
   "requestId": "req_..."
 }`}</pre>

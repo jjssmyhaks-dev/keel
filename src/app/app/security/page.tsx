@@ -77,18 +77,12 @@ export default async function SecurityPage({
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
         <div className="space-y-6">
           <Panel title="Proxy guardrails" hint="Enforced on every call" bodyClassName="p-4">
+            <p className="mb-4 border border-black/10 bg-[#faf9f6] p-3 text-[11px] leading-relaxed text-black/55 dark:border-border dark:bg-background dark:text-muted-foreground">
+              Provider calls are live. Every request is evaluated against grants, risk class, rate limits and approvals
+              before Keel decrypts a credential and calls the provider. Responses are capped at 2 MB and redirects must
+              stay on the credential&apos;s own origin.
+            </p>
             <form action={updateEnvironmentSettingsAction} className="space-y-4">
-              <label className="flex items-start gap-2.5 border border-black/10 p-3 dark:border-border">
-                <input type="checkbox" name="mockMode" defaultChecked={Boolean(settings.mockMode)} className="mt-0.5 size-3.5 accent-black" />
-                <span>
-                  <span className="block text-[12px] font-medium">Mock execution</span>
-                  <span className="mt-0.5 block text-[11px] leading-relaxed text-black/50 dark:text-muted-foreground">
-                    Policy and audit run normally, but no request leaves Keel. Use it to rehearse a launch without touching real
-                    systems. Live egress also requires <span className="font-mono text-[10px]">KEEL_PROXY_LIVE=1</span> at the
-                    deployment.
-                  </span>
-                </span>
-              </label>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>

@@ -356,9 +356,9 @@ export async function createCredentialAction(formData: FormData) {
       dataKeyEncrypted: sealed.dataKeyEncrypted,
       metadataJson: JSON.stringify(metadata),
       maskedHint,
-      status: "healthy",
+      status: "unverified",
       createdBy: ctx.user.id,
-      healthEvents: { create: { result: "ok", detail: "Connection stored and encrypted." } },
+      healthEvents: { create: { result: "stored", detail: "Stored and encrypted. Not yet verified by a provider call." } },
     },
   });
 
@@ -447,10 +447,10 @@ export async function rotateCredentialAction(formData: FormData) {
       dataKeyEncrypted: sealed.dataKeyEncrypted,
       metadataJson: JSON.stringify(metadata),
       maskedHint,
-      status: "healthy",
+      status: "unverified",
       healthDetail: null,
       revokedAt: null,
-      healthEvents: { create: { result: "ok", detail: "Secret rotated by a human." } },
+      healthEvents: { create: { result: "stored", detail: "Secret replaced. Not yet verified by a provider call." } },
     },
   });
   await auditEvent({
@@ -720,13 +720,18 @@ export async function inviteMemberAction(formData: FormData) {
     ip: meta.ip,
     payloadSummary: { email, role },
   });
-  await sendEmail({
+  const delivery = await sendEmail({
     to: email,
     subject: `${ctx.user.name} invited you to ${ctx.org.name} on Keel`,
     html: `<p>${ctx.user.name} invited you to join <strong>${ctx.org.name}</strong> as a ${role}.</p><p><a href="${appUrl(`/invite/${token}`)}">Accept the invitation</a>. This link expires in 7 days.</p>`,
     text: `${ctx.user.name} invited you to ${ctx.org.name} as a ${role}. Accept: ${appUrl(`/invite/${token}`)}`,
-  }).catch(() => null);
+  }).catch(() => ({ delivered: false, reason: "error" }));
   revalidatePath("/app/team");
+  if (!delivery.delivered) {
+    redirect(
+      `/app/team?invited=${encodeURIComponent(email)}&delivery=${delivery.reason}&link=${encodeURIComponent(`/invite/${token}`)}`,
+    );
+  }
   redirect(`/app/team?invited=${encodeURIComponent(email)}`);
 }
 
@@ -985,7 +990,7 @@ export async function requestPlanChangeAction(formData: FormData) {
       orgId: ctx.org.id,
       type: "billing",
       title: `Plan change requested: ${plan.name}`,
-      body: `${ctx.user.name} requested a move from ${ctx.org.plan} to ${plan.name}. Billing will confirm by email.`,
+      body: `${ctx.user.name} requested a move from ${ctx.org.plan} to ${plan.name}. Billing will follow up with the workspace owner.`,
       href: "/app/billing",
     },
   });
@@ -1032,19 +1037,18 @@ export async function updateEnvironmentSettingsAction(formData: FormData) {
   try {
     current = JSON.parse(ctx.environment.settingsJson || "{}");
   } catch {}
-  const mockMode = bool(formData, "mockMode");
   const approvalExpiryMinutes = Math.min(Math.max(Number(str(formData, "approvalExpiryMinutes") || 60), 5), 1440);
   const agentRateLimitPerMinute = Math.min(Math.max(Number(str(formData, "agentRateLimitPerMinute") || 120), 10), 5000);
   const allowedDomains = str(formData, "allowedDomains");
   const ipAllowlist = str(formData, "ipAllowlist");
-  const next = {
+  const next: Record<string, unknown> = {
     ...current,
-    mockMode,
     approvalExpiryMinutes,
     agentRateLimitPerMinute,
     allowedDomains,
     ipAllowlist,
   };
+  delete next.mockMode;
   await db.environment.update({
     where: { id: ctx.environment.id },
     data: { settingsJson: JSON.stringify(next) },
@@ -1060,7 +1064,7 @@ export async function updateEnvironmentSettingsAction(formData: FormData) {
     resourceId: ctx.environment.id,
     outcome: "recorded",
     ip: meta.ip,
-    payloadSummary: { mockMode, approvalExpiryMinutes, agentRateLimitPerMinute },
+    payloadSummary: { approvalExpiryMinutes, agentRateLimitPerMinute },
   });
   revalidatePath("/app/security");
   redirect("/app/security?saved=1");

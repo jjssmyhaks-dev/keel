@@ -65,7 +65,19 @@ export default async function TeamPage({
                       : "That change could not be saved."}
         </Notice>
       ) : null}
-      {query.invited ? <Notice kind="ok">Invitation sent to {query.invited}. The link expires in 7 days.</Notice> : null}
+      {query.invited ? (
+        query.delivery ? (
+          <Notice kind="error">
+            Invitation recorded for {query.invited}, but email delivery is not configured. Share this link directly:{" "}
+            <a href={query.link} className="underline underline-offset-2">
+              {query.link}
+            </a>{" "}
+            — it expires in 7 days.
+          </Notice>
+        ) : (
+          <Notice kind="ok">Invitation sent to {query.invited}. The link expires in 7 days.</Notice>
+        )
+      ) : null}
       {query.saved ? <Notice kind="ok">Role updated.</Notice> : null}
       {query.removed ? <Notice kind="ok">Member removed from the organization.</Notice> : null}
       {query.cancelled ? <Notice kind="ok">Invitation cancelled.</Notice> : null}

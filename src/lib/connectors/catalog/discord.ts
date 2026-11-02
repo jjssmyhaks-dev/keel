@@ -39,34 +39,34 @@ const discord: Connector = {
   redactedFields: ["bot_token", "authorization", "content"],
   actions: [
     action("list_guilds", "List servers", "GET", "/api/v10/users/@me/guilds", "read", "List servers the bot is installed in.", {
-      mock: [{ id: "8123", name: "Acme Ops" }],
+      sample: [{ id: "8123", name: "Acme Ops" }],
     }),
     action("list_channels", "List channels", "GET", "/api/v10/guilds/{id}/channels", "read", "List channels in a server.", {
       resourceLabel: "Server",
-      mock: [{ id: "9123", name: "agent-ops", type: 0 }],
+      sample: [{ id: "9123", name: "agent-ops", type: 0 }],
     }),
     action("get_messages", "Get messages", "GET", "/api/v10/channels/{id}/messages", "read", "Read recent messages. The message content intent must be enabled.", {
       resourceLabel: "Channel",
-      mock: [{ id: "101", content: "Deploy finished", author: { username: "ci-bot" } }],
+      sample: [{ id: "101", content: "Deploy finished", author: { username: "ci-bot" } }],
     }),
     action("send_message", "Send message", "POST", "/api/v10/channels/{id}/messages", "write", "Send a message. @everyone and @here are stripped unless the grant allows them.", {
       resourceLabel: "Channel",
       fields: [{ key: "content", label: "Message", placeholder: "Build 1842 deployed to staging", required: true }],
-      mock: { id: "102", content: "Build 1842 deployed to staging" },
+      sample: { id: "102", content: "Build 1842 deployed to staging" },
     }),
     action("edit_message", "Edit message", "PATCH", "/api/v10/channels/{id}/messages/{messageId}", "write", "Edit a message the bot posted.", {
       resourceLabel: "Channel",
       fields: [{ key: "content", label: "Message", placeholder: "Updated status", required: true }],
-      mock: { id: "102", content: "Updated status" },
+      sample: { id: "102", content: "Updated status" },
     }),
     action("delete_message", "Delete message", "DELETE", "/api/v10/channels/{id}/messages/{messageId}", "destructive", "Delete a message.", {
       resourceLabel: "Channel",
-      mock: { id: "102", deleted: true },
+      sample: { id: "102", deleted: true },
     }),
     action("add_reaction", "Add reaction", "PUT", "/api/v10/channels/{id}/messages/{messageId}/reactions/{emoji}/@me", "write", "React to a message.", {
       resourceLabel: "Channel",
       fields: [{ key: "emoji", label: "Emoji", placeholder: "✅", required: true }],
-      mock: { reacted: true },
+      sample: { reacted: true },
     }),
     action("create_thread", "Create thread", "POST", "/api/v10/channels/{id}/threads", "write", "Start a thread from a message.", {
       resourceLabel: "Channel",
@@ -74,19 +74,19 @@ const discord: Connector = {
         { key: "name", label: "Thread name", placeholder: "Incident 1842", required: true },
         { key: "messageId", label: "Message ID", placeholder: "102" },
       ],
-      mock: { id: "201", name: "Incident 1842" },
+      sample: { id: "201", name: "Incident 1842" },
     }),
     action("list_members", "List members", "GET", "/api/v10/guilds/{id}/members", "read", "List server members. The members intent must be enabled.", {
       resourceLabel: "Server",
-      mock: [{ user: { username: "ashif" }, roles: [] }],
+      sample: [{ user: { username: "ashif" }, roles: [] }],
     }),
     action("kick_member", "Kick member", "DELETE", "/api/v10/guilds/{id}/members/{userId}", "admin", "Kick a member. Disabled unless the customer enables it explicitly.", {
       resourceLabel: "Server",
-      mock: { userId: "501", kicked: true },
+      sample: { userId: "501", kicked: true },
     }),
     action("ban_member", "Ban member", "PUT", "/api/v10/guilds/{id}/bans/{userId}", "admin", "Ban a member. Disabled unless the customer enables it explicitly.", {
       resourceLabel: "Server",
-      mock: { userId: "501", banned: true },
+      sample: { userId: "501", banned: true },
     }),
   ],
 };

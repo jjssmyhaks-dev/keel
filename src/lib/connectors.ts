@@ -38,7 +38,7 @@ export type ConnectorAction = {
   extraHeaders?: ConnectorInjection["extraHeaders"];
   queryParams?: ConnectorInjection["queryParams"];
   fields?: { key: string; label: string; placeholder?: string; required?: boolean }[];
-  mock?: unknown;
+  sample?: unknown;
 };
 
 export type Connector = {
@@ -111,7 +111,7 @@ export const CONNECTORS: Connector[] = [
           { key: "channel", label: "Channel", placeholder: "#support", required: true },
           { key: "text", label: "Message", placeholder: "Summarize of the latest escalation…", required: true },
         ],
-        mock: { ok: true, channel: "C08SUPPORT", ts: "1730563200.481516" },
+        sample: { ok: true, channel: "C08SUPPORT", ts: "1730563200.481516" },
       },
       {
         name: "slack.list_channels",
@@ -120,7 +120,7 @@ export const CONNECTORS: Connector[] = [
         method: "GET",
         path: "/api/conversations.list",
         risk: "read",
-        mock: {
+        sample: {
           ok: true,
           channels: [
             { id: "C08SUPPORT", name: "support" },
@@ -137,7 +137,7 @@ export const CONNECTORS: Connector[] = [
         path: "/api/conversations.history",
         risk: "read",
         resourceLabel: "Channel",
-        mock: {
+        sample: {
           ok: true,
           messages: [{ user: "U08ALEX", text: "Can someone check the billing webhook?", ts: "1730562900.1" }],
         },
@@ -150,7 +150,7 @@ export const CONNECTORS: Connector[] = [
         path: "/api/files.upload",
         risk: "write",
         resourceLabel: "Channel",
-        mock: { ok: true, file: { id: "F08REPORT", name: "weekly-report.pdf" } },
+        sample: { ok: true, file: { id: "F08REPORT", name: "weekly-report.pdf" } },
       },
     ],
   },
@@ -193,7 +193,7 @@ export const CONNECTORS: Connector[] = [
           { key: "repo", label: "Repository", placeholder: "acme/checkout", required: true },
           { key: "title", label: "Title", placeholder: "Checkout latency spike", required: true },
         ],
-        mock: { id: 24819235, number: 142, state: "open", html_url: "https://github.com/acme/checkout/issues/142" },
+        sample: { id: 24819235, number: 142, state: "open", html_url: "https://github.com/acme/checkout/issues/142" },
       },
       {
         name: "github.list_repos",
@@ -202,7 +202,7 @@ export const CONNECTORS: Connector[] = [
         method: "GET",
         path: "/installation/repositories",
         risk: "read",
-        mock: {
+        sample: {
           total_count: 3,
           repositories: [
             { full_name: "acme/checkout", private: true },
@@ -219,7 +219,7 @@ export const CONNECTORS: Connector[] = [
         path: "/repos/{owner}/{repo}/issues/{number}/comments",
         risk: "write",
         resourceLabel: "Repository",
-        mock: { id: 991823, body: "On it — the fix is rolling out in the next deploy." },
+        sample: { id: 991823, body: "On it — the fix is rolling out in the next deploy." },
       },
       {
         name: "github.merge_pull_request",
@@ -229,7 +229,7 @@ export const CONNECTORS: Connector[] = [
         path: "/repos/{owner}/{repo}/pulls/{number}/merge",
         risk: "destructive",
         resourceLabel: "Repository",
-        mock: { merged: true, message: "Pull Request successfully merged and closed" },
+        sample: { merged: true, message: "Pull Request successfully merged and closed" },
       },
     ],
   },
@@ -274,7 +274,7 @@ export const CONNECTORS: Connector[] = [
           { key: "subject", label: "Subject", placeholder: "Your support ticket is resolved", required: true },
           { key: "body", label: "Body", placeholder: "Hi there, …", required: true },
         ],
-        mock: { id: "18c2b7f9a1d24e6b", threadId: "18c2b7f9a1d24e6b", labelIds: ["SENT"] },
+        sample: { id: "18c2b7f9a1d24e6b", threadId: "18c2b7f9a1d24e6b", labelIds: ["SENT"] },
       },
       {
         name: "gmail.list_messages",
@@ -284,7 +284,7 @@ export const CONNECTORS: Connector[] = [
         path: "/gmail/v1/users/me/messages",
         risk: "read",
         resourceLabel: "Mailbox",
-        mock: {
+        sample: {
           resultSizeEstimate: 2,
           messages: [
             { id: "18c2b7f9a1d24e6b", threadId: "18c2b7f9a1d24e6b" },
@@ -300,7 +300,7 @@ export const CONNECTORS: Connector[] = [
         path: "/gmail/v1/users/me/messages/{id}",
         risk: "read",
         resourceLabel: "Mailbox",
-        mock: {
+        sample: {
           id: "18c2b7f9a1d24e6b",
           snippet: "Thanks for the quick turnaround — everything works now.",
           labelIds: ["INBOX"],
@@ -314,7 +314,7 @@ export const CONNECTORS: Connector[] = [
         path: "/gmail/v1/users/me/drafts",
         risk: "write",
         resourceLabel: "Mailbox",
-        mock: { id: "r-918234", message: { id: "18c2c01fd9a11b2f" } },
+        sample: { id: "r-918234", message: { id: "18c2c01fd9a11b2f" } },
       },
       {
         name: "drive.create_file",
@@ -324,7 +324,7 @@ export const CONNECTORS: Connector[] = [
         path: "/drive/v3/files",
         risk: "write",
         resourceLabel: "Folder",
-        mock: { id: "1Kx9pQ2", name: "Weekly agent report", mimeType: "application/vnd.google-apps.document" },
+        sample: { id: "1Kx9pQ2", name: "Weekly agent report", mimeType: "application/vnd.google-apps.document" },
       },
       {
         name: "calendar.create_event",
@@ -334,7 +334,7 @@ export const CONNECTORS: Connector[] = [
         path: "/calendar/v3/calendars/primary/events",
         risk: "write",
         resourceLabel: "Calendar",
-        mock: { id: "evt_8f2a91", htmlLink: "https://calendar.google.com/event?eid=8f2a91", status: "confirmed" },
+        sample: { id: "evt_8f2a91", htmlLink: "https://calendar.google.com/event?eid=8f2a91", status: "confirmed" },
       },
     ],
   },
@@ -369,7 +369,7 @@ export const CONNECTORS: Connector[] = [
         path: "/v1/pages",
         risk: "write",
         resourceLabel: "Page or database",
-        mock: { object: "page", id: "8a4c9f2e-91c2-4e7a-b39c-1d2a0e5f6a71", url: "https://notion.so/8a4c9f2e" },
+        sample: { object: "page", id: "8a4c9f2e-91c2-4e7a-b39c-1d2a0e5f6a71", url: "https://notion.so/8a4c9f2e" },
       },
       {
         name: "notion.search",
@@ -378,7 +378,7 @@ export const CONNECTORS: Connector[] = [
         method: "POST",
         path: "/v1/search",
         risk: "read",
-        mock: {
+        sample: {
           results: [
             { object: "page", id: "8a4c9f2e", properties: { title: "Agent runbook" } },
             { object: "database", id: "b1c2d3e4", title: "Incident log" },
@@ -393,7 +393,7 @@ export const CONNECTORS: Connector[] = [
         path: "/v1/blocks/{id}/children",
         risk: "write",
         resourceLabel: "Page or database",
-        mock: { object: "list", results: [{ object: "block", type: "paragraph" }] },
+        sample: { object: "list", results: [{ object: "block", type: "paragraph" }] },
       },
       {
         name: "notion.update_page",
@@ -403,7 +403,7 @@ export const CONNECTORS: Connector[] = [
         path: "/v1/pages/{id}",
         risk: "write",
         resourceLabel: "Page or database",
-        mock: { object: "page", id: "8a4c9f2e", last_edited_time: "2026-10-30T16:12:00.000Z" },
+        sample: { object: "page", id: "8a4c9f2e", last_edited_time: "2026-10-30T16:12:00.000Z" },
       },
     ],
   },
@@ -439,7 +439,7 @@ export const CONNECTORS: Connector[] = [
         path: "/crm/v3/objects/contacts",
         risk: "write",
         resourceLabel: "CRM object",
-        mock: { id: "5128491", properties: { email: "client@example.com", lifecycleStage: "lead" } },
+        sample: { id: "5128491", properties: { email: "client@example.com", lifecycleStage: "lead" } },
       },
       {
         name: "hubspot.list_contacts",
@@ -448,7 +448,7 @@ export const CONNECTORS: Connector[] = [
         method: "GET",
         path: "/crm/v3/objects/contacts",
         risk: "read",
-        mock: { total: 2, results: [{ id: "5128491" }, { id: "5128492" }] },
+        sample: { total: 2, results: [{ id: "5128491" }, { id: "5128492" }] },
       },
       {
         name: "hubspot.update_deal",
@@ -458,7 +458,7 @@ export const CONNECTORS: Connector[] = [
         path: "/crm/v3/objects/deals/{id}",
         risk: "write",
         resourceLabel: "CRM object",
-        mock: { id: "880192", properties: { dealstage: "closedwon" } },
+        sample: { id: "880192", properties: { dealstage: "closedwon" } },
       },
     ],
   },
@@ -501,7 +501,7 @@ export const CONNECTORS: Connector[] = [
           { key: "charge", label: "Charge ID", placeholder: "ch_3Qx…", required: true },
           { key: "amount", label: "Amount (minor units)", placeholder: "4200" },
         ],
-        mock: { id: "re_3Qx9a2Lk", object: "refund", status: "succeeded", amount: 4200, currency: "usd" },
+        sample: { id: "re_3Qx9a2Lk", object: "refund", status: "succeeded", amount: 4200, currency: "usd" },
       },
       {
         name: "stripe.list_charges",
@@ -510,7 +510,7 @@ export const CONNECTORS: Connector[] = [
         method: "GET",
         path: "/v1/charges",
         risk: "read",
-        mock: {
+        sample: {
           object: "list",
           data: [
             { id: "ch_3Qx9a2", amount: 4200, currency: "usd", status: "succeeded" },
@@ -525,7 +525,7 @@ export const CONNECTORS: Connector[] = [
         method: "POST",
         path: "/v1/payment_links",
         risk: "financial",
-        mock: { id: "plink_1Qx", url: "https://buy.stripe.com/test_abc123", active: true },
+        sample: { id: "plink_1Qx", url: "https://buy.stripe.com/test_abc123", active: true },
       },
       {
         name: "stripe.list_customers",
@@ -534,7 +534,7 @@ export const CONNECTORS: Connector[] = [
         method: "GET",
         path: "/v1/customers",
         risk: "read",
-        mock: { object: "list", data: [{ id: "cus_Qx91" }, { id: "cus_Qx92" }] },
+        sample: { object: "list", data: [{ id: "cus_Qx91" }, { id: "cus_Qx92" }] },
       },
     ],
   },
@@ -573,7 +573,7 @@ export const CONNECTORS: Connector[] = [
           { key: "model", label: "Model", placeholder: "gpt-4.1-mini", required: true },
           { key: "messages", label: "Messages", placeholder: "Summarize this thread" },
         ],
-        mock: {
+        sample: {
           id: "chatcmpl-9x2kf",
           object: "chat.completion",
           model: "gpt-4.1-mini",
@@ -588,7 +588,7 @@ export const CONNECTORS: Connector[] = [
         method: "GET",
         path: "/v1/models",
         risk: "read",
-        mock: { object: "list", data: [{ id: "gpt-4.1-mini" }, { id: "gpt-4.1" }] },
+        sample: { object: "list", data: [{ id: "gpt-4.1-mini" }, { id: "gpt-4.1" }] },
       },
       {
         name: "openai.create_embedding",
@@ -597,7 +597,7 @@ export const CONNECTORS: Connector[] = [
         method: "POST",
         path: "/v1/embeddings",
         risk: "financial",
-        mock: { object: "list", data: [{ embedding: [0.0023, -0.0132], index: 0 }], usage: { prompt_tokens: 12, total_tokens: 12 } },
+        sample: { object: "list", data: [{ embedding: [0.0023, -0.0132], index: 0 }], usage: { prompt_tokens: 12, total_tokens: 12 } },
       },
     ],
   },
@@ -635,7 +635,7 @@ export const CONNECTORS: Connector[] = [
           { key: "model", label: "Model", placeholder: "claude-sonnet-4-5", required: true },
           { key: "max_tokens", label: "Max tokens", placeholder: "1024" },
         ],
-        mock: {
+        sample: {
           id: "msg_01Xy2",
           type: "message",
           role: "assistant",
@@ -651,7 +651,7 @@ export const CONNECTORS: Connector[] = [
         method: "GET",
         path: "/v1/models",
         risk: "read",
-        mock: { data: [{ id: "claude-sonnet-4-5" }, { id: "claude-haiku-4-5" }] },
+        sample: { data: [{ id: "claude-sonnet-4-5" }, { id: "claude-haiku-4-5" }] },
       },
     ],
   },
@@ -686,7 +686,7 @@ export const CONNECTORS: Connector[] = [
         path: "/graphql",
         risk: "write",
         resourceLabel: "Team",
-        mock: { data: { issueCreate: { success: true, issue: { identifier: "ENG-482", title: "Agent follow-up" } } } },
+        sample: { data: { issueCreate: { success: true, issue: { identifier: "ENG-482", title: "Agent follow-up" } } } },
       },
       {
         name: "linear.list_issues",
@@ -695,7 +695,7 @@ export const CONNECTORS: Connector[] = [
         method: "POST",
         path: "/graphql",
         risk: "read",
-        mock: { data: { issues: { nodes: [{ identifier: "ENG-481", state: "In progress" }] } } },
+        sample: { data: { issues: { nodes: [{ identifier: "ENG-481", state: "In progress" }] } } },
       },
     ],
   },

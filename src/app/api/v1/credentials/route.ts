@@ -96,9 +96,12 @@ export async function POST(req: Request) {
         dataKeyEncrypted: sealed.dataKeyEncrypted,
         metadataJson: JSON.stringify(body.metadata ?? {}),
         maskedHint,
-        status: "healthy",
+        status: "unverified",
         createdBy: auth.apiKeyId,
         expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
+        healthEvents: {
+          create: { result: "stored", detail: "Stored and encrypted. Not yet verified by a provider call." },
+        },
       },
     });
 

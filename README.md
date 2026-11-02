@@ -86,9 +86,9 @@ The app runs on Neon Postgres. `neon.ts` declares the branch policy and the serv
 
 `neon deploy` writes the service credentials to `.env`. Never commit `.env` or `.neon`.
 
-## Mock execution and live egress
+## Provider egress
 
-Fresh environments run in mock mode: policy, approvals, audit and response shapes are real, but no request leaves Keel. Enable mock mode per environment in **Dashboard → Security**, or set `KEEL_PROXY_LIVE=1` at the deployment to allow live provider calls. Both gates must be open for real egress. Leave live egress off until you have reviewed connectors, grants and approvals.
+Every environment calls providers for real. Policy, approvals, rate limits and audit run first; then Keel decrypts the credential and performs the request. Responses return the provider's own status and body. Calls are capped at 2 MB, restricted to the connector's allowed hosts, and redirects may not leave the credential's origin.
 
 ## API at a glance
 
@@ -149,7 +149,7 @@ npm run dev             # Next dev server
 npm run build           # prisma generate + next build
 npm run start           # production server
 npm run typecheck       # next typegen + tsc --noEmit (npm run lint runs this)
-npm run connectors:check # validate connector manifests, action names, risks, hosts and mocks
+npm run connectors:check # validate connector manifests, action names, risks, hosts and samples
 npm run db:seed         # reseed demo workspace (blocked in production unless ALLOW_DEMO_SEED=1)
 npm run db:migrate      # apply pending Prisma migrations to Neon
 npm run db:reset        # destructive: reset schema and reseed
@@ -165,14 +165,13 @@ npm run mcp:typecheck   # typecheck MCP server against SDK source
 
 1. Set `DATABASE_URL`, `APP_URL`, and strong values for `MASTER_KEY`, `JWT_SIGNING_PRIVATE_KEY` and `AUTH_COOKIE_SECRET` from a secret manager.
 2. Run `npx prisma migrate deploy` (or `db push` for a disposable install) and `npm run build`.
-3. Keep `KEEL_PROXY_LIVE` unset until mock runs, approvals and audit verification look right.
-4. Terminate TLS in front of the app; the dashboard session cookie is httpOnly and same-site.
-5. Point `DATABASE_URL` at the pooled Neon endpoint and `DATABASE_URL_UNPOOLED` at the direct endpoint. Run schema changes in a Neon branch first, then apply them to production.
-6. Set `CRON_SECRET` and schedule `POST /api/cron/webhooks` (for example every minute) so failed webhooks retry and old challenge/rate-limit rows are pruned.
-7. Configure billing keys only if you enable checkout; mock execution does not require Stripe or Razorpay. Self-serve sign-up always starts on Free — activate paid plans after payment is collected.
-8. Leave `ALLOW_DEMO_LOGIN` and `ALLOW_DEMO_SEED` unset in production. Demo access is disabled there unless explicitly enabled.
-9. Put `/api/status` behind your uptime monitor, and run `GET /api/v1/audit/verify` as a scheduled check with a secret key.
+3. Terminate TLS in front of the app; the dashboard session cookie is httpOnly and same-site.
+4. Point `DATABASE_URL` at the pooled Neon endpoint and `DATABASE_URL_UNPOOLED` at the direct endpoint. Run schema changes in a Neon branch first, then apply them to production.
+5. Set `CRON_SECRET` and schedule `POST /api/cron/webhooks` (for example every minute) so failed webhooks retry and old challenge/rate-limit rows are pruned.
+6. Add provider credentials through the vault with the secret key API or dashboard. Plan changes are recorded as requests; there is no self-serve card checkout. Self-serve sign-up always starts on Free.
+7. Leave `ALLOW_DEMO_LOGIN` and `ALLOW_DEMO_SEED` unset in production. Demo access is disabled there unless explicitly enabled.
+8. Put `/api/status` behind your uptime monitor, and run `GET /api/v1/audit/verify` as a scheduled check with a secret key.
 
 ## Demo data
 
-The seed creates six development agents, a production environment, connectors, grants, pending approvals, audit history and billing fixtures for Northwind Labs. All provider calls are mocked. Re-run `npm run db:reset` to return to a clean demo state. `npm run setup` no longer seeds automatically, and the seed refuses to run with `NODE_ENV=production` unless `ALLOW_DEMO_SEED=1` is set, so demo credentials cannot leak into a real deployment.
+The seed creates six development agents, a production environment, connectors, grants, pending approvals, audit history and billing fixtures for Northwind Labs. Seeded credentials are placeholders: any provider call is executed for real and will fail authentication until you replace them in the vault. Re-run `npm run db:reset` to return to a clean demo state. `npm run setup` no longer seeds automatically, and the seed refuses to run with `NODE_ENV=production` unless `ALLOW_DEMO_SEED=1` is set, so demo credentials cannot leak into a real deployment.

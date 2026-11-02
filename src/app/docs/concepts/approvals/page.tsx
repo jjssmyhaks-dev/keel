@@ -67,8 +67,8 @@ export default function ApprovalsPage() {
       <h2 id="execution">Execution</h2>
       <p>
         Approving executes the call immediately, server-side, with the credential injected by the proxy. The agent does
-        not re-send the request and never holds the secret. The execution result — status, provider body, latency and
-        whether it ran in mock mode — is stored on the approval and shown on its page.
+        not re-send the request and never holds the secret. The execution result — status, provider body and latency — is
+        stored on the approval and shown on its page.
       </p>
       <Callout tone="warning" title="Approval is not idempotent by itself">
         If the provider succeeds but the network drops before Keel records the result, the approval is marked{" "}

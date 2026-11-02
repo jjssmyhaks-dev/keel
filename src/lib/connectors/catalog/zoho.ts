@@ -49,83 +49,83 @@ const zoho: Connector = {
     action("list_records", "List records", "GET", "/crm/v6/{module}", "read", "List records in a CRM module.", {
       resourceLabel: "Module",
       fields: [{ key: "per_page", label: "Page size", placeholder: "20" }],
-      mock: { data: [{ id: "4100", Last_Name: "Rao" }] },
+      sample: { data: [{ id: "4100", Last_Name: "Rao" }] },
     }),
     action("get_record", "Get record", "GET", "/crm/v6/{module}/{id}", "read", "Read one CRM record.", {
       resourceLabel: "Record",
-      mock: { data: [{ id: "4100", Last_Name: "Rao" }] },
+      sample: { data: [{ id: "4100", Last_Name: "Rao" }] },
     }),
     action("search_records", "Search records", "GET", "/crm/v6/{module}/search", "read", "Search CRM records by criteria.", {
       resourceLabel: "Module",
       fields: [{ key: "criteria", label: "Criteria", placeholder: "(Last_Name:equals:Rao)" }],
-      mock: { data: [{ id: "4100", Last_Name: "Rao" }] },
+      sample: { data: [{ id: "4100", Last_Name: "Rao" }] },
     }),
     action("create_record", "Create record", "POST", "/crm/v6/{module}", "write", "Create a CRM record.", {
       resourceLabel: "Module",
       fields: [{ key: "Last_Name", label: "Last name", placeholder: "Rao", required: true }],
-      mock: { data: [{ code: "SUCCESS", details: { id: "4101" } }] },
+      sample: { data: [{ code: "SUCCESS", details: { id: "4101" } }] },
     }),
     action("update_record", "Update record", "PUT", "/crm/v6/{module}/{id}", "write", "Update a CRM record.", {
       resourceLabel: "Record",
       fields: [{ key: "Last_Name", label: "Last name", placeholder: "Rao" }],
-      mock: { data: [{ code: "SUCCESS", details: { id: "4100" } }] },
+      sample: { data: [{ code: "SUCCESS", details: { id: "4100" } }] },
     }),
     action("delete_record", "Delete record", "DELETE", "/crm/v6/{module}/{id}", "destructive", "Delete a CRM record.", {
       resourceLabel: "Record",
-      mock: { data: [{ code: "SUCCESS", details: { id: "4100" } }] },
+      sample: { data: [{ code: "SUCCESS", details: { id: "4100" } }] },
     }),
     action("list_fields", "List fields", "GET", "/crm/v6/settings/fields", "read", "List fields on a CRM module.", {
       fields: [{ key: "module", label: "Module", placeholder: "Leads" }],
-      mock: { fields: [{ api_name: "Last_Name", data_type: "text" }] },
+      sample: { fields: [{ api_name: "Last_Name", data_type: "text" }] },
     }),
     action("list_invoices", "List invoices", "GET", "/books/v3/invoices", "read", "List Books invoices.", {
       fields: [{ key: "organization_id", label: "Organization ID", placeholder: "10234695", required: true }],
-      mock: { invoices: [{ invoice_id: "963", status: "sent" }] },
+      sample: { invoices: [{ invoice_id: "963", status: "sent" }] },
     }),
     action("get_invoice", "Get invoice", "GET", "/books/v3/invoices/{id}", "read", "Read one Books invoice.", {
       resourceLabel: "Invoice",
       fields: [{ key: "organization_id", label: "Organization ID", placeholder: "10234695", required: true }],
-      mock: { invoice: { invoice_id: "963", status: "sent", total: 4990 } },
+      sample: { invoice: { invoice_id: "963", status: "sent", total: 4990 } },
     }),
     action("create_invoice", "Create invoice", "POST", "/books/v3/invoices", "write", "Create a Books invoice.", {
       fields: [{ key: "organization_id", label: "Organization ID", placeholder: "10234695", required: true }],
-      mock: { invoice: { invoice_id: "964", status: "draft" } },
+      sample: { invoice: { invoice_id: "964", status: "draft" } },
     }),
     action("email_invoice", "Email invoice", "POST", "/books/v3/invoices/{id}/email", "write", "Email an invoice to the customer.", {
       resourceLabel: "Invoice",
       fields: [{ key: "organization_id", label: "Organization ID", placeholder: "10234695", required: true }],
-      mock: { code: 0, message: "Invoice has been sent." },
+      sample: { code: 0, message: "Invoice has been sent." },
     }),
     action("list_contacts", "List contacts", "GET", "/books/v3/contacts", "read", "List Books contacts with personal fields redacted.", {
       fields: [{ key: "organization_id", label: "Organization ID", placeholder: "10234695", required: true }],
-      mock: { contacts: [{ contact_id: "220", email: "[redacted]" }] },
+      sample: { contacts: [{ contact_id: "220", email: "[redacted]" }] },
     }),
     action("create_contact", "Create contact", "POST", "/books/v3/contacts", "write", "Create a Books contact.", {
       fields: [
         { key: "organization_id", label: "Organization ID", placeholder: "10234695", required: true },
         { key: "contact_name", label: "Name", placeholder: "Asha" },
       ],
-      mock: { contact: { contact_id: "221", contact_name: "Asha" } },
+      sample: { contact: { contact_id: "221", contact_name: "Asha" } },
     }),
     action("record_customer_payment", "Record customer payment", "POST", "/books/v3/customerpayments", "financial", "Record a customer payment.", {
       fields: [
         { key: "organization_id", label: "Organization ID", placeholder: "10234695", required: true },
         { key: "amount", label: "Amount", placeholder: "4990", required: true },
       ],
-      mock: { payment: { payment_id: "77", amount: 4990 } },
+      sample: { payment: { payment_id: "77", amount: 4990 } },
     }),
     action("list_bills", "List bills", "GET", "/books/v3/bills", "read", "List Books bills.", {
       fields: [{ key: "organization_id", label: "Organization ID", placeholder: "10234695", required: true }],
-      mock: { bills: [{ bill_id: "55", status: "open" }] },
+      sample: { bills: [{ bill_id: "55", status: "open" }] },
     }),
     action("create_bill", "Create bill", "POST", "/books/v3/bills", "write", "Create a Books bill.", {
       fields: [{ key: "organization_id", label: "Organization ID", placeholder: "10234695", required: true }],
-      mock: { bill: { bill_id: "56", status: "open" } },
+      sample: { bill: { bill_id: "56", status: "open" } },
     }),
     action("void_invoice", "Void invoice", "POST", "/books/v3/invoices/{id}/status/void", "destructive", "Void an invoice.", {
       resourceLabel: "Invoice",
       fields: [{ key: "organization_id", label: "Organization ID", placeholder: "10234695", required: true }],
-      mock: { invoice: { invoice_id: "963", status: "void" } },
+      sample: { invoice: { invoice_id: "963", status: "void" } },
     }),
   ],
 };

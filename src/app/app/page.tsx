@@ -49,6 +49,7 @@ export default async function OverviewPage() {
   const callPercent = callLimit > 0 ? Math.min(100, Math.round((usedCalls / callLimit) * 100)) : 0;
   const activeAgents = agents.filter((agent) => agent.status === "active").length;
   const broken = credentials.filter((c) => c.status === "broken" || c.status === "expiring" || (c.expiresAt && c.expiresAt < new Date(Date.now() + 3 * 86400_000)));
+  const unverified = credentials.filter((c) => !c.revokedAt && c.status === "unverified").length;
 
   const buckets = Array.from({ length: 24 }, (_, index) => {
     const start = new Date(since.getTime() + index * 60 * 60 * 1000);
@@ -92,7 +93,7 @@ export default async function OverviewPage() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Active agents" value={activeAgents} detail={`${agents.length} identities in this environment`} accent />
         <Stat label="Calls this month" value={usedCalls.toLocaleString("en-IN")} detail={callLimit > 0 ? `${callPercent}% of ${callLimit.toLocaleString("en-IN")} included` : "Unlimited"} />
-        <Stat label="Connections" value={credentials.filter((c) => !c.revokedAt).length} detail={broken.length ? `${broken.length} need attention` : "All healthy"} />
+        <Stat label="Connections" value={credentials.filter((c) => !c.revokedAt).length} detail={broken.length ? `${broken.length} need attention` : unverified ? `${unverified} unverified` : "All verified"} />
         <Stat label="Pending approvals" value={pending.length} detail={pending.length ? "Oldest needs a decision" : "Nothing waiting"} />
       </div>
 

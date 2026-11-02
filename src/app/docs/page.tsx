@@ -93,9 +93,9 @@ export default function DocsOverviewPage() {
                     ├─ 5. call Slack with the injected token
                     └─ 6. audit: hash-chained, seq per environment`}</pre>
       <p>
-        The response body is provider-shaped, with a <code>_keel</code> block appended. If a call needs approval, the
-        response is <code>202 Accepted</code> with the approval id and a signed URL — the agent polls the same
-        idempotency key until a decision lands.
+        The response body is the provider&apos;s own payload. If a call needs approval, the response is{" "}
+        <code>202 Accepted</code> with the approval id and a signed URL — the agent polls the same idempotency key until
+        a decision lands.
       </p>
 
       <h2 id="surfaces">Surfaces</h2>

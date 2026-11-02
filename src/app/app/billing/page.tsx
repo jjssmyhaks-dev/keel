@@ -64,7 +64,7 @@ export default async function BillingPage({
       {query.error ? <Notice kind="error">Only the owner can change organization billing details.</Notice> : null}
       {query.requested ? (
         <Notice kind="ok">
-          Plan change requested. Billing will confirm by email — the current plan stays active until then.
+          Plan change requested. Billing will follow up — the current plan stays active until then.
         </Notice>
       ) : null}
 

@@ -48,43 +48,43 @@ const salesforce: Connector = {
   actions: [
     action("query", "Run SOQL", "GET", `${api}/query`, "read", "Run a single SELECT. A LIMIT cap is injected when missing.", {
       fields: [{ key: "q", label: "SOQL", placeholder: "SELECT Id, Name FROM Account LIMIT 10", required: true }],
-      mock: { totalSize: 1, done: true, records: [{ Id: "001A", Name: "Acme" }] },
+      sample: { totalSize: 1, done: true, records: [{ Id: "001A", Name: "Acme" }] },
     }),
     action("search", "Run SOSL", "GET", `${api}/search`, "read", "Run a SOSL search.", {
       fields: [{ key: "q", label: "SOSL", placeholder: "FIND {Acme} IN ALL FIELDS RETURNING Account", required: true }],
-      mock: { searchRecords: [{ Id: "001A", Name: "Acme" }] },
+      sample: { searchRecords: [{ Id: "001A", Name: "Acme" }] },
     }),
     action("list_objects", "List objects", "GET", `${api}/sobjects`, "read", "List available sObjects.", {
-      mock: { sobjects: [{ name: "Account", label: "Account" }, { name: "Contact", label: "Contact" }] },
+      sample: { sobjects: [{ name: "Account", label: "Account" }, { name: "Contact", label: "Contact" }] },
     }),
     action("describe_object", "Describe object", "GET", `${api}/sobjects/{type}/describe`, "read", "Read an object's fields and relationships.", {
       resourceLabel: "Object",
-      mock: { name: "Account", fields: [{ name: "Name", type: "string" }] },
+      sample: { name: "Account", fields: [{ name: "Name", type: "string" }] },
     }),
     action("get_record", "Get record", "GET", `${api}/sobjects/{type}/{id}`, "read", "Read one record.", {
       resourceLabel: "Record",
-      mock: { Id: "001A", Name: "Acme" },
+      sample: { Id: "001A", Name: "Acme" },
     }),
     action("create_record", "Create record", "POST", `${api}/sobjects/{type}`, "write", "Create a record.", {
       resourceLabel: "Object",
       fields: [{ key: "Name", label: "Name", placeholder: "Acme", required: true }],
-      mock: { id: "001B", success: true },
+      sample: { id: "001B", success: true },
     }),
     action("update_record", "Update record", "PATCH", `${api}/sobjects/{type}/{id}`, "write", "Update fields on a record.", {
       resourceLabel: "Record",
       fields: [{ key: "Name", label: "Name", placeholder: "Acme Inc" }],
-      mock: { id: "001A", success: true },
+      sample: { id: "001A", success: true },
     }),
     action("delete_record", "Delete record", "DELETE", `${api}/sobjects/{type}/{id}`, "destructive", "Delete a record.", {
       resourceLabel: "Record",
-      mock: { id: "001A", deleted: true },
+      sample: { id: "001A", deleted: true },
     }),
     action("run_report", "Run report", "GET", `${api}/analytics/reports/{id}`, "read", "Run a stored report.", {
       resourceLabel: "Report",
-      mock: { reportMetadata: { name: "Pipeline" }, factMap: {} },
+      sample: { reportMetadata: { name: "Pipeline" }, factMap: {} },
     }),
     action("get_limits", "Get API limits", "GET", `${api}/limits`, "read", "Read daily API usage for the org.", {
-      mock: { DailyApiRequests: { Max: 15000, Remaining: 14820 } },
+      sample: { DailyApiRequests: { Max: 15000, Remaining: 14820 } },
     }),
   ],
 };

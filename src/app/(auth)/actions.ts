@@ -298,7 +298,7 @@ export async function resendVerificationAction(): Promise<FormState> {
     userId: session.user.id,
     hours: 48,
   });
-  await sendEmail({
+  const delivery = await sendEmail({
     to: session.user.email,
     subject: "Verify your Keel email",
     html: emailLayout(
@@ -307,6 +307,12 @@ export async function resendVerificationAction(): Promise<FormState> {
     ),
     text: `Verify your email: ${appUrl(`/verify-email?token=${token}`)}`,
   });
+  if (delivery.reason === "console") {
+    return { notice: "Email written to the server console. Set RESEND_API_KEY to deliver it." };
+  }
+  if (!delivery.delivered) {
+    return { error: "Email delivery is not configured on this deployment. Ask an operator to set RESEND_API_KEY." };
+  }
   return { notice: "Verification email sent." };
 }
 

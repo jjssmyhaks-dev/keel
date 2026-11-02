@@ -99,8 +99,11 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       data.encryptedPayload = sealed.encryptedPayload;
       data.dataKeyEncrypted = sealed.dataKeyEncrypted;
       data.maskedHint = hintSource ? `••••${String(hintSource).slice(-4)}` : credential.maskedHint;
-      data.status = "healthy";
+      data.status = "unverified";
       data.healthDetail = null;
+      data.healthEvents = {
+        create: { result: "stored", detail: "Secret replaced. Not yet verified by a provider call." },
+      };
       data.revokedAt = null;
     }
 

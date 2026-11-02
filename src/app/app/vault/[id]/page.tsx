@@ -284,7 +284,7 @@ export default async function CredentialDetailPage({
                 {credential.healthEvents.map((event) => (
                   <div key={event.id} className="px-4 py-2.5">
                     <div className="flex items-center justify-between gap-3">
-                      <StatusBadge status={event.result === "ok" ? "healthy" : event.result === "warn" ? "expiring" : "broken"} />
+                      <StatusBadge status={event.result === "ok" ? "healthy" : event.result === "warn" ? "expiring" : event.result === "stored" ? "unverified" : "broken"} />
                       <span className="font-mono text-[9px] text-black/35 dark:text-muted-foreground">{relativeTime(event.checkedAt)}</span>
                     </div>
                     {event.detail ? <p className="mt-1 text-[11px] leading-relaxed text-black/55 dark:text-muted-foreground">{event.detail}</p> : null}

@@ -49,11 +49,11 @@ const microsoft365: Connector = {
         { key: "$filter", label: "Filter", placeholder: "isRead eq false" },
         { key: "$search", label: "Search", placeholder: "\"invoice\"" },
       ],
-      mock: { value: [{ id: "AAMk1", subject: "[redacted]", from: { emailAddress: { address: "[redacted]" } } }] },
+      sample: { value: [{ id: "AAMk1", subject: "[redacted]", from: { emailAddress: { address: "[redacted]" } } }] },
     }),
     action("get_message", "Get message", "GET", "/v1.0/me/messages/{id}", "read", "Read one message. Bodies are redacted by default.", {
       resourceLabel: "Message",
-      mock: { id: "AAMk1", subject: "[redacted]", body: { content: "[redacted]" } },
+      sample: { id: "AAMk1", subject: "[redacted]", body: { content: "[redacted]" } },
     }),
     action("create_draft", "Create draft", "POST", "/v1.0/me/messages", "write", "Create a draft message.", {
       fields: [
@@ -61,7 +61,7 @@ const microsoft365: Connector = {
         { key: "subject", label: "Subject", placeholder: "Weekly status", required: true },
         { key: "body", label: "Body", placeholder: "All good." },
       ],
-      mock: { id: "AAMk2", isDraft: true },
+      sample: { id: "AAMk2", isDraft: true },
     }),
     action("send_mail", "Send mail", "POST", "/v1.0/me/sendMail", "write", "Send mail. External recipients require approval by default.", {
       fields: [
@@ -69,19 +69,19 @@ const microsoft365: Connector = {
         { key: "subject", label: "Subject", placeholder: "Weekly status", required: true },
         { key: "body", label: "Body", placeholder: "All good." },
       ],
-      mock: { accepted: true },
+      sample: { accepted: true },
     }),
     action("reply_to_message", "Reply to message", "POST", "/v1.0/me/messages/{id}/reply", "write", "Reply to a message.", {
       resourceLabel: "Message",
       fields: [{ key: "comment", label: "Reply", placeholder: "Thanks, looking now.", required: true }],
-      mock: { accepted: true },
+      sample: { accepted: true },
     }),
     action("delete_message", "Delete message", "DELETE", "/v1.0/me/messages/{id}", "destructive", "Delete a message.", {
       resourceLabel: "Message",
-      mock: { id: "AAMk1", deleted: true },
+      sample: { id: "AAMk1", deleted: true },
     }),
     action("list_events", "List events", "GET", "/v1.0/me/events", "read", "List calendar events.", {
-      mock: { value: [{ id: "AAMk3", subject: "[redacted]", start: { dateTime: "2026-11-03T10:00:00" } }] },
+      sample: { value: [{ id: "AAMk3", subject: "[redacted]", start: { dateTime: "2026-11-03T10:00:00" } }] },
     }),
     action("create_event", "Create event", "POST", "/v1.0/me/events", "write", "Create a calendar event.", {
       fields: [
@@ -89,39 +89,39 @@ const microsoft365: Connector = {
         { key: "start", label: "Start", placeholder: "2026-11-03T10:00:00" },
         { key: "end", label: "End", placeholder: "2026-11-03T10:30:00" },
       ],
-      mock: { id: "AAMk4", subject: "Agent review" },
+      sample: { id: "AAMk4", subject: "Agent review" },
     }),
     action("update_event", "Update event", "PATCH", "/v1.0/me/events/{id}", "write", "Change a calendar event.", {
       resourceLabel: "Event",
       fields: [{ key: "subject", label: "Subject", placeholder: "Agent review (moved)" }],
-      mock: { id: "AAMk4", subject: "Agent review (moved)" },
+      sample: { id: "AAMk4", subject: "Agent review (moved)" },
     }),
     action("delete_event", "Delete event", "DELETE", "/v1.0/me/events/{id}", "destructive", "Delete a calendar event.", {
       resourceLabel: "Event",
-      mock: { id: "AAMk4", deleted: true },
+      sample: { id: "AAMk4", deleted: true },
     }),
     action("list_drive_items", "List drive items", "GET", "/v1.0/me/drive/root/children", "read", "List files and folders in the drive root.", {
-      mock: { value: [{ id: "01X", name: "runbook.md", size: 4210 }] },
+      sample: { value: [{ id: "01X", name: "runbook.md", size: 4210 }] },
     }),
     action("download_file", "Download file", "GET", "/v1.0/me/drive/items/{id}/content", "read", "Download a file with a size cap.", {
       resourceLabel: "File",
-      mock: { content: "redacted file content", size: 4210 },
+      sample: { content: "redacted file content", size: 4210 },
     }),
     action("upload_file", "Upload file", "PUT", "/v1.0/me/drive/root:/{path}:/content", "write", "Upload a file. Files over 4 MB need an upload session.", {
       fields: [{ key: "content", label: "Content", placeholder: "File contents", required: true }],
-      mock: { id: "01Y", name: "notes.md", size: 312 },
+      sample: { id: "01Y", name: "notes.md", size: 312 },
     }),
     action("delete_drive_item", "Delete drive item", "DELETE", "/v1.0/me/drive/items/{id}", "destructive", "Delete a file or folder.", {
       resourceLabel: "File",
-      mock: { id: "01X", deleted: true },
+      sample: { id: "01X", deleted: true },
     }),
     action("list_teams", "List teams", "GET", "/v1.0/me/joinedTeams", "read", "List joined Teams.", {
-      mock: { value: [{ id: "team1", displayName: "Platform" }] },
+      sample: { value: [{ id: "team1", displayName: "Platform" }] },
     }),
     action("send_channel_message", "Send channel message", "POST", "/v1.0/teams/{id}/channels/{channelId}/messages", "write", "Post a message in a Teams channel.", {
       resourceLabel: "Channel",
       fields: [{ key: "content", label: "Message", placeholder: "Deploy finished", required: true }],
-      mock: { id: "msg1", webUrl: "https://teams.microsoft.com/…" },
+      sample: { id: "msg1", webUrl: "https://teams.microsoft.com/…" },
     }),
   ],
 };

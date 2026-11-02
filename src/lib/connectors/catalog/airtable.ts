@@ -41,11 +41,11 @@ const airtable: Connector = {
   redactedFields: ["token", "authorization"],
   actions: [
     action("list_bases", "List bases", "GET", "/v0/meta/bases", "read", "List bases the token can access.", {
-      mock: { bases: [{ id: "appXXXXXX", name: "Agent Ops" }] },
+      sample: { bases: [{ id: "appXXXXXX", name: "Agent Ops" }] },
     }),
     action("get_base_schema", "Get base schema", "GET", "/v0/meta/bases/{baseId}/tables", "read", "List tables and fields in a base.", {
       resourceLabel: "Base",
-      mock: { tables: [{ id: "tbl1", name: "Runs", fields: [{ name: "Status" }] }] },
+      sample: { tables: [{ id: "tbl1", name: "Runs", fields: [{ name: "Status" }] }] },
     }),
     action("list_records", "List records", "GET", "/v0/{baseId}/{table}", "read", "List records with filterByFormula, view and offset paging.", {
       resourceLabel: "Table",
@@ -53,31 +53,31 @@ const airtable: Connector = {
         { key: "filterByFormula", label: "Filter", placeholder: "{Status}='queued'" },
         { key: "maxRecords", label: "Max records", placeholder: "20" },
       ],
-      mock: { records: [{ id: "rec1", fields: { Status: "queued" } }] },
+      sample: { records: [{ id: "rec1", fields: { Status: "queued" } }] },
     }),
     action("get_record", "Get record", "GET", "/v0/{baseId}/{table}/{recordId}", "read", "Read one record.", {
       resourceLabel: "Table",
-      mock: { id: "rec1", fields: { Status: "queued" } },
+      sample: { id: "rec1", fields: { Status: "queued" } },
     }),
     action("create_records", "Create records", "POST", "/v0/{baseId}/{table}", "write", "Create records. The connector chunks batches over 10.", {
       resourceLabel: "Table",
       fields: [{ key: "records", label: "Records (JSON)", placeholder: '[{"fields":{"Status":"queued"}}]', required: true }],
-      mock: { records: [{ id: "rec2", fields: { Status: "queued" } }] },
+      sample: { records: [{ id: "rec2", fields: { Status: "queued" } }] },
     }),
     action("update_records", "Update records", "PATCH", "/v0/{baseId}/{table}", "write", "Update records. Chunked like create.", {
       resourceLabel: "Table",
       fields: [{ key: "records", label: "Records (JSON)", placeholder: '[{"id":"rec1","fields":{"Status":"done"}}]', required: true }],
-      mock: { records: [{ id: "rec1", fields: { Status: "done" } }] },
+      sample: { records: [{ id: "rec1", fields: { Status: "done" } }] },
     }),
     action("delete_records", "Delete records", "DELETE", "/v0/{baseId}/{table}", "destructive", "Delete records by ID.", {
       resourceLabel: "Table",
       fields: [{ key: "records", label: "Record IDs", placeholder: "rec1,rec2", required: true }],
-      mock: { records: [{ id: "rec1", deleted: true }] },
+      sample: { records: [{ id: "rec1", deleted: true }] },
     }),
     action("create_comment", "Create comment", "POST", "/v0/{baseId}/{table}/{recordId}/comments", "write", "Comment on a record.", {
       resourceLabel: "Table",
       fields: [{ key: "text", label: "Comment", placeholder: "Reviewed by agent", required: true }],
-      mock: { id: "com1", text: "Reviewed by agent" },
+      sample: { id: "com1", text: "Reviewed by agent" },
     }),
   ],
 };

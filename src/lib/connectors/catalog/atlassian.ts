@@ -55,14 +55,14 @@ const atlassian: Connector = {
         { key: "jql", label: "JQL", placeholder: "project = ENG AND status != Done" },
         { key: "maxResults", label: "Max results", placeholder: "25" },
       ],
-      mock: { issues: [{ key: "ENG-482", fields: { summary: "Agent follow-up", status: "In progress" } }], nextPageToken: null },
+      sample: { issues: [{ key: "ENG-482", fields: { summary: "Agent follow-up", status: "In progress" } }], nextPageToken: null },
     }),
     action("get_issue", "Get issue", "GET", `${jira}/issue/{key}`, "read", "Read one Jira issue.", {
       resourceLabel: "Issue",
-      mock: { key: "ENG-482", fields: { summary: "Agent follow-up", status: "In progress" } },
+      sample: { key: "ENG-482", fields: { summary: "Agent follow-up", status: "In progress" } },
     }),
     action("list_projects", "List projects", "GET", `${jira}/project/search`, "read", "List visible Jira projects.", {
-      mock: { values: [{ key: "ENG", name: "Engineering" }] },
+      sample: { values: [{ key: "ENG", name: "Engineering" }] },
     }),
     action("create_issue", "Create issue", "POST", `${jira}/issue`, "write", "Create a Jira issue. Plain text or markdown is converted to Atlassian Document Format.", {
       fields: [
@@ -71,42 +71,42 @@ const atlassian: Connector = {
         { key: "description", label: "Description", placeholder: "Details…" },
         { key: "issueType", label: "Issue type", placeholder: "Task" },
       ],
-      mock: { id: "10042", key: "ENG-483", self: `${jira}/issue/10042` },
+      sample: { id: "10042", key: "ENG-483", self: `${jira}/issue/10042` },
     }),
     action("update_issue", "Update issue", "PUT", `${jira}/issue/{key}`, "write", "Edit fields on a Jira issue.", {
       resourceLabel: "Issue",
       fields: [{ key: "summary", label: "Summary", placeholder: "Updated summary" }],
-      mock: { key: "ENG-482", updated: true },
+      sample: { key: "ENG-482", updated: true },
     }),
     action("transition_issue", "Transition issue", "POST", `${jira}/issue/{key}/transitions`, "write", "Move an issue to another workflow status.", {
       resourceLabel: "Issue",
       fields: [{ key: "transitionId", label: "Transition ID", placeholder: "31", required: true }],
-      mock: { key: "ENG-482", transitioned: true },
+      sample: { key: "ENG-482", transitioned: true },
     }),
     action("add_comment", "Add comment", "POST", `${jira}/issue/{key}/comment`, "write", "Comment on a Jira issue.", {
       resourceLabel: "Issue",
       fields: [{ key: "body", label: "Comment", placeholder: "Deployed to staging", required: true }],
-      mock: { id: "20031", body: "Deployed to staging" },
+      sample: { id: "20031", body: "Deployed to staging" },
     }),
     action("assign_issue", "Assign issue", "PUT", `${jira}/issue/{key}/assignee`, "write", "Assign a Jira issue to an account ID.", {
       resourceLabel: "Issue",
       fields: [{ key: "accountId", label: "Account ID", placeholder: "5b10ac8d…", required: true }],
-      mock: { key: "ENG-482", assigned: true },
+      sample: { key: "ENG-482", assigned: true },
     }),
     action("delete_issue", "Delete issue", "DELETE", `${jira}/issue/{key}`, "destructive", "Delete a Jira issue permanently.", {
       resourceLabel: "Issue",
-      mock: { key: "ENG-482", deleted: true },
+      sample: { key: "ENG-482", deleted: true },
     }),
     action("search_content", "Search content", "GET", `${confluence}/rest/api/search`, "read", "Search Confluence pages with CQL.", {
       fields: [{ key: "cql", label: "CQL", placeholder: "space = ENG AND type = page" }],
-      mock: { results: [{ content: { id: "98123", title: "Billing runbook" } }] },
+      sample: { results: [{ content: { id: "98123", title: "Billing runbook" } }] },
     }),
     action("get_page", "Get page", "GET", `${confluence}/api/v2/pages/{id}`, "read", "Read one Confluence page.", {
       resourceLabel: "Page",
-      mock: { id: "98123", title: "Billing runbook", version: { number: 4 } },
+      sample: { id: "98123", title: "Billing runbook", version: { number: 4 } },
     }),
     action("list_spaces", "List spaces", "GET", `${confluence}/api/v2/spaces`, "read", "List Confluence spaces.", {
-      mock: { results: [{ id: "771", key: "ENG", name: "Engineering" }] },
+      sample: { results: [{ id: "771", key: "ENG", name: "Engineering" }] },
     }),
     action("create_page", "Create page", "POST", `${confluence}/api/v2/pages`, "write", "Create a Confluence page from plain text or markdown.", {
       fields: [
@@ -114,16 +114,16 @@ const atlassian: Connector = {
         { key: "title", label: "Title", placeholder: "Incident notes", required: true },
         { key: "body", label: "Body", placeholder: "Markdown…" },
       ],
-      mock: { id: "98124", title: "Incident notes", version: { number: 1 } },
+      sample: { id: "98124", title: "Incident notes", version: { number: 1 } },
     }),
     action("update_page", "Update page", "PUT", `${confluence}/api/v2/pages/{id}`, "write", "Update a page. The connector reads the current version first.", {
       resourceLabel: "Page",
       fields: [{ key: "body", label: "Body", placeholder: "Markdown…" }],
-      mock: { id: "98123", version: { number: 5 } },
+      sample: { id: "98123", version: { number: 5 } },
     }),
     action("delete_page", "Delete page", "DELETE", `${confluence}/api/v2/pages/{id}`, "destructive", "Delete a Confluence page.", {
       resourceLabel: "Page",
-      mock: { id: "98123", deleted: true },
+      sample: { id: "98123", deleted: true },
     }),
   ],
 };

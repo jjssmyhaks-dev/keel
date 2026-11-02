@@ -46,16 +46,16 @@ const pinecone: Connector = {
   redactedFields: ["api_key", "values", "metadata", "vector"],
   actions: [
     action("list_indexes", "List indexes", "GET", "/indexes", "read", "List indexes in the project.", {
-      mock: { indexes: [{ name: "agent-memory", dimension: 3072, metric: "cosine" }] },
+      sample: { indexes: [{ name: "agent-memory", dimension: 3072, metric: "cosine" }] },
     }),
     action("describe_index", "Describe index", "GET", "/indexes/{name}", "read", "Read an index's host, dimension and metric.", {
       resourceLabel: "Index",
-      mock: { name: "agent-memory", host: "agent-memory-abc.svc.pinecone.io", dimension: 3072 },
+      sample: { name: "agent-memory", host: "agent-memory-abc.svc.pinecone.io", dimension: 3072 },
     }),
     action("describe_index_stats", "Index stats", "POST", "/describe_index_stats", "read", "Read vector counts per namespace.", {
       ...data,
       resourceLabel: "Index",
-      mock: { namespaces: { "tenant-a": { vectorCount: 1284 } } },
+      sample: { namespaces: { "tenant-a": { vectorCount: 1284 } } },
     }),
     action("query", "Query vectors", "POST", "/query", "read", "Query by vector with a top-k cap and optional metadata filter.", {
       ...data,
@@ -65,13 +65,13 @@ const pinecone: Connector = {
         { key: "topK", label: "Top K", placeholder: "5" },
         { key: "namespace", label: "Namespace", placeholder: "tenant-a" },
       ],
-      mock: { matches: [{ id: "mem_1", score: 0.92 }] },
+      sample: { matches: [{ id: "mem_1", score: 0.92 }] },
     }),
     action("fetch_vectors", "Fetch vectors", "GET", "/vectors/fetch", "read", "Fetch vectors by ID.", {
       ...data,
       resourceLabel: "Namespace",
       fields: [{ key: "ids", label: "IDs", placeholder: "mem_1,mem_2" }],
-      mock: { vectors: { mem_1: { id: "mem_1", values: [] } } },
+      sample: { vectors: { mem_1: { id: "mem_1", values: [] } } },
     }),
     action("upsert_vectors", "Upsert vectors", "POST", "/vectors/upsert", "write", "Upsert vectors. Chunked to the provider batch size.", {
       ...data,
@@ -80,13 +80,13 @@ const pinecone: Connector = {
         { key: "vectors", label: "Vectors (JSON)", placeholder: '[{"id":"mem_2","values":[…]}]', required: true },
         { key: "namespace", label: "Namespace", placeholder: "tenant-a" },
       ],
-      mock: { upsertedCount: 1 },
+      sample: { upsertedCount: 1 },
     }),
     action("update_vector", "Update vector", "POST", "/vectors/update", "write", "Update a vector's values or metadata.", {
       ...data,
       resourceLabel: "Namespace",
       fields: [{ key: "id", label: "Vector ID", placeholder: "mem_1", required: true }],
-      mock: { updated: true },
+      sample: { updated: true },
     }),
     action("delete_vectors", "Delete vectors", "POST", "/vectors/delete", "destructive", "Delete vectors. Delete-all in a namespace needs approval.", {
       ...data,
@@ -96,7 +96,7 @@ const pinecone: Connector = {
         { key: "deleteAll", label: "Delete all", placeholder: "false" },
         { key: "namespace", label: "Namespace", placeholder: "tenant-a" },
       ],
-      mock: { deleted: 1 },
+      sample: { deleted: 1 },
     }),
     action("create_index", "Create index", "POST", "/indexes", "admin", "Create a billable index.", {
       fields: [
@@ -104,16 +104,16 @@ const pinecone: Connector = {
         { key: "dimension", label: "Dimension", placeholder: "3072", required: true },
         { key: "metric", label: "Metric", placeholder: "cosine" },
       ],
-      mock: { name: "agent-memory", dimension: 3072, status: "Ready" },
+      sample: { name: "agent-memory", dimension: 3072, status: "Ready" },
     }),
     action("delete_index", "Delete index", "DELETE", "/indexes/{name}", "destructive", "Delete an index and its vectors.", {
       resourceLabel: "Index",
-      mock: { name: "agent-memory", deleted: true },
+      sample: { name: "agent-memory", deleted: true },
     }),
     action("list_namespaces", "List namespaces", "GET", "/namespaces", "read", "List namespaces in an index.", {
       ...data,
       resourceLabel: "Index",
-      mock: { namespaces: [{ name: "tenant-a", recordCount: 1284 }] },
+      sample: { namespaces: [{ name: "tenant-a", recordCount: 1284 }] },
     }),
   ],
 };

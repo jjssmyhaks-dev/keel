@@ -7,7 +7,6 @@ const DEFAULT_SETTINGS = {
   autoApproveDev: true,
   approvalExpiryMinutes: 60,
   defaultOutcome: "deny",
-  mockMode: true,
   agentRateLimitPerMinute: 120,
   sessionHours: 720,
   escalateAfterMinutes: 30,
@@ -46,7 +45,7 @@ export async function provisionOrganization(opts: {
       environments: {
         create: [
           { type: "development", settingsJson: JSON.stringify(DEFAULT_SETTINGS) },
-          { type: "production", settingsJson: JSON.stringify({ ...DEFAULT_SETTINGS, mockMode: false }) },
+          { type: "production", settingsJson: JSON.stringify(DEFAULT_SETTINGS) },
         ],
       },
     },

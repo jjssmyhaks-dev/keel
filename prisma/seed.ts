@@ -131,7 +131,6 @@ async function main() {
               autoApproveDev: true,
               approvalExpiryMinutes: 60,
               defaultOutcome: "deny",
-              mockMode: true,
               agentRateLimitPerMinute: 120,
               escalateAfterMinutes: 30,
             }),
@@ -142,7 +141,6 @@ async function main() {
               autoApproveDev: false,
               approvalExpiryMinutes: 30,
               defaultOutcome: "deny",
-              mockMode: false,
               agentRateLimitPerMinute: 600,
               escalateAfterMinutes: 15,
               allowedDomains: "northwind.dev",
@@ -356,7 +354,7 @@ async function main() {
           scopes: opts.connectorSlug === "slack" ? ["channels:read", "chat:write"] : undefined,
         }),
         maskedHint: opts.mask,
-        status: opts.status ?? "healthy",
+        status: opts.status ?? "unverified",
         healthDetail: opts.healthDetail,
         expiresAt: opts.expiresInDays
           ? new Date(Date.now() + opts.expiresInDays * 86400_000)
@@ -367,8 +365,8 @@ async function main() {
         healthEvents: {
           create: [
             {
-              result: opts.status === "broken" ? "failed" : "ok",
-              detail: opts.healthDetail ?? "Token valid, required scopes present.",
+              result: opts.status === "broken" ? "failed" : "stored",
+              detail: opts.healthDetail ?? "Seeded demo fixture — not verified against the provider.",
               checkedAt: minutesAgo(18),
             },
           ],

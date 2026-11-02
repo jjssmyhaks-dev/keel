@@ -238,7 +238,7 @@ export interface ProxyExecuted {
     status: number;
     body: unknown;
     latencyMs: number;
-    mock: boolean;
+    truncated: boolean;
   };
   decision: ProxyDecision;
   requestId: string;

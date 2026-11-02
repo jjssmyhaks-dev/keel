@@ -42,33 +42,33 @@ const huggingface: Connector = {
   actions: [
     action("search_models", "Search models", "GET", "/api/models", "read", "Search the model hub.", {
       fields: [{ key: "search", label: "Search", placeholder: "llama" }],
-      mock: [{ id: "meta-llama/Llama-3.1-8B", downloads: 12000000 }],
+      sample: [{ id: "meta-llama/Llama-3.1-8B", downloads: 12000000 }],
     }),
     action("get_model", "Get model", "GET", "/api/models/{repo}", "read", "Read a model card and metadata.", {
       resourceLabel: "Model",
-      mock: { id: "meta-llama/Llama-3.1-8B", pipeline_tag: "text-generation" },
+      sample: { id: "meta-llama/Llama-3.1-8B", pipeline_tag: "text-generation" },
     }),
     action("search_datasets", "Search datasets", "GET", "/api/datasets", "read", "Search the dataset hub.", {
-      mock: [{ id: "acme/agent-traces", downloads: 4200 }],
+      sample: [{ id: "acme/agent-traces", downloads: 4200 }],
     }),
     action("get_dataset", "Get dataset", "GET", "/api/datasets/{repo}", "read", "Read a dataset card.", {
       resourceLabel: "Dataset",
-      mock: { id: "acme/agent-traces", cardData: {} },
+      sample: { id: "acme/agent-traces", cardData: {} },
     }),
     action("search_spaces", "Search spaces", "GET", "/api/spaces", "read", "Search Spaces.", {
-      mock: [{ id: "acme/agent-demo", sdk: "gradio" }],
+      sample: [{ id: "acme/agent-demo", sdk: "gradio" }],
     }),
     action("get_space", "Get space", "GET", "/api/spaces/{repo}", "read", "Read a Space's metadata and status.", {
       resourceLabel: "Space",
-      mock: { id: "acme/agent-demo", runtime: { stage: "RUNNING" } },
+      sample: { id: "acme/agent-demo", runtime: { stage: "RUNNING" } },
     }),
     action("list_repo_files", "List repo files", "GET", "/api/{repo}/tree/main", "read", "List files in a repository.", {
       resourceLabel: "Repository",
-      mock: [{ path: "config.json", size: 812 }],
+      sample: [{ path: "config.json", size: 812 }],
     }),
     action("download_file", "Download file", "GET", "/{repo}/resolve/{revision}/{path}", "read", "Download a small file. Large model files are blocked.", {
       resourceLabel: "Repository",
-      mock: { path: "config.json", size: 812, content: "{}" },
+      sample: { path: "config.json", size: 812, content: "{}" },
     }),
     action("run_inference", "Run inference", "POST", "/models/{repo}", "write", "Run a model through the inference router. Tokens count toward spend caps.", {
       host: "router.huggingface.co",
@@ -77,7 +77,7 @@ const huggingface: Connector = {
         { key: "inputs", label: "Inputs", placeholder: "Summarise this…", required: true },
         { key: "parameters", label: "Parameters", placeholder: '{"max_new_tokens":128}' },
       ],
-      mock: [{ generated_text: "Summary…" }],
+      sample: [{ generated_text: "Summary…" }],
     }),
     action("create_repo", "Create repository", "POST", "/api/repos/create", "write", "Create a model, dataset or Space repository.", {
       fields: [
@@ -85,42 +85,42 @@ const huggingface: Connector = {
         { key: "type", label: "Type", placeholder: "dataset" },
         { key: "private", label: "Private", placeholder: "true" },
       ],
-      mock: { url: "https://huggingface.co/datasets/acme/agent-traces" },
+      sample: { url: "https://huggingface.co/datasets/acme/agent-traces" },
     }),
     action("upload_file", "Upload file", "POST", "/api/{repo}/commit/main", "write", "Commit a file to a repository.", {
       resourceLabel: "Repository",
       fields: [{ key: "path", label: "Path", placeholder: "data/traces.jsonl", required: true }],
-      mock: { commitOid: "9f2a", success: true },
+      sample: { commitOid: "9f2a", success: true },
     }),
     action("delete_repo", "Delete repository", "DELETE", "/api/repos/delete", "destructive", "Delete a repository permanently.", {
       resourceLabel: "Repository",
       fields: [{ key: "name", label: "Repository", placeholder: "acme/agent-traces", required: true }],
-      mock: { deleted: true },
+      sample: { deleted: true },
     }),
     action("restart_space", "Restart space", "POST", "/api/spaces/{repo}/restart", "write", "Restart a Space.", {
       resourceLabel: "Space",
-      mock: { runtime: { stage: "RUNNING" } },
+      sample: { runtime: { stage: "RUNNING" } },
     }),
     action("pause_space", "Pause space", "POST", "/api/spaces/{repo}/pause", "write", "Pause a Space.", {
       resourceLabel: "Space",
-      mock: { runtime: { stage: "PAUSED" } },
+      sample: { runtime: { stage: "PAUSED" } },
     }),
     action("list_inference_endpoints", "List inference endpoints", "GET", "/api/endpoints", "read", "List Inference Endpoints.", {
       resourceLabel: "Endpoint",
-      mock: { endpoints: [{ name: "llama-prod", status: { state: "running" } }] },
+      sample: { endpoints: [{ name: "llama-prod", status: { state: "running" } }] },
     }),
     action("create_inference_endpoint", "Create inference endpoint", "POST", "/api/endpoints", "financial", "Create a billable inference endpoint.", {
       fields: [{ key: "name", label: "Name", placeholder: "llama-prod", required: true }],
-      mock: { name: "llama-prod", status: { state: "initializing" } },
+      sample: { name: "llama-prod", status: { state: "initializing" } },
     }),
     action("scale_inference_endpoint", "Scale endpoint", "PUT", "/api/endpoints/{name}/scale", "financial", "Change an endpoint's replicas or hardware.", {
       resourceLabel: "Endpoint",
       fields: [{ key: "replicas", label: "Replicas", placeholder: "2" }],
-      mock: { name: "llama-prod", replicas: 2 },
+      sample: { name: "llama-prod", replicas: 2 },
     }),
     action("delete_inference_endpoint", "Delete endpoint", "DELETE", "/api/endpoints/{name}", "destructive", "Delete an inference endpoint.", {
       resourceLabel: "Endpoint",
-      mock: { name: "llama-prod", deleted: true },
+      sample: { name: "llama-prod", deleted: true },
     }),
   ],
 };

@@ -6,7 +6,6 @@ export type EnvironmentSettings = {
   autoApproveDev?: boolean;
   approvalExpiryMinutes?: number;
   defaultOutcome?: "deny" | "allow";
-  mockMode?: boolean;
   ipAllowlist?: string;
   allowedDomains?: string;
   sessionHours?: number;
@@ -145,6 +144,16 @@ export async function evaluatePolicy(opts: {
       risk,
       action,
       source: "credential.status",
+    };
+  }
+
+  if (credential.status === "broken") {
+    return {
+      effect: "deny",
+      reason: credential.healthDetail ?? "The provider rejected this credential. Rotate it in the vault.",
+      risk,
+      action,
+      source: "credential.unhealthy",
     };
   }
 

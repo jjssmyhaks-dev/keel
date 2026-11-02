@@ -12,7 +12,7 @@ export async function sendEmail(input: MailInput) {
       return { delivered: false, reason: "no_provider" };
     }
     console.info(`\n[keel:email] To: ${input.to}\nSubject: ${input.subject}\n${input.text ?? stripHtml(input.html)}\n`);
-    return { delivered: false, reason: "no_provider" };
+    return { delivered: false, reason: "console" };
   }
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",

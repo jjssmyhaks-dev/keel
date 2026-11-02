@@ -52,7 +52,7 @@ export default async function VaultPage({
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Connections" value={all.length} detail={`${usedConnectors.length} services`} accent />
-        <Stat label="Healthy" value={healthy} detail="Token valid, scopes present" />
+        <Stat label="Healthy" value={healthy} detail="Confirmed by a provider call" />
         <Stat label="Need attention" value={attention} detail={attention ? "Rotate or re-authorize" : "Nothing to fix"} />
         <Stat label="Granted" value={all.filter((c) => c.grants.length).length} detail="Connected to at least one agent" />
       </div>

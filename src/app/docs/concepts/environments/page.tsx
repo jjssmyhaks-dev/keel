@@ -57,17 +57,14 @@ export default function EnvironmentsPage() {
           <tr><td>Destructive / financial</td><td>Require approval</td><td>Require approval</td></tr>
           <tr><td>Approval expiry</td><td>60 minutes</td><td>30 minutes</td></tr>
           <tr><td>Proxy rate limit</td><td>120 / minute / agent</td><td>600 / minute / agent</td></tr>
-          <tr><td>Mock execution</td><td>On by default</td><td>Off per environment; live egress requires <code>KEEL_PROXY_LIVE=1</code> at the deployment</td></tr>
+          <tr><td>Provider egress</td><td>Live</td><td>Live (paid plans)</td></tr>
           <tr><td>Allowed domains</td><td>Unrestricted</td><td>Configurable allow-list</td></tr>
         </tbody>
       </table>
       <p>
-        Mock mode is a development convenience: the connector returns its declared sample response without contacting
-        the provider, and the response is marked <code>_keel.mock: true</code>. It is never enabled in production. A
-        second, deployment-level switch controls live egress for the whole instance: unless the operator sets{" "}
-        <code>KEEL_PROXY_LIVE=1</code>, no request leaves Keel even when mock mode is off. This makes a demo or a
-        staging instance safe by default. The guardrails page shows each environment&apos;s mock setting, and every
-        response reports whether it was mocked.
+        Every environment calls providers for real. Policy, approvals, rate limits and audit run before any request
+        leaves Keel, and the response returned to the agent is the provider&apos;s own status and body. Calls are capped
+        at 2 MB, must stay on the connector&apos;s allowed hosts, and cannot follow a redirect to a different origin.
       </p>
 
       <h2 id="promotion">Promotion</h2>

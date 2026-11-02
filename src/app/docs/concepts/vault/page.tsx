@@ -57,9 +57,10 @@ export default function VaultPage() {
           </tr>
         </thead>
         <tbody>
-          <tr><td><code>healthy</code></td><td>Last check succeeded, or never checked.</td><td>Calls allowed if policy allows.</td></tr>
+          <tr><td><code>healthy</code></td><td>The last provider call succeeded.</td><td>Calls allowed if policy allows.</td></tr>
+          <tr><td><code>unverified</code></td><td>Stored but not yet exercised against the provider.</td><td>Calls allowed if policy allows.</td></tr>
           <tr><td><code>expiring</code></td><td>Expiry is within the warning window.</td><td>Allowed, but flagged in the vault and notifications.</td></tr>
-          <tr><td><code>broken</code></td><td>Provider rejected the credential, or health check failed.</td><td>Denied with <code>credential_unhealthy</code> until rotated.</td></tr>
+          <tr><td><code>broken</code></td><td>Provider rejected the credential with 401 or 403.</td><td>Denied with <code>credential_unhealthy</code> until rotated.</td></tr>
           <tr><td><code>revoked</code></td><td>A human revoked it.</td><td>Denied permanently. Grants referencing it are inert.</td></tr>
         </tbody>
       </table>
@@ -77,11 +78,11 @@ export default function VaultPage() {
       <pre>{`PATCH /api/v1/credentials/:id
 { "secret": { "accessToken": "xoxb-new-token" }, "expiresAt": "2027-01-31T00:00:00.000Z" }
 
-# 200 → { id, status: "healthy", maskedHint: "••••9d11", ... }`}</pre>
+# 200 → { id, status: "unverified", maskedHint: "••••9d11", ... }`}</pre>
       <p>
-        Every rotation writes a <code>credential.rotated</code> audit event without the secret, and clears a{" "}
-        <code>broken</code> status. Expiring credentials should be rotated before the provider starts rejecting them —
-        the vault warns three days ahead.
+        Every rotation writes a <code>credential.rotated</code> audit event without the secret and marks the connection{" "}
+        <code>unverified</code> again; the next successful provider call records it as <code>healthy</code>. Expiring
+        credentials should be rotated before the provider starts rejecting them — the vault warns three days ahead.
       </p>
 
       <h2 id="redaction">Redaction</h2>
@@ -100,9 +101,10 @@ export default function VaultPage() {
 
       <h2 id="health">Health checks</h2>
       <p>
-        Keel records a health event on every failed provider call. A 401 or 403 from the provider marks the credential{" "}
-        <code>broken</code> and notifies the environment owner; a successful call refreshes <code>lastUsedAt</code>. You
-        can also run a check from the credential page, which performs the connector&apos;s cheapest read action.
+        Health comes from real traffic. A 401 or 403 from the provider marks the credential <code>broken</code>, records
+        a health event and notifies the environment owners; any 2xx marks it <code>healthy</code>. Every call refreshes{" "}
+        <code>lastUsedAt</code>. There is no synthetic health check: a connection is only verified when a real provider
+        call succeeds.
       </p>
 
       <h2 id="boundaries">Trust boundaries</h2>

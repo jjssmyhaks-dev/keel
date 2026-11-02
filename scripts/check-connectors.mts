@@ -77,7 +77,7 @@ for (const connector of CONNECTORS) {
       fail(`${at}: missing path (or a baseUrlField that is the full endpoint)`);
     }
     if (!action.label) fail(`${at}: missing label`);
-    if (action.mock === undefined) fail(`${at}: missing mock`);
+    if (action.sample === undefined) fail(`${at}: missing sample response`);
 
     checkFieldRefs(connector, `${action.name}.baseUrlField`, action.baseUrlField, keys);
     checkFieldRefs(connector, `${action.name}.authField`, action.authField, keys);

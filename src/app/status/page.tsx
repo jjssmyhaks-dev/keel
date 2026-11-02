@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { envSettings } from "@/lib/policy";
 import { Navigation } from "@/components/landing/navigation";
 import { FooterSection } from "@/components/landing/footer-section";
 
@@ -22,22 +21,21 @@ export default async function StatusPage() {
   const checkedAt = new Date();
   let database = true;
   let environmentCount = 0;
-  let mockOnly = true;
 
   try {
     environmentCount = await db.environment.count();
-    const rows = await db.environment.findMany({ select: { settingsJson: true, type: true } });
-    mockOnly =
-      rows.length > 0 && rows.every((row) => row.type === "development" || Boolean(envSettings(row).mockMode));
   } catch {
     database = false;
   }
 
-  const liveEgress = process.env.KEEL_PROXY_LIVE === "1" && !mockOnly;
   const components = [
     { name: "Control plane", detail: "Dashboard, API keys, sessions", ok: database },
     { name: "Metadata store", detail: database ? `${environmentCount} environments reachable` : "Database check failed", ok: database },
-    { name: "Agent proxy", detail: liveEgress ? "Live egress enabled" : "Mock egress — provider calls simulated", ok: database },
+    {
+      name: "Agent proxy",
+      detail: database ? "Live provider egress · policy, approvals and audit enforced" : "Proxy unavailable",
+      ok: database,
+    },
     { name: "Audit pipeline", detail: "Hash-chained writes and export", ok: database },
   ];
   const allOk = components.every((component) => component.ok);

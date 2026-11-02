@@ -182,8 +182,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
         },
       });
       return apiError(
-        403,
-        "policy_denied",
+        decision.source === "credential.unhealthy" ? 409 : 403,
+        decision.source === "credential.unhealthy" ? "credential_unhealthy" : "policy_denied",
         decision.reason,
         { decision: { effect: "deny", risk: decision.risk, source: decision.source } },
         rid,
@@ -227,7 +227,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
       status: "executed",
       connector: connectorDef.slug,
       action: actionName,
-      result: { status: result.status, body: result.body, latencyMs: result.latencyMs, mock: result.mock },
+      result: { status: result.status, body: result.body, latencyMs: result.latencyMs, truncated: result.truncated },
       decision: { effect: "allow", risk: decision.risk, source: decision.source, reason: decision.reason },
       requestId: rid,
     });

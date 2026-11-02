@@ -532,7 +532,7 @@ async function call(args: ParsedArgs) {
       ["Status", "executed"],
       ["Decision", `${result.decision.effect} · ${result.decision.source}`],
       ["Risk", result.decision.risk],
-      ["Latency", `${result.result.latencyMs}ms${result.result.mock ? " (mock)" : ""}`],
+      ["Latency", `${result.result.latencyMs}ms${result.result.truncated ? " (truncated)" : ""}`],
       ["Request", result.requestId],
     ]);
     process.stdout.write(`\n${JSON.stringify(result.result.body, null, 2)}\n`);

@@ -40,26 +40,26 @@ const dropbox: Connector = {
   actions: [
     action("list_folder", "List folder", "POST", "/2/files/list_folder", "read", "List a folder. Paths are normalized to stop traversal.", {
       fields: [{ key: "path", label: "Folder path", placeholder: "/Agents", required: true }],
-      mock: { entries: [{ ".tag": "file", name: "run-1842.json", path_display: "/Agents/run-1842.json" }], has_more: false },
+      sample: { entries: [{ ".tag": "file", name: "run-1842.json", path_display: "/Agents/run-1842.json" }], has_more: false },
     }),
     action("list_folder_continue", "Continue listing", "POST", "/2/files/list_folder/continue", "read", "Continue a folder listing with a cursor.", {
       fields: [{ key: "cursor", label: "Cursor", placeholder: "AAH…", required: true }],
-      mock: { entries: [], has_more: false },
+      sample: { entries: [], has_more: false },
     }),
     action("get_metadata", "Get metadata", "POST", "/2/files/get_metadata", "read", "Read metadata for a path.", {
       resourceLabel: "Path",
       fields: [{ key: "path", label: "Path", placeholder: "/Agents/run-1842.json", required: true }],
-      mock: { ".tag": "file", name: "run-1842.json", size: 4210 },
+      sample: { ".tag": "file", name: "run-1842.json", size: 4210 },
     }),
     action("search", "Search", "POST", "/2/files/search_v2", "read", "Search files and folders.", {
       fields: [{ key: "query", label: "Query", placeholder: "run-1842" }],
-      mock: { matches: [{ metadata: { metadata: { name: "run-1842.json" } } }] },
+      sample: { matches: [{ metadata: { metadata: { name: "run-1842.json" } } }] },
     }),
     action("download_file", "Download file", "POST", "/2/files/download", "read", "Download a file with a size cap.", {
       host: "content.dropboxapi.com",
       resourceLabel: "Path",
       fields: [{ key: "path", label: "Path", placeholder: "/Agents/run-1842.json", required: true }],
-      mock: { content: "redacted file content", size: 4210 },
+      sample: { content: "redacted file content", size: 4210 },
     }),
     action("upload_file", "Upload file", "POST", "/2/files/upload", "write", "Upload a file up to 150 MB. Larger files use an upload session.", {
       host: "content.dropboxapi.com",
@@ -68,12 +68,12 @@ const dropbox: Connector = {
         { key: "path", label: "Path", placeholder: "/Agents/run-1843.json", required: true },
         { key: "content", label: "Content", placeholder: "File contents", required: true },
       ],
-      mock: { name: "run-1843.json", size: 312 },
+      sample: { name: "run-1843.json", size: 312 },
     }),
     action("create_folder", "Create folder", "POST", "/2/files/create_folder_v2", "write", "Create a folder.", {
       resourceLabel: "Path",
       fields: [{ key: "path", label: "Path", placeholder: "/Agents/2026-11", required: true }],
-      mock: { metadata: { name: "2026-11", path_display: "/Agents/2026-11" } },
+      sample: { metadata: { name: "2026-11", path_display: "/Agents/2026-11" } },
     }),
     action("move", "Move", "POST", "/2/files/move_v2", "write", "Move a file or folder.", {
       resourceLabel: "Path",
@@ -81,7 +81,7 @@ const dropbox: Connector = {
         { key: "from_path", label: "From", placeholder: "/Agents/draft.json", required: true },
         { key: "to_path", label: "To", placeholder: "/Agents/final.json", required: true },
       ],
-      mock: { metadata: { name: "final.json", path_display: "/Agents/final.json" } },
+      sample: { metadata: { name: "final.json", path_display: "/Agents/final.json" } },
     }),
     action("copy", "Copy", "POST", "/2/files/copy_v2", "write", "Copy a file or folder.", {
       resourceLabel: "Path",
@@ -89,24 +89,24 @@ const dropbox: Connector = {
         { key: "from_path", label: "From", placeholder: "/Agents/final.json", required: true },
         { key: "to_path", label: "To", placeholder: "/Archive/final.json", required: true },
       ],
-      mock: { metadata: { name: "final.json", path_display: "/Archive/final.json" } },
+      sample: { metadata: { name: "final.json", path_display: "/Archive/final.json" } },
     }),
     action("delete", "Delete", "POST", "/2/files/delete_v2", "destructive", "Delete a file or folder.", {
       resourceLabel: "Path",
       fields: [{ key: "path", label: "Path", placeholder: "/Agents/draft.json", required: true }],
-      mock: { metadata: { name: "draft.json", deleted: true } },
+      sample: { metadata: { name: "draft.json", deleted: true } },
     }),
     action("create_shared_link", "Create shared link", "POST", "/2/sharing/create_shared_link_with_settings", "write", "Create a link anyone can use. Requires approval by default.", {
       resourceLabel: "Path",
       fields: [{ key: "path", label: "Path", placeholder: "/Agents/final.json", required: true }],
-      mock: { url: "https://www.dropbox.com/scl/fi/…", link_permissions: { can_view: true } },
+      sample: { url: "https://www.dropbox.com/scl/fi/…", link_permissions: { can_view: true } },
     }),
     action("list_shared_links", "List shared links", "POST", "/2/sharing/list_shared_links", "read", "List existing shared links.", {
-      mock: { links: [{ url: "https://www.dropbox.com/scl/fi/…" }] },
+      sample: { links: [{ url: "https://www.dropbox.com/scl/fi/…" }] },
     }),
     action("revoke_shared_link", "Revoke shared link", "POST", "/2/sharing/revoke_shared_link", "write", "Revoke a shared link.", {
       fields: [{ key: "url", label: "Link URL", placeholder: "https://www.dropbox.com/scl/fi/…", required: true }],
-      mock: { revoked: true },
+      sample: { revoked: true },
     }),
   ],
 };

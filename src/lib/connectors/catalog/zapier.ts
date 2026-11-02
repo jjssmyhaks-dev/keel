@@ -57,13 +57,13 @@ const zapier: Connector = {
       baseUrlField: "hook_url",
       resourceLabel: "Zap",
       fields: [{ key: "payload", label: "JSON payload", placeholder: '{"email":"lead@acme.dev"}', required: true }],
-      mock: { status: "success", attempt: "1a2b3c" },
+      sample: { status: "success", attempt: "1a2b3c" },
     }),
     action("list_mcp_tools", "List MCP tools", "POST", "", "read", "List the tools the Zapier MCP server exposes.", {
       baseUrlField: "mcp_url",
       resourceLabel: "MCP server",
       fields: [{ key: "method", label: "JSON-RPC method", placeholder: "tools/list" }],
-      mock: { jsonrpc: "2.0", result: { tools: [{ name: "create_spreadsheet_row" }, { name: "send_slack_message" }] } },
+      sample: { jsonrpc: "2.0", result: { tools: [{ name: "create_spreadsheet_row" }, { name: "send_slack_message" }] } },
     }),
     action("call_mcp_tool", "Call MCP tool", "POST", "", "write", "Call one tool by name. Unknown tools are treated as write and require approval in production.", {
       baseUrlField: "mcp_url",
@@ -72,7 +72,7 @@ const zapier: Connector = {
         { key: "name", label: "Tool name", placeholder: "create_spreadsheet_row", required: true },
         { key: "arguments", label: "Arguments", placeholder: '{"row":{"email":"lead@acme.dev"}}' },
       ],
-      mock: { jsonrpc: "2.0", result: { content: [{ type: "text", text: "Row created" }] } },
+      sample: { jsonrpc: "2.0", result: { content: [{ type: "text", text: "Row created" }] } },
     }),
   ],
 };

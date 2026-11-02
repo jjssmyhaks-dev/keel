@@ -167,21 +167,33 @@ export async function decideApproval(opts: {
   let result: unknown = null;
   let status = "approved";
   if (action && approval.credential) {
-    try {
-      result = await executeAction({
-        environment: approval.environment,
-        agent: approval.agent,
-        credential: approval.credential,
-        action,
-        input: payload.input ?? {},
-        resource: payload.resource ?? undefined,
-        requestId: approval.requestId,
-        ip: opts.ip,
-        approvalId: approval.id,
-      });
-    } catch (error) {
+    if (approval.credential.revokedAt || approval.credential.status === "revoked") {
       status = "failed";
-      result = { error: error instanceof Error ? error.message : "Execution failed." };
+      result = { error: "The connection was revoked before this approval was executed." };
+    } else if (approval.credential.status === "broken") {
+      status = "failed";
+      result = {
+        error:
+          approval.credential.healthDetail ??
+          "The provider rejected this credential. Rotate it in the vault before executing.",
+      };
+    } else {
+      try {
+        result = await executeAction({
+          environment: approval.environment,
+          agent: approval.agent,
+          credential: approval.credential,
+          action,
+          input: payload.input ?? {},
+          resource: payload.resource ?? undefined,
+          requestId: approval.requestId,
+          ip: opts.ip,
+          approvalId: approval.id,
+        });
+      } catch (error) {
+        status = "failed";
+        result = { error: error instanceof Error ? error.message : "Execution failed." };
+      }
     }
   }
 

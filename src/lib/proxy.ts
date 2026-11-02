@@ -4,15 +4,17 @@ import { db } from "./db";
 import { auditEvent } from "./audit";
 import { actionFor, connector, type Connector, type ConnectorAction } from "./connectors";
 import { decryptSecret } from "./crypto";
-import { envSettings } from "./policy";
 
 export type ExecutionResult = {
   status: number;
   body: unknown;
   latencyMs: number;
-  mock: boolean;
+  truncated: boolean;
   request: { method: string; url: string };
 };
+
+const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
+const MAX_REDIRECTS = 3;
 
 function redact(input: Record<string, unknown>, fields: string[]) {
   const out: Record<string, unknown> = {};
@@ -111,29 +113,33 @@ function normalizeBaseUrl(raw: string) {
   return `${parsed.origin}${parsed.pathname.replace(/\/$/, "")}`;
 }
 
-function applyPath(template: string, values: Record<string, unknown>, live: boolean) {
+function applyPath(template: string, values: Record<string, unknown>) {
   return template.replace(/\{([a-z0-9_]+)\}/gi, (match, key: string) => {
     const value = fieldValue(values, key);
-    if (!value) {
-      if (live) throw new Error(`Missing path parameter "${key}".`);
-      return match;
-    }
+    if (!value) throw new Error(`Missing path parameter "${key}".`);
     return encodeURIComponent(value);
   });
 }
 
-function resolveBase(connectorDef: Connector, action: ConnectorAction, values: Record<string, unknown>) {
+function resolveBase(
+  connectorDef: Connector,
+  action: ConnectorAction,
+  secret: Record<string, unknown>,
+  input: Record<string, unknown>,
+) {
   const field = action.baseUrlField ?? connectorDef.baseUrlField;
-  if (field) return normalizeBaseUrl(fieldValue(values, field));
+  if (field) {
+    const supplied = fieldValue(secret, field);
+    if (!supplied) throw new Error(`The credential is missing "${field}".`);
+    return normalizeBaseUrl(supplied);
+  }
 
   if (action.host) return `https://${action.host}`;
   if (action.hostTemplate) {
-    const rendered = applyPath(action.hostTemplate, values, true);
-    return `https://${rendered}`;
+    return `https://${applyPath(action.hostTemplate, { ...secret, ...input })}`;
   }
   if (connectorDef.hostTemplate) {
-    const rendered = applyPath(connectorDef.hostTemplate, values, true);
-    return `https://${rendered}`;
+    return `https://${applyPath(connectorDef.hostTemplate, { ...secret, ...input })}`;
   }
   return `https://${connectorDef.hosts[0]}`;
 }
@@ -177,6 +183,99 @@ function checkCredentialEnvironment(connectorDef: Connector, secret: Record<stri
   }
 }
 
+function publicRequestUrl(url: URL, sensitive: string[]) {
+  const copy = new URL(url.toString());
+  for (const key of [...copy.searchParams.keys()]) {
+    if (sensitive.includes(key) || /token|secret|api[-_]?key|password|authorization|signature/i.test(key)) {
+      copy.searchParams.set(key, "[redacted]");
+    }
+  }
+  return copy.toString();
+}
+
+async function readBodyLimited(response: Response) {
+  if (!response.body) return { text: "", truncated: false };
+  const reader = response.body.getReader();
+  const chunks: Buffer[] = [];
+  let total = 0;
+  let truncated = false;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      total += value.byteLength;
+      if (total > MAX_RESPONSE_BYTES) {
+        truncated = true;
+        await reader.cancel().catch(() => null);
+        break;
+      }
+      chunks.push(Buffer.from(value));
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return { text: Buffer.concat(chunks).toString("utf8"), truncated };
+}
+
+function parseBody(text: string, contentType: string) {
+  if (!text) return null;
+  if (contentType.includes("json") || /^\s*[[{]/.test(text)) {
+    try {
+      return JSON.parse(text) as unknown;
+    } catch {
+      return text;
+    }
+  }
+  return text;
+}
+
+async function noteCredentialHealth(
+  credential: Credential,
+  actionName: string,
+  status: number,
+  orgId: string,
+) {
+  if (status === 401 || status === 403) {
+    if (credential.status === "broken") return;
+    const detail = `The provider rejected this credential on ${actionName} (HTTP ${status}). Rotate it in the vault.`;
+    await db.credential
+      .update({
+        where: { id: credential.id },
+        data: { status: "broken", healthDetail: detail, healthEvents: { create: { result: "error", detail } } },
+      })
+      .catch(() => null);
+    const recipients = await db.membership.findMany({
+      where: { orgId, role: { in: ["owner", "admin"] } },
+      select: { userId: true },
+    });
+    if (recipients.length) {
+      await db.notification
+        .createMany({
+          data: recipients.map((member) => ({
+            orgId,
+            userId: member.userId,
+            type: "credential",
+            title: `${credential.name} was rejected by the provider`,
+            body: detail,
+            href: `/app/vault/${credential.id}`,
+          })),
+        })
+        .catch(() => null);
+    }
+    return;
+  }
+  if (status >= 200 && status < 300 && credential.status !== "healthy") {
+    const detail = `Provider accepted the credential on ${actionName}.`;
+    await db.credential
+      .update({
+        where: { id: credential.id },
+        data: { status: "healthy", healthDetail: null, healthEvents: { create: { result: "ok", detail } } },
+      })
+      .catch(() => null);
+  }
+}
+
 export async function recordUsage(orgId: string, metric: string, quantity = 1) {
   const period = periodKey();
   const existing = await db.usageRecord.findFirst({ where: { orgId, metric, period } });
@@ -202,27 +301,23 @@ export async function executeAction(opts: {
   approvalId?: string;
 }): Promise<ExecutionResult> {
   const { environment, agent, credential, action } = opts;
-  const connectorDef = connector(credential.connectorSlug)!;
+  const connectorDef = connector(credential.connectorSlug);
   if (!connectorDef) throw new Error(`Unknown connector "${credential.connectorSlug}".`);
-  const settings = envSettings(environment);
   const started = Date.now();
-  const live = !settings.mockMode && process.env.KEEL_PROXY_LIVE === "1";
 
   const redacted = redact(opts.input, connectorDef.redactedFields);
-  let secret: Record<string, unknown> = {};
-  if (live) {
-    secret = (await decryptSecret(
-      environment.projectId,
-      credential.encryptedPayload,
-      credential.dataKeyEncrypted,
-    )) as Record<string, unknown>;
-    checkCredentialEnvironment(connectorDef, secret, environment);
-  }
+  const secret = (await decryptSecret(
+    environment.projectId,
+    credential.encryptedPayload,
+    credential.dataKeyEncrypted,
+  )) as Record<string, unknown>;
+  checkCredentialEnvironment(connectorDef, secret, environment);
 
   const values = { ...secret, ...opts.input };
-  const path = applyPath(action.path, values, live);
-  const base = resolveBase(connectorDef, action, values).replace(/\/$/, "");
-  const url = path && path !== "/" ? new URL(path, `${base}/`) : new URL(base);
+  const path = applyPath(action.path, values);
+  const base = resolveBase(connectorDef, action, secret, opts.input).replace(/\/$/, "");
+  const relativePath = path && path !== "/" ? path.replace(/^\/+/, "") : "";
+  const url = relativePath ? new URL(relativePath, `${base}/`) : new URL(base);
   if (!hostAllowed(connectorDef, url.hostname)) {
     throw new Error(`${url.hostname} is not an allowed host for ${connectorDef.name}.`);
   }
@@ -231,126 +326,132 @@ export async function executeAction(opts: {
     [...action.path.matchAll(/\{([a-z0-9_]+)\}/gi)].map((match) => match[1].toLowerCase()),
   );
 
+  let token = action.authField ? fieldValue(secret, action.authField) : tokenFrom(secret, credential);
+  if (connectorDef.authStrategy === "snowflake-jwt") token = snowflakeJwt(secret);
+  const authKey = action.authField ?? connectorDef.injection.field;
+  const authRequired = connectorDef.credentialFields?.find((field) => field.key === authKey)?.required;
+  if (!token && !connectorDef.injection.basic && (authRequired === true || !authKey)) {
+    throw new Error("The stored credential has no usable secret. Rotate it in the vault.");
+  }
+
+  const headers: Record<string, string> = { Accept: "application/json" };
+  const injection = connectorDef.injection;
+  if (injection.type === "header") {
+    if (token) headers[injection.name] = `${injection.prefix ?? ""}${token}`;
+  } else if (token) {
+    url.searchParams.set(injection.name, token);
+  }
+
+  if (injection.basic) {
+    const username = fieldValue(secret, injection.basic.usernameField) || fieldValue(secret, "username");
+    const password = fieldValue(secret, injection.basic.passwordField) || fieldValue(secret, "password");
+    if (!username || !password) throw new Error("The stored basic-auth credential is incomplete.");
+    headers.Authorization = `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
+  }
+
+  const extraHeaders = action.extraHeaders ?? injection.extraHeaders ?? [];
+  for (const header of extraHeaders) {
+    const value = header.value ?? (header.field ? fieldValue(secret, header.field) : "");
+    if (value) headers[header.name] = `${header.prefix ?? ""}${value}`;
+  }
+
+  const extraParams = action.queryParams ?? injection.queryParams ?? [];
+  for (const param of extraParams) {
+    const value = param.value ?? (param.field ? fieldValue(secret, param.field) : "");
+    if (value) url.searchParams.set(param.name, value);
+  }
+
+  const query: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(opts.input)) {
+    if (value === undefined || value === null || usedPathKeys.has(key.toLowerCase())) continue;
+    if (action.method === "GET") {
+      if (typeof value === "object") {
+        query[key] = JSON.stringify(value);
+      } else {
+        url.searchParams.set(key, String(value));
+      }
+    }
+  }
+
+  let method: string = action.method;
+  const init: RequestInit = { method, headers, signal: AbortSignal.timeout(15_000), redirect: "manual" };
+  if (action.method !== "GET") {
+    const body: Record<string, unknown> = { ...opts.input, ...query };
+    for (const param of connectorDef.bodyParams ?? []) {
+      const value = fieldValue(secret, param.field);
+      if (value) body[param.name] = value;
+    }
+    headers["Content-Type"] = "application/json";
+    init.body = JSON.stringify(body);
+  }
+
+  const sensitiveParams = [
+    ...(injection.type === "query" ? [injection.name] : []),
+    ...extraParams.map((param) => param.name),
+  ];
+
   let result: ExecutionResult;
+  try {
+    let currentUrl = url;
+    let response = await fetch(currentUrl, init);
 
-  if (!live) {
-    await new Promise((resolve) => setTimeout(resolve, 90 + Math.random() * 120));
-    const mock = action.mock;
-    const mockBody =
-      mock && typeof mock === "object" && !Array.isArray(mock) ? (mock as Record<string, unknown>) : mock !== undefined ? { data: mock } : { ok: true };
+    for (let hop = 0; hop < MAX_REDIRECTS; hop += 1) {
+      const location = response.headers.get("location");
+      if (response.status < 300 || response.status >= 400 || !location) break;
+      const next = new URL(location, currentUrl);
+      if (next.origin !== currentUrl.origin) {
+        throw new Error(`Upstream redirected to ${next.origin}; refusing to forward credentials off-origin.`);
+      }
+      if (next.protocol !== "https:") throw new Error("Upstream redirects must use HTTPS.");
+      if (response.status === 303 || ((response.status === 301 || response.status === 302) && method !== "GET")) {
+        method = "GET";
+        init.method = method;
+        init.body = undefined;
+        delete headers["Content-Type"];
+      }
+      currentUrl = next;
+      response = await fetch(currentUrl, init);
+    }
+
+    const location = response.headers.get("location");
+    if (response.status >= 300 && response.status < 400 && location) {
+      throw new Error("Upstream returned too many redirects.");
+    }
+
+    const { text, truncated } = await readBodyLimited(response);
     result = {
-      status: 200,
-      body: {
-        ...mockBody,
-        _keel: {
-          mock: true,
-          connector: connectorDef.slug,
-          action: action.name,
-          resource: opts.resource ?? null,
-        },
-      },
+      status: response.status,
+      body: parseBody(text, response.headers.get("content-type") ?? ""),
       latencyMs: Date.now() - started,
-      mock: true,
-      request: { method: action.method, url: url.toString() },
+      truncated,
+      request: { method, url: publicRequestUrl(currentUrl, sensitiveParams) },
     };
-  } else {
-    let token = action.authField ? fieldValue(secret, action.authField) : tokenFrom(secret, credential);
-    if (connectorDef.authStrategy === "snowflake-jwt") token = snowflakeJwt(secret);
-    const authKey = action.authField ?? connectorDef.injection.field;
-    const authRequired = connectorDef.credentialFields?.find((field) => field.key === authKey)?.required;
-    if (!token && !connectorDef.injection.basic && (authRequired === true || !authKey)) {
-      throw new Error("The stored credential has no usable secret. Rotate it in the vault.");
-    }
-
-    const headers: Record<string, string> = { Accept: "application/json" };
-    const injection = connectorDef.injection;
-    if (injection.type === "header") {
-      if (token) headers[injection.name] = `${injection.prefix ?? ""}${token}`;
-    } else if (token) {
-      url.searchParams.set(injection.name, token);
-    }
-
-    if (injection.basic) {
-      const username = fieldValue(secret, injection.basic.usernameField) || fieldValue(secret, "username");
-      const password = fieldValue(secret, injection.basic.passwordField) || fieldValue(secret, "password");
-      if (!username || !password) throw new Error("The stored basic-auth credential is incomplete.");
-      headers.Authorization = `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
-    }
-
-    for (const header of action.extraHeaders ?? injection.extraHeaders ?? []) {
-      const value = header.value ?? (header.field ? fieldValue(secret, header.field) : "");
-      if (value) headers[header.name] = `${header.prefix ?? ""}${value}`;
-    }
-
-    for (const param of action.queryParams ?? injection.queryParams ?? []) {
-      const value = param.value ?? (param.field ? fieldValue(secret, param.field) : "");
-      if (value) url.searchParams.set(param.name, value);
-    }
-
-    const query: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(opts.input)) {
-      if (value === undefined || value === null || usedPathKeys.has(key.toLowerCase())) continue;
-      if (action.method === "GET") {
-        if (typeof value === "object") {
-          query[key] = JSON.stringify(value);
-        } else {
-          url.searchParams.set(key, String(value));
-        }
-      }
-    }
-
-    const init: RequestInit = { method: action.method, headers, signal: AbortSignal.timeout(15_000) };
-    if (action.method !== "GET") {
-      const body: Record<string, unknown> = { ...opts.input, ...query };
-      for (const param of connectorDef.bodyParams ?? []) {
-        const value = fieldValue(secret, param.field);
-        if (value) body[param.name] = value;
-      }
-      headers["Content-Type"] = "application/json";
-      init.body = JSON.stringify(body);
-    }
-
-    try {
-      const response = await fetch(url, init);
-      const text = await response.text();
-      let body: unknown = text;
-      try {
-        body = JSON.parse(text);
-      } catch {}
-      result = {
-        status: response.status,
-        body,
-        latencyMs: Date.now() - started,
-        mock: false,
-        request: { method: action.method, url: url.toString() },
-      };
-    } catch (error) {
-      await auditEvent({
-        environmentId: environment.id,
-        actorType: "agent",
-        actorId: agent.id,
-        actorName: agent.name,
-        agentId: agent.id,
-        action: "proxy.call",
-        resourceType: "connector",
-        resourceId: connectorDef.slug,
-        outcome: "error",
-        requestId: opts.requestId,
-        ip: opts.ip,
-        payloadSummary: {
-          action: action.name,
-          resource: opts.resource,
-          credentialId: credential.id,
-          error: error instanceof Error ? error.message : "upstream_failure",
-          input: redacted,
-        },
-      });
-      throw new Error(
-        `Upstream call to ${connectorDef.name} failed: ${
-          error instanceof Error ? error.message : "unknown error"
-        }`,
-      );
-    }
+  } catch (error) {
+    await auditEvent({
+      environmentId: environment.id,
+      actorType: "agent",
+      actorId: agent.id,
+      actorName: agent.name,
+      agentId: agent.id,
+      action: "proxy.call",
+      resourceType: "connector",
+      resourceId: connectorDef.slug,
+      outcome: "error",
+      requestId: opts.requestId,
+      ip: opts.ip,
+      payloadSummary: {
+        action: action.name,
+        resource: opts.resource,
+        credentialId: credential.id,
+        error: error instanceof Error ? error.message : "upstream_failure",
+        input: redacted,
+      },
+    });
+    throw new Error(
+      `Upstream call to ${connectorDef.name} failed: ${
+        error instanceof Error ? error.message : "unknown error"
+      }`,
+    );
   }
 
   await db.credential.update({ where: { id: credential.id }, data: { lastUsedAt: new Date() } }).catch(() => null);
@@ -360,6 +461,7 @@ export async function executeAction(opts: {
     select: { orgId: true },
   });
   await recordUsage(project?.orgId ?? "", "proxy_calls");
+  await noteCredentialHealth(credential, action.name, result.status, project?.orgId ?? "");
 
   await auditEvent({
     environmentId: environment.id,
@@ -379,7 +481,7 @@ export async function executeAction(opts: {
       credentialId: credential.id,
       status: result.status,
       latencyMs: result.latencyMs,
-      mock: result.mock,
+      truncated: result.truncated,
       approvalId: opts.approvalId,
       input: redacted,
     },

@@ -127,6 +127,17 @@ Idempotency-Key: ${def.slug}-${sample.name.split(".")[1]?.replace(/_/g, "-") ?? 
         </>
       ) : null}
 
+      {sample?.sample !== undefined ? (
+        <>
+          <h2>Example response</h2>
+          <p>
+            Illustrative shape only — Keel returns the provider&apos;s own response body and status unchanged. Fields vary
+            by account, plan and resource.
+          </p>
+          <pre>{JSON.stringify(sample.sample, null, 2)}</pre>
+        </>
+      ) : null}
+
       <p>
         Return to the <Link href="/docs/connectors">connector catalogue</Link>, read about{" "}
         <Link href="/docs/concepts/policy">policy</Link>, or link a connection in{" "}

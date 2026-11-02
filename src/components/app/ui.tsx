@@ -60,6 +60,7 @@ const STATUS_STYLE: Record<string, { dot: string; label: string }> = {
   suspended: { dot: "bg-[#b3402f]", label: "Suspended" },
   revoked: { dot: "bg-black/30", label: "Revoked" },
   healthy: { dot: "bg-[#2f7d5c]", label: "Healthy" },
+  unverified: { dot: "bg-black/30", label: "Unverified" },
   broken: { dot: "bg-[#b3402f]", label: "Broken" },
   expiring: { dot: "bg-[#a56b18]", label: "Expiring" },
   pending: { dot: "bg-[#a56b18]", label: "Pending" },
