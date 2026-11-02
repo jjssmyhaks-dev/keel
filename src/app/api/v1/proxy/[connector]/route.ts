@@ -17,7 +17,8 @@ import { auditEvent } from "@/lib/audit";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { sha256 } from "@/lib/crypto";
 import { serializeApproval } from "@/lib/serializers";
-import { appUrl } from "@/lib/email";
+import { checkPlanLimit, productionAccess } from "@/lib/limits";
+import { approvalUrlFor } from "@/lib/signed-links";
 
 export async function POST(req: Request, ctx: { params: Promise<{ connector: string }> }) {
   try {
@@ -55,6 +56,23 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
     }
     if (credential.revokedAt || credential.status === "revoked") {
       throw new ApiError(403, "credential_revoked", `The ${connectorDef.name} connection has been revoked. Link a new one before calling it.`);
+    }
+    if (credential.expiresAt && credential.expiresAt < new Date()) {
+      throw new ApiError(403, "credential_expired", `The ${connectorDef.name} connection expired. Rotate it in the vault before calling it.`);
+    }
+
+    const org = auth.environment.project.org;
+    if (auth.environment.type === "production") {
+      const access = productionAccess(org.plan);
+      if (!access.allowed) throw new ApiError(402, "plan_required", access.message);
+    }
+    const quota = await checkPlanLimit(org.id, "calls", org.plan);
+    if (!quota.allowed) {
+      throw new ApiError(402, "plan_limit_reached", quota.message, {
+        used: quota.used,
+        limit: quota.limit,
+        plan: quota.plan,
+      });
     }
 
     const settings = envSettings(auth.environment);
@@ -206,7 +224,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
       return finish(202, {
         status: "pending_approval",
         approval: serializeApproval(approval),
-        approvalUrl: appUrl(`/approve/${approval.token}`),
+        approvalUrl: approvalUrlFor(approval.token),
         decision: { effect: decision.effect, risk: decision.risk, source: decision.source, reason: decision.reason },
         requestId: rid,
       });

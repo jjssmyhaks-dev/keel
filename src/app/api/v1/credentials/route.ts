@@ -13,6 +13,7 @@ import { encryptSecret } from "@/lib/crypto";
 import { connector } from "@/lib/connectors";
 import { auditEvent } from "@/lib/audit";
 import { serializeCredential } from "@/lib/serializers";
+import { checkPlanLimit, productionAccess } from "@/lib/limits";
 
 export async function GET(req: Request) {
   try {
@@ -65,16 +66,47 @@ export async function POST(req: Request) {
     if (body.secret === undefined) {
       throw new ApiError(422, "secret_required", "Provide the credential secret.");
     }
-    if (auth.environment.type === "production" && auth.organization.plan === "free") {
-      throw new ApiError(402, "plan_required", "Production mode requires a paid plan.");
+    if (auth.environment.type === "production") {
+      const access = productionAccess(auth.organization.plan);
+      if (!access.allowed) throw new ApiError(402, "plan_required", access.message);
+    }
+    const quota = await checkPlanLimit(auth.organization.id, "credentials", auth.organization.plan);
+    if (!quota.allowed) {
+      throw new ApiError(402, "plan_limit_reached", quota.message, {
+        used: quota.used,
+        limit: quota.limit,
+        plan: quota.plan,
+      });
     }
 
     let secret: Record<string, unknown>;
     if (typeof body.secret === "string") {
+      if (!body.secret.trim()) throw new ApiError(422, "secret_required", "Provide a non-empty credential secret.");
       const key = type === "api_key" ? "apiKey" : type === "oauth" ? "accessToken" : "token";
       secret = { [key]: body.secret };
     } else {
       secret = body.secret;
+    }
+
+    const present = (key: string) => String(secret[key] ?? "").trim().length > 0;
+    if (!Object.keys(secret).some(present)) {
+      throw new ApiError(422, "secret_required", "Provide at least one non-empty credential field.");
+    }
+    const requiredFields = (connectorDef.credentialFields ?? []).filter((field) => field.required);
+    const missing = requiredFields.map((field) => field.key).filter((key) => !present(key));
+    if (missing.length) {
+      throw new ApiError(422, "field_required", `Missing required fields for ${connectorDef.name}: ${missing.join(", ")}.`, {
+        fields: missing,
+      });
+    }
+    const requireAny = connectorDef.requireAnyFields ?? [];
+    if (requireAny.length && !requireAny.some(present)) {
+      throw new ApiError(422, "field_required", `Provide at least one of: ${requireAny.join(", ")}.`, {
+        fields: requireAny,
+      });
+    }
+    if (body.expiresAt && Number.isNaN(new Date(body.expiresAt).getTime())) {
+      throw new ApiError(422, "invalid_expiry", "expiresAt must be a valid ISO date.");
     }
 
     const hintSource =

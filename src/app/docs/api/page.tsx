@@ -98,8 +98,8 @@ export default function ApiReferencePage() {
       <pre>{`https://api.keel.dev/v1`}</pre>
       <p>
         The machine-readable specification is at <a href="/api/v1/openapi">/api/v1/openapi</a>. Generate a client from it
-        if you are not using the <Link href="/docs/sdk">TypeScript SDK</Link>. A self-hosted deployment serves the same
-        paths under its own origin.
+        if you are not using the <Link href="/docs/sdk">TypeScript SDK</Link>. Deployments serve the same paths under
+        their own origin.
       </p>
 
       <h2 id="auth">Authentication</h2>

@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
-import { PLANS, formatPrice, planFor, OVERAGE } from "@/lib/plans";
+import { PLANS, formatPrice, planFor } from "@/lib/plans";
 import { periodKey } from "@/lib/proxy";
+import { priceIdFor, stripeConfigured } from "@/lib/stripe";
 import { PageHeader, Panel, Stat, Notice, StatusBadge, formatDate } from "@/components/app/ui";
-import { requestPlanChangeAction } from "@/app/app/actions";
+import { openBillingPortalAction, requestPlanChangeAction, startCheckoutAction } from "@/app/app/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,7 @@ export default async function BillingPage({
   const plan = planFor(ctx.org.plan);
   const currency = ctx.org.billingCurrency === "INR" ? "INR" : "USD";
   const period = periodKey();
+  const stripeReady = stripeConfigured();
 
   const [usage, invoices, agentCount, credentialCount] = await Promise.all([
     db.usageRecord.findMany({ where: { orgId: ctx.org.id, period } }),
@@ -61,10 +63,36 @@ export default async function BillingPage({
         }
       />
 
-      {query.error ? <Notice kind="error">Only the owner can change organization billing details.</Notice> : null}
+      {query.checkout === "success" ? (
+        <Notice kind="ok">
+          Stripe checkout completed. The new plan activates when Stripe confirms the subscription — usually within seconds.
+        </Notice>
+      ) : null}
+      {query.checkout === "cancelled" ? (
+        <Notice kind="error">Checkout was cancelled. The current plan is unchanged.</Notice>
+      ) : null}
+      {query.error ? (
+        <Notice kind="error">
+          {query.error === "permission"
+            ? "Only the workspace owner can manage billing."
+            : query.error === "stripe"
+              ? "Stripe could not be reached. Try again, or request the change by email below."
+              : query.error === "price"
+                ? "No Stripe price is configured for this plan and currency yet."
+                : query.error === "subscription"
+                  ? "This workspace has no Stripe subscription yet. Start a checkout first."
+                  : "That plan is not available for this workspace."}
+        </Notice>
+      ) : null}
       {query.requested ? (
         <Notice kind="ok">
           Plan change requested. Billing will follow up — the current plan stays active until then.
+        </Notice>
+      ) : null}
+      {ctx.org.planStatus !== "active" ? (
+        <Notice kind="error">
+          Subscription status is <strong>{ctx.org.planStatus}</strong>. Paid limits and production writes stay suspended until
+          Stripe reports the subscription is active again.
         </Notice>
       ) : null}
 
@@ -100,14 +128,13 @@ export default async function BillingPage({
             </div>
             {plan.limits.callsPerMonth > 0 && callsThisMonth > plan.limits.callsPerMonth ? (
               <p className="mt-4 border-t border-black/10 pt-3 text-[11px] leading-relaxed text-[#8c3225] dark:border-border">
-                Overage is billed at {currency === "INR" ? `₹${OVERAGE.callsPer10k.inr}` : `$${OVERAGE.callsPer10k.usd}`} per 10,000
-                calls. Consider moving up a plan if this repeats.
+                This workspace is over its monthly call allowance. New proxy calls are refused until the period resets or the
+                plan changes. Nothing is billed automatically.
               </p>
             ) : null}
             {plan.limits.callsPerMonth > 0 ? (
               <p className="mt-4 border-t border-black/10 pt-3 font-mono text-[9px] uppercase tracking-[0.12em] text-black/35 dark:border-border dark:text-muted-foreground">
-                Overage: {currency === "INR" ? `₹${OVERAGE.callsPer10k.inr}` : `$${OVERAGE.callsPer10k.usd}`} / 10k calls ·{" "}
-                {currency === "INR" ? `₹${OVERAGE.agent.inr}` : `$${OVERAGE.agent.usd}`} / extra agent
+                Allowances reset on the first of each month · extra usage is refused, not billed
               </p>
             ) : null}
           </Panel>
@@ -166,29 +193,47 @@ export default async function BillingPage({
               </div>
             </dl>
             {ctx.capabilities.manageBilling ? (
-              <div className="border-t border-black/10 px-4 py-2.5 dark:border-border">
+              <div className="flex items-center justify-between gap-3 border-t border-black/10 px-4 py-2.5 dark:border-border">
                 <Link href="/app/settings" className="font-mono text-[9px] uppercase tracking-[0.12em] underline-offset-2 hover:underline">
                   Edit in settings
                 </Link>
+                {stripeReady && ctx.org.stripeCustomerId ? (
+                  <form action={openBillingPortalAction}>
+                    <button
+                      type="submit"
+                      className="font-mono text-[9px] uppercase tracking-[0.12em] text-black/45 underline-offset-2 hover:text-black hover:underline dark:text-muted-foreground dark:hover:text-foreground"
+                    >
+                      Manage billing →
+                    </button>
+                  </form>
+                ) : null}
               </div>
             ) : null}
           </Panel>
 
           <Panel title="Change plan" hint="Upgrade or talk to sales" bodyClassName="p-0">
             <div className="divide-y divide-black/10 dark:divide-border">
-              {upgradePlans.map((candidate) =>
-                candidate.key === "enterprise" ? (
-                  <Link key={candidate.key} href="/contact" className="flex items-center gap-3 px-4 py-2.5 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[12px] font-medium">{candidate.name}</p>
-                      <p className="font-mono text-[9px] text-black/40 dark:text-muted-foreground">Custom pricing</p>
-                    </div>
-                    <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/40 dark:text-muted-foreground">
-                      Contact →
-                    </span>
-                  </Link>
-                ) : (
-                  <form key={candidate.key} action={requestPlanChangeAction} className="flex items-center gap-3 px-4 py-2 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
+              {upgradePlans.map((candidate) => {
+                const checkoutReady = stripeReady && Boolean(priceIdFor(candidate.key, currency));
+                if (candidate.key === "enterprise") {
+                  return (
+                    <Link key={candidate.key} href="/contact" className="flex items-center gap-3 px-4 py-2.5 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[12px] font-medium">{candidate.name}</p>
+                        <p className="font-mono text-[9px] text-black/40 dark:text-muted-foreground">Custom pricing</p>
+                      </div>
+                      <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/40 dark:text-muted-foreground">
+                        Contact →
+                      </span>
+                    </Link>
+                  );
+                }
+                return (
+                  <form
+                    key={candidate.key}
+                    action={checkoutReady ? startCheckoutAction : requestPlanChangeAction}
+                    className="flex items-center gap-3 px-4 py-2 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+                  >
                     <input type="hidden" name="plan" value={candidate.key} />
                     <div className="min-w-0 flex-1">
                       <p className="text-[12px] font-medium">{candidate.name}</p>
@@ -198,11 +243,11 @@ export default async function BillingPage({
                       type="submit"
                       className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/45 underline-offset-2 hover:text-black hover:underline dark:text-muted-foreground dark:hover:text-foreground"
                     >
-                      Request →
+                      {checkoutReady ? "Upgrade →" : "Request →"}
                     </button>
                   </form>
-                ),
-              )}
+                );
+              })}
             </div>
           </Panel>
         </div>

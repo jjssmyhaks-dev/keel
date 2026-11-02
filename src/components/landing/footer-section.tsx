@@ -171,11 +171,10 @@ export function FooterSection() {
         <div className="py-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-white/30">© {new Date().getFullYear()} Keel Systems. All rights reserved.</p>
           <div className="flex flex-wrap items-center gap-6 text-sm text-white/30">
-            <span className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#eca8d6]" />
-              All systems operational
-            </span>
-            <span className="font-mono text-[11px]">Bengaluru · Singapore</span>
+            <Link href="/status" className="hover:text-white transition-colors">
+              Live status
+            </Link>
+            <span className="font-mono text-[11px]">Bengaluru, India</span>
           </div>
         </div>
       </div>

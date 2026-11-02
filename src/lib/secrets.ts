@@ -56,15 +56,21 @@ export function getSecrets(): LocalSecrets {
   };
 
   const complete = fromEnv.masterKey && fromEnv.jwtSigningPrivateKey && fromEnv.cookieSecret;
+
+  if (!complete && process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== "phase-production-build") {
+    const explicitLocal = process.env.KEEL_DEV_KEY_FALLBACK === "1";
+    if (!explicitLocal) {
+      throw new Error(
+        "[keel] Refusing to start: set MASTER_KEY, JWT_SIGNING_PRIVATE_KEY and AUTH_COOKIE_SECRET. " +
+          "Local development files are only used when KEEL_DEV_KEY_FALLBACK=1 is explicitly set.",
+      );
+    }
+    console.warn("[keel] Using local development keys because KEEL_DEV_KEY_FALLBACK=1. Never do this on a shared deployment.");
+  }
+
   const secrets = complete
     ? (fromEnv as LocalSecrets)
     : loadLocalSecrets();
-
-  if (!complete && process.env.NODE_ENV === "production") {
-    console.warn(
-      "[keel] MASTER_KEY / JWT_SIGNING_PRIVATE_KEY / AUTH_COOKIE_SECRET are not fully set. Refusing to boot with local keys is recommended in production.",
-    );
-  }
 
   globalForSecrets.keelSecrets = secrets;
   return secrets;

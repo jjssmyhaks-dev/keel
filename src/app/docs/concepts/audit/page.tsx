@@ -135,8 +135,9 @@ GET /v1/audit/export?format=jsonl&agent=agt_ledger`}</pre>
 
       <h2 id="retention">Retention</h2>
       <p>
-        Audit events are retained for the life of the environment. Deleting an environment removes its chain; there is
-        no per-event delete API. If your policy requires independent retention, export on a schedule and store the
+        Audit events are retained for your plan&apos;s window — 7 days on Free, 90 on Pro, 365 on Scale and 10 years on
+        Enterprise. A scheduled cleanup removes rows older than that window. Deleting an environment removes its chain;
+        there is no per-event delete API. If your policy requires longer retention, export on a schedule and store the
         final hash of each export alongside it.
       </p>
     </DocsShell>

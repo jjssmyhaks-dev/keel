@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { DocsAside, DocsShell } from "@/components/docs/docs-shell";
+import { CONNECTORS } from "@/lib/connectors";
 
 export const metadata: Metadata = {
   title: "Documentation",
@@ -33,7 +34,7 @@ const paths = [
   { name: "Quickstart", detail: "First agent to first governed call in ten minutes", href: "/docs/quickstart" },
   { name: "API reference", detail: "REST endpoints, errors, idempotency and pagination", href: "/docs/api" },
   { name: "TypeScript SDK", detail: "keel.agents, keel.vault, keel.proxy", href: "/docs/sdk" },
-  { name: "Connectors", detail: "Nine integrations, with exact actions and scopes", href: "/docs/connectors" },
+  { name: "Connectors", detail: `${CONNECTORS.length} integrations, with exact actions and scopes`, href: "/docs/connectors" },
 ];
 
 export default function DocsOverviewPage() {

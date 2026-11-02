@@ -18,7 +18,7 @@ export type ConnectorInjection = {
   name: string;
   prefix?: string;
   field?: string;
-  basic?: { usernameField: string; passwordField: string };
+  basic?: { usernameField: string; passwordField: string; allowEmptyPassword?: boolean };
   extraHeaders?: { name: string; field?: string; value?: string; prefix?: string }[];
   queryParams?: { name: string; field?: string; value?: string }[];
 };
@@ -35,6 +35,9 @@ export type ConnectorAction = {
   hostTemplate?: string;
   baseUrlField?: string;
   authField?: string;
+  bodyFormat?: "json" | "form";
+  graphqlQuery?: string;
+  graphqlWrap?: string;
   extraHeaders?: ConnectorInjection["extraHeaders"];
   queryParams?: ConnectorInjection["queryParams"];
   fields?: { key: string; label: string; placeholder?: string; required?: boolean }[];
@@ -60,6 +63,7 @@ export type Connector = {
   allowAnyPublicHost?: boolean;
   authStrategy?: "snowflake-jwt";
   bodyParams?: { name: string; field: string }[];
+  bodyFormat?: "json" | "form";
   scopes: { value: string; label: string; optional?: boolean }[];
   resourceLabel: string;
   resourcePlaceholder: string;
@@ -477,6 +481,7 @@ export const CONNECTORS: Connector[] = [
     defaultAuth: "api_key",
     hosts: ["api.stripe.com"],
     injection: { type: "header", name: "Authorization", prefix: "Bearer " },
+    bodyFormat: "form",
     scopes: [
       { value: "charges:read", label: "Read charges and payment intents" },
       { value: "refunds:write", label: "Create refunds" },

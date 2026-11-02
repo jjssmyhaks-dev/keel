@@ -82,8 +82,8 @@ export function ConnectorsSection() {
         <div className="flex w-max animate-marquee gap-10 whitespace-nowrap">
           {[...Array(2)].map((_, dup) => (
             <div key={dup} className="flex gap-10" aria-hidden={dup === 1}>
-              {[...slugs, ...slugs].map((slug) => (
-                <span key={`${dup}-${slug}`} className="font-mono text-[11px] text-muted-foreground/50 flex items-center gap-2">
+              {[...slugs, ...slugs].map((slug, index) => (
+                <span key={`${dup}-${index}-${slug}`} className="font-mono text-[11px] text-muted-foreground/50 flex items-center gap-2">
                   <span className="w-1 h-1 rounded-full bg-[#eca8d6]/60" />
                   {slug}
                 </span>

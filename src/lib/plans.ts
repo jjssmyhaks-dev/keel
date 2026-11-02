@@ -80,17 +80,17 @@ export const PLANS: PlanConfig[] = [
   {
     key: "enterprise",
     name: "Enterprise",
-    description: "For regulated organizations and private deployments.",
+    description: "For organizations that need custom volume, retention and commercial terms.",
     priceUsd: null,
     priceInr: null,
     limits: { agents: -1, callsPerMonth: -1, credentials: -1, retentionDays: 3650, members: -1 },
     features: [
-      "SSO and SCIM",
-      "SIEM export and SIEM streaming",
-      "Private or VPC deployment",
-      "Custom retention and residency",
-      "99.95% SLA and named support",
-      "Security review and DPA",
+      "Everything in Scale",
+      "Custom volume and retention",
+      "Annual invoicing and procurement",
+      "Security review and signed DPA",
+      "Priority support and onboarding",
+      "Named support contact",
     ],
     production: true,
     cta: "Contact sales",
@@ -100,11 +100,6 @@ export const PLANS: PlanConfig[] = [
 export function planFor(key: string): PlanConfig {
   return PLANS.find((p) => p.key === key) ?? PLANS[0];
 }
-
-export const OVERAGE = {
-  callsPer10k: { usd: 4, inr: 320 },
-  agent: { usd: 8, inr: 640 },
-};
 
 export function formatPrice(plan: PlanConfig, currency: "USD" | "INR") {
   const value = currency === "INR" ? plan.priceInr : plan.priceUsd;

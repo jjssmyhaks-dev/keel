@@ -138,7 +138,7 @@ KEEL_API_KEY=sk_dev_... KEEL_AGENT_ID=agt_atlas KEEL_BASE_URL=http://localhost:3
 - Audit events are chained per environment with `SHA-256(prevHash + ":" + canonicalJSON(event))`. Appends take a Postgres advisory lock so concurrent writes cannot fork the chain; `GET /audit/verify` walks the chain.
 - Dashboard sessions are httpOnly and database-backed; API keys are stored hashed with a prefix retained for display. Sign-in, sign-up, magic-link and reset requests are throttled in the database.
 - Webhook delivery blocks loopback, private, link-local and metadata addresses, refuses redirects, and retries failed deliveries with exponential backoff.
-- Responses set HSTS, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` and a same-origin opener policy.
+- Responses set HSTS, a same-origin Content Security Policy, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` and a same-origin opener policy.
 
 See `/security` and `/docs/concepts/*` for the full model.
 
@@ -149,6 +149,7 @@ npm run dev             # Next dev server
 npm run build           # prisma generate + next build
 npm run start           # production server
 npm run typecheck       # next typegen + tsc --noEmit (npm run lint runs this)
+npm test                # unit tests for plan limits, policy, invites and signed approvals
 npm run connectors:check # validate connector manifests, action names, risks, hosts and samples
 npm run db:seed         # reseed demo workspace (blocked in production unless ALLOW_DEMO_SEED=1)
 npm run db:migrate      # apply pending Prisma migrations to Neon
@@ -167,8 +168,11 @@ npm run mcp:typecheck   # typecheck MCP server against SDK source
 2. Run `npx prisma migrate deploy` (or `db push` for a disposable install) and `npm run build`.
 3. Terminate TLS in front of the app; the dashboard session cookie is httpOnly and same-site.
 4. Point `DATABASE_URL` at the pooled Neon endpoint and `DATABASE_URL_UNPOOLED` at the direct endpoint. Run schema changes in a Neon branch first, then apply them to production.
-5. Set `CRON_SECRET` and schedule `POST /api/cron/webhooks` (for example every minute) so failed webhooks retry and old challenge/rate-limit rows are pruned.
-6. Add provider credentials through the vault with the secret key API or dashboard. Plan changes are recorded as requests; there is no self-serve card checkout. Self-serve sign-up always starts on Free.
+5. Set `CRON_SECRET` and schedule `POST /api/cron/webhooks` (for example every five minutes) so failed webhooks retry, approvals and credentials expire, alert rules evaluate, and old challenge/rate-limit rows are pruned. `vercel.json` already declares a five-minute cron for Vercel deployments.
+6. Add provider credentials through the vault with the secret key API or dashboard. Self-serve sign-up always starts on Free.
+7. To enable card checkout, set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and price IDs for each plan and currency (`STRIPE_PRICE_PRO`, `STRIPE_PRICE_PRO_INR`, `STRIPE_PRICE_SCALE`, `STRIPE_SCALE_INR`), then register `${APP_URL}/api/stripe/webhook` for `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid` and `invoice.payment_failed`. Without Stripe, the billing page falls back to emailing a plan-change request.
+8. Leave `ALLOW_DEMO_LOGIN` and `ALLOW_DEMO_SEED` unset in production. Demo access is disabled there unless explicitly enabled.
+9. Put `/api/status` behind your uptime monitor, and run `GET /api/v1/audit/verify` as a scheduled check with a secret key.
 7. Leave `ALLOW_DEMO_LOGIN` and `ALLOW_DEMO_SEED` unset in production. Demo access is disabled there unless explicitly enabled.
 8. Put `/api/status` behind your uptime monitor, and run `GET /api/v1/audit/verify` as a scheduled check with a secret key.
 

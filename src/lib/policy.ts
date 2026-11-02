@@ -11,6 +11,7 @@ export type EnvironmentSettings = {
   sessionHours?: number;
   agentRateLimitPerMinute?: number;
   escalateAfterMinutes?: number;
+  slackWebhookUrl?: string;
 };
 
 export function envSettings(environment: Pick<Environment, "settingsJson">): EnvironmentSettings {
@@ -144,6 +145,16 @@ export async function evaluatePolicy(opts: {
       risk,
       action,
       source: "credential.status",
+    };
+  }
+
+  if (credential.expiresAt && credential.expiresAt < new Date()) {
+    return {
+      effect: "deny",
+      reason: "The connection expired. Rotate it in the vault before calling it.",
+      risk,
+      action,
+      source: "credential.expired",
     };
   }
 

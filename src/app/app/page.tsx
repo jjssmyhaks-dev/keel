@@ -292,7 +292,7 @@ export default async function OverviewPage() {
               <div className="h-full bg-black dark:bg-foreground" style={{ width: `${callPercent}%` }} />
             </div>
             <p className="mt-2 text-[11px] text-black/45 dark:text-muted-foreground">
-              Proxy calls this month. {plan.name === "free" ? "Upgrade for production and 50k calls." : "Overage is billed per 10k calls."}
+              Proxy calls this month. {plan.name === "free" ? "Upgrade for production and 50k calls." : "Calls beyond the allowance are refused, not billed over."}
             </p>
             <div className="mt-3 flex gap-2">
               <Link href="/app/billing" className="border border-black/15 px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[0.14em] hover:border-black dark:border-border">

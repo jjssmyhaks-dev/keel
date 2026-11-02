@@ -51,7 +51,7 @@ export default function AboutPage() {
             <span className="text-stroke">a place</span> to belong.
           </h1>
           <div className="mt-12 grid gap-8 border-t border-foreground/10 pt-8 lg:grid-cols-12">
-            <p className="lg:col-span-4 mono-label text-foreground/40">Keel Labs · Bengaluru</p>
+            <p className="lg:col-span-4 mono-label text-foreground/40">Keel Systems · Bengaluru</p>
             <div className="lg:col-span-8 max-w-2xl space-y-4 text-[16px] leading-relaxed text-foreground/70">
               <p>
                 Software is no longer just executed. It decides, drafts, sends and pays. The tools we built for

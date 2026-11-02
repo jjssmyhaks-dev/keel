@@ -70,15 +70,10 @@ export default function DpaPage() {
           ))}
         </tbody>
       </table>
-      <p>
-        Self-hosted deployments do not use Keel subprocessors for workspace data; billing and support email still flow
-        through the providers above.
-      </p>
-
       <h2 id="transfers">4. International transfers</h2>
       <p>
-        Hosted workspace data is stored in the EU. Where support or engineering access requires a transfer outside the
-        EEA, we rely on the European Commission&apos;s Standard Contractual Clauses, module two, with the supplementary
+        Hosted workspace data is stored in Singapore (AWS ap-southeast-1). Where support or engineering access requires
+        a transfer outside the EEA, we rely on the European Commission&apos;s Standard Contractual Clauses, module two, with the supplementary
         measures described in Annex 2. Transfers from India are governed by the Digital Personal Data Protection Act
         and our contractual restrictions on onward transfer.
       </p>

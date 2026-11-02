@@ -12,6 +12,14 @@ import { signAgentToken } from "@/lib/jwt";
 import { promoteAgent } from "@/lib/promotion";
 import { sendEmail, appUrl } from "@/lib/email";
 import { PLANS } from "@/lib/plans";
+import { checkPlanLimit, productionAccess } from "@/lib/limits";
+import {
+  createCheckoutSession,
+  createPortalSession,
+  ensureStripeCustomer,
+  priceIdFor,
+  stripeConfigured,
+} from "@/lib/stripe";
 
 function str(form: FormData, key: string) {
   return String(form.get(key) ?? "").trim();
@@ -196,6 +204,10 @@ export async function createAgentAction(formData: FormData) {
   const ctx = await getContext();
   if (!ctx.capabilities.manageAgents) redirect("/app/agents?error=permission");
   if (ctx.isProduction && !ctx.capabilities.writeProduction) redirect("/app/agents?error=production");
+  if (ctx.isProduction && !productionAccess(ctx.org.plan).allowed) redirect("/app/agents/new?error=plan");
+  if (!(await checkPlanLimit(ctx.org.id, "agents", ctx.org.plan)).allowed) {
+    redirect("/app/agents/new?error=limit");
+  }
 
   const name = str(formData, "name").slice(0, 60);
   const description = str(formData, "description").slice(0, 400);
@@ -309,6 +321,13 @@ export async function createCredentialAction(formData: FormData) {
 
   const connectorSlug = str(formData, "connector");
   const name = str(formData, "name").slice(0, 80);
+
+  if (ctx.isProduction && !productionAccess(ctx.org.plan).allowed) {
+    redirect(`/app/vault/new?connector=${connectorSlug}&error=plan`);
+  }
+  if (!(await checkPlanLimit(ctx.org.id, "credentials", ctx.org.plan)).allowed) {
+    redirect(`/app/vault/new?connector=${connectorSlug}&error=limit`);
+  }
 
   const { connector } = await import("@/lib/connectors");
   const connectorDef = connector(connectorSlug);
@@ -683,6 +702,7 @@ export async function issueTokenAction(
 export async function inviteMemberAction(formData: FormData) {
   const ctx = await getContext();
   if (!ctx.capabilities.manageTeam) redirect("/app/team?error=permission");
+  if (!(await checkPlanLimit(ctx.org.id, "members", ctx.org.plan)).allowed) redirect("/app/team?error=limit");
   const email = str(formData, "email").toLowerCase();
   const role = str(formData, "role") || "developer";
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) redirect("/app/team?error=email");
@@ -814,6 +834,9 @@ export async function createApiKeyAction(
 ): Promise<{ key?: string; prefix?: string; type?: string; error?: string }> {
   const ctx = await getContext();
   if (!ctx.capabilities.manageSecurity) return { error: "Only owners and admins can create API keys." };
+  if (ctx.isProduction && !ctx.user.emailVerifiedAt) {
+    return { error: "Verify your email address before creating production API keys." };
+  }
   const type = str(formData, "type") === "publishable" ? "publishable" : "secret";
   if (type === "secret" && ctx.isProduction && !ctx.capabilities.writeProduction) {
     return { error: "You cannot create production secret keys with this role." };
@@ -1020,6 +1043,77 @@ export async function requestPlanChangeAction(formData: FormData) {
   redirect(`/app/billing?requested=${plan.key}`);
 }
 
+export async function startCheckoutAction(formData: FormData) {
+  const ctx = await getContext();
+  if (!ctx.capabilities.manageBilling) redirect("/app/billing?error=permission");
+  const planKey = str(formData, "plan");
+  const plan = PLANS.find((candidate) => candidate.key === planKey && (candidate.key === "pro" || candidate.key === "scale"));
+  if (!plan) redirect("/app/billing?error=plan");
+  if (!stripeConfigured()) redirect("/app/billing?error=stripe");
+
+  const currency = ctx.org.billingCurrency === "INR" ? "INR" : "USD";
+  const priceId = priceIdFor(plan.key, currency);
+  if (!priceId) redirect("/app/billing?error=price");
+
+  let checkoutUrl = "";
+  try {
+    const customerId = await ensureStripeCustomer({
+      orgId: ctx.org.id,
+      orgName: ctx.org.name,
+      email: ctx.org.billingEmail || ctx.user.email,
+      existingCustomerId: ctx.org.stripeCustomerId,
+    });
+    const session = await createCheckoutSession({
+      orgId: ctx.org.id,
+      plan: plan.key,
+      priceId,
+      customerId,
+      successUrl: appUrl("/app/billing?checkout=success"),
+      cancelUrl: appUrl("/app/billing?checkout=cancelled"),
+    });
+    checkoutUrl = session.url;
+  } catch (error) {
+    console.error("[keel:stripe] checkout session failed", error);
+    redirect("/app/billing?error=stripe");
+  }
+
+  const meta = await orgActor(ctx);
+  await auditEvent({
+    environmentId: ctx.environment.id,
+    actorType: "human",
+    actorId: meta.actorId,
+    actorName: meta.actorName,
+    action: "billing.checkout_started",
+    resourceType: "organization",
+    resourceId: ctx.org.id,
+    outcome: "recorded",
+    ip: meta.ip,
+    payloadSummary: { plan: plan.key, currency, priceId },
+  }).catch(() => null);
+
+  redirect(checkoutUrl);
+}
+
+export async function openBillingPortalAction() {
+  const ctx = await getContext();
+  if (!ctx.capabilities.manageBilling) redirect("/app/billing?error=permission");
+  if (!stripeConfigured() || !ctx.org.stripeCustomerId) redirect("/app/billing?error=subscription");
+
+  let portalUrl = "";
+  try {
+    const session = await createPortalSession({
+      customerId: ctx.org.stripeCustomerId,
+      returnUrl: appUrl("/app/billing"),
+    });
+    portalUrl = session.url;
+  } catch (error) {
+    console.error("[keel:stripe] portal session failed", error);
+    redirect("/app/billing?error=stripe");
+  }
+
+  redirect(portalUrl);
+}
+
 export async function updateProjectAction(formData: FormData) {
   const ctx = await getContext();
   if (!ctx.capabilities.manageSecurity) redirect("/app/settings?error=permission");
@@ -1041,12 +1135,17 @@ export async function updateEnvironmentSettingsAction(formData: FormData) {
   const agentRateLimitPerMinute = Math.min(Math.max(Number(str(formData, "agentRateLimitPerMinute") || 120), 10), 5000);
   const allowedDomains = str(formData, "allowedDomains");
   const ipAllowlist = str(formData, "ipAllowlist");
+  const slackWebhookUrl = str(formData, "slackWebhookUrl");
+  if (slackWebhookUrl && !/^https:\/\/hooks\.slack\.com\/services\/[A-Za-z0-9/_-]+$/.test(slackWebhookUrl)) {
+    redirect("/app/security?error=slack");
+  }
   const next: Record<string, unknown> = {
     ...current,
     approvalExpiryMinutes,
     agentRateLimitPerMinute,
     allowedDomains,
     ipAllowlist,
+    slackWebhookUrl,
   };
   delete next.mockMode;
   await db.environment.update({
@@ -1124,12 +1223,14 @@ export async function addAlertRuleAction(formData: FormData) {
   if (!allowed.includes(type)) redirect("/app/security?error=type");
   const threshold = Math.max(Number(str(formData, "threshold") || 3), 1);
   const windowMinutes = Math.max(Number(str(formData, "windowMinutes") || 60), 5);
+  const channels = formData.getAll("channels").map(String).filter((channel) => ["email", "slack"].includes(channel));
+  if (!channels.length) redirect("/app/security?error=channels");
   await db.alertRule.create({
     data: {
       environmentId: ctx.environment.id,
       type,
       configJson: JSON.stringify({ threshold, windowMinutes }),
-      channelsJson: JSON.stringify(["email"]),
+      channelsJson: JSON.stringify(channels),
     },
   });
   revalidatePath("/app/security");
@@ -1145,6 +1246,15 @@ export async function toggleAlertRuleAction(formData: FormData) {
   await db.alertRule.update({ where: { id: rule.id }, data: { enabled: !rule.enabled } });
   revalidatePath("/app/security");
   redirect("/app/security");
+}
+
+export async function runAlertChecksAction() {
+  const ctx = await getContext();
+  if (!ctx.capabilities.manageSecurity) redirect("/app/security?error=permission");
+  const { evaluateAlerts } = await import("@/lib/alerts");
+  const fired = await evaluateAlerts(ctx.environment.id);
+  revalidatePath("/app/security");
+  redirect(`/app/security?checked=${fired.length}`);
 }
 
 export async function markNotificationsReadAction(formData: FormData) {

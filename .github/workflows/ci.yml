@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx prisma generate
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Connector contracts
+        run: npm run connectors:check
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: SDK
+        run: npm run sdk:build && npm run sdk:test
+
+      - name: CLI
+        run: npm run cli:typecheck && npm run cli:build
+
+      - name: MCP server
+        run: npm run mcp:typecheck && npm run mcp:build
+
+      - name: Production build
+        run: npm run build

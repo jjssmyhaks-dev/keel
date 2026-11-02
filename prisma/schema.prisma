@@ -83,8 +83,11 @@ model Organization {
   name            String
   slug            String    @unique
   plan            String    @default("free")
+  planStatus      String    @default("active")
   billingCurrency String    @default("USD")
   billingEmail    String?
+  stripeCustomerId     String? @unique
+  stripeSubscriptionId String?
   logoUrl         String?
   createdAt       DateTime  @default(now())
   deletedAt       DateTime?
@@ -445,6 +448,7 @@ model AlertRule {
   configJson    String      @default("{}")
   channelsJson  String      @default("[]")
   enabled       Boolean     @default(true)
+  lastFiredAt   DateTime?
   createdAt     DateTime    @default(now())
   environment   Environment @relation(fields: [environmentId], references: [id], onDelete: Cascade)
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { getJwks } from "@/lib/jwt";
 import { Navigation } from "@/components/landing/navigation";
 import { FooterSection } from "@/components/landing/footer-section";
 
@@ -28,6 +29,14 @@ export default async function StatusPage() {
     database = false;
   }
 
+  let signing = true;
+  try {
+    const jwks = await getJwks();
+    signing = Array.isArray(jwks.keys) && jwks.keys.length > 0;
+  } catch {
+    signing = false;
+  }
+
   const components = [
     { name: "Control plane", detail: "Dashboard, API keys, sessions", ok: database },
     { name: "Metadata store", detail: database ? `${environmentCount} environments reachable` : "Database check failed", ok: database },
@@ -37,6 +46,11 @@ export default async function StatusPage() {
       ok: database,
     },
     { name: "Audit pipeline", detail: "Hash-chained writes and export", ok: database },
+    {
+      name: "Token signing",
+      detail: signing ? "JWKS endpoint returns an Ed25519 key" : "Signing key unavailable — agent tokens cannot be issued",
+      ok: signing,
+    },
   ];
   const allOk = components.every((component) => component.ok);
 

@@ -167,8 +167,8 @@ const body = await response.json();
 const verification = await keel.audit.verify();
 // { valid: true, checked: 107, brokenAt: null }`}</pre>
       <p>
-        Export the raw chain as CSV or JSONL from <Link href="/app/activity">Activity</Link>, or stream it to your SIEM
-        with webhooks. See <Link href="/docs/concepts/audit">Audit trail</Link>.
+        Export the raw chain as CSV or JSONL from <Link href="/app/activity">Activity</Link>, or subscribe to proxy,
+        approval and agent events with webhooks. See <Link href="/docs/concepts/audit">Audit trail</Link>.
       </p>
 
       <h2 id="next">What next</h2>

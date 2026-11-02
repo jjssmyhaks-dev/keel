@@ -99,19 +99,19 @@ POST /v1/proxy/slack        Idempotency-Key: slack-post-launch-v3
 
       <h2 id="links">Approval links</h2>
       <p>
-        Each request carries a signed token. The link <code>https://keel.dev/approve/&lt;token&gt;</code> opens a
-        minimal decision page without requiring a dashboard session, but still requires the viewer to be signed in as
-        a member with approval rights. Links expire with the request and cannot be replayed after a decision.
+        Each request carries an HMAC-signed token. The link <code>https://keel.dev/approve/&lt;signed-token&gt;</code>{" "}
+        opens a minimal decision page without requiring a dashboard session, but still requires the viewer to be signed
+        in as a member with approval rights. Links expire with the request and cannot be replayed after a decision.
       </p>
       <p>
-        Slack and email notifications use the same link. Treat it as sensitive: anyone with approval rights who holds
-        the link can decide.
+        Approval emails use the same signed link. Treat it as sensitive: anyone with approval rights who holds the link
+        can decide.
       </p>
 
       <h2 id="expiry">Expiry</h2>
       <p>
-        Expiry is set per environment — 60 minutes in development and 30 in production by default. Expired requests are
-        closed automatically and cannot be approved afterwards. The agent sees the expiry as a denial on its next
+        Expiry is set per environment — 60 minutes by default, configurable from 5 to 1,440 minutes. Expired requests
+        are closed automatically and cannot be approved afterwards. The agent sees the expiry as a denial on its next
         idempotent retry.
       </p>
 

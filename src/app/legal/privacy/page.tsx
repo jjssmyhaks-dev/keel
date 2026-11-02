@@ -27,9 +27,9 @@ export default function PrivacyPage() {
 
       <h2 id="controller">Who is responsible</h2>
       <p>
-        Keel Systems Pvt Ltd (&ldquo;Keel&rdquo;, &ldquo;we&rdquo;) is the controller for account and billing data, and the processor for
-        workspace data that customers upload. Our registered office is Keel Systems Pvt Ltd, 4th Floor, 12th Main,
-        Indiranagar, Bengaluru 560038, India. The EU representative for GDPR purposes is listed on request at{" "}
+        Keel Systems (&ldquo;Keel&rdquo;, &ldquo;we&rdquo;) is the controller for account and billing data, and the processor for
+        workspace data that customers upload. We are based in Bengaluru, India; registered office details are available
+        on request. For EU data-protection enquiries, write to{" "}
         <a href="mailto:legal@keel.dev">legal@keel.dev</a>.
       </p>
       <p>
@@ -129,8 +129,7 @@ export default function PrivacyPage() {
       <p>
         The hosted service runs in Singapore. Support and engineering access is global, restricted to named staff, and
         logged. Transfers outside the EEA rely on the European Commission&apos;s Standard Contractual Clauses, with a
-        transfer impact assessment available to customers on request. Self-hosted deployments keep all workspace
-        data in your own infrastructure.
+        transfer impact assessment available to customers on request.
       </p>
 
       <h2 id="rights">Your rights</h2>

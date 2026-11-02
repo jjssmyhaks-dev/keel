@@ -92,13 +92,16 @@ export async function signUpAction(_prev: FormState, formData: FormData): Promis
     },
   });
 
-  const { org, development } = await provisionOrganization({
-    userId: user.id,
-    userName: name,
-    orgName,
-    plan: "free",
-    ip: m.ip,
-  });
+  const inviteFlow = next.startsWith("/invite/");
+  const provisioned = inviteFlow
+    ? null
+    : await provisionOrganization({
+        userId: user.id,
+        userName: name,
+        orgName,
+        plan: "free",
+        ip: m.ip,
+      });
 
   const token = await issueEmailToken({ type: "email_verify", email, userId: user.id, hours: 48 });
   await sendEmail({
@@ -114,18 +117,20 @@ export async function signUpAction(_prev: FormState, formData: FormData): Promis
   });
 
   await createSession(user.id, m);
-  await auditEvent({
-    environmentId: development.id,
-    actorType: "human",
-    actorId: user.id,
-    actorName: name,
-    action: "auth.sign_up",
-    resourceType: "user",
-    resourceId: user.id,
-    outcome: "recorded",
-    ip: m.ip,
-    payloadSummary: { email, org: org.name },
-  });
+  if (provisioned) {
+    await auditEvent({
+      environmentId: provisioned.development.id,
+      actorType: "human",
+      actorId: user.id,
+      actorName: name,
+      action: "auth.sign_up",
+      resourceType: "user",
+      resourceId: user.id,
+      outcome: "recorded",
+      ip: m.ip,
+      payloadSummary: { email, org: provisioned.org.name },
+    });
+  }
   redirect(next || "/onboarding");
 }
 

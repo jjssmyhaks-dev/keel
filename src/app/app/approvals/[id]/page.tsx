@@ -7,7 +7,7 @@ import { connector, actionFor } from "@/lib/connectors";
 import { ConnectorLogo } from "@/components/connector-logo";
 import { decideApprovalAction } from "@/app/app/actions";
 import { PageHeader, Panel, StatusBadge, RiskBadge, Notice, relativeTime, formatDate } from "@/components/app/ui";
-import { appUrl } from "@/lib/email";
+import { approvalUrlFor } from "@/lib/signed-links";
 
 export const dynamic = "force-dynamic";
 
@@ -255,11 +255,11 @@ export default async function ApprovalDetailPage({
           {pending ? (
             <Panel title="Signed link" hint="For email approvals" bodyClassName="p-4">
               <p className="text-[11px] leading-relaxed text-black/50 dark:text-muted-foreground">
-                The same decision can be made from a signed link delivered by email or Slack. The link is scoped to this single
+                The same decision can be made from a signed link delivered by email. The link is scoped to this single
                 request and expires with it.
               </p>
               <p className="mt-2 break-all border border-black/10 bg-[#faf9f6] p-2 font-mono text-[9px] text-black/55 dark:border-border dark:bg-background dark:text-muted-foreground">
-                {appUrl(`/approve/${approval.token}`)}
+                {approvalUrlFor(approval.token)}
               </p>
             </Panel>
           ) : null}

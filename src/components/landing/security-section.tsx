@@ -12,7 +12,7 @@ const features = [
   { icon: ScrollText, title: "Retention policy", body: "7 days on free, 90 on Pro, a year on Scale, custom on enterprise. Export to CSV or JSONL, or stream via webhooks." },
 ];
 
-const controls = ["SOC 2-aligned controls", "GDPR", "India DPDP", "Audit export"];
+const controls = ["AES-256-GCM", "Ed25519 identity", "Hash-chained audit", "Audit export"];
 
 export function SecuritySection() {
   const [visible, setVisible] = useState(false);
@@ -140,7 +140,7 @@ export function SecuritySection() {
           </span>
           <span className="flex items-center gap-2 font-mono text-[11px]">
             <ShieldCheck className="w-4 h-4 text-[#b0568f]" />
-            status page · all systems operational
+            status page · live checks
           </span>
         </div>
       </div>

@@ -23,6 +23,7 @@ const twilio: Connector = {
     name: "Authorization",
     basic: { usernameField: "api_key_sid", passwordField: "api_key_secret" },
   },
+  bodyFormat: "form",
   credentialFields: [
     { key: "account_sid", label: "Account SID", required: true, placeholder: "AC…" },
     {

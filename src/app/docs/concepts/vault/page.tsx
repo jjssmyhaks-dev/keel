@@ -43,8 +43,8 @@ export default function VaultPage() {
         makes the ciphertext unrecoverable even if a database backup survives.
       </p>
       <Callout title="Deployments and key custody">
-        In the hosted product the master key lives in a managed KMS and is loaded through a secrets provider at boot.
-        Self-hosted deployments can supply their own master key; the application never accepts it from a request.
+        The master key is supplied through the deployment environment at boot and is never accepted from a request or
+        stored in the database. Local development can generate a key file instead of setting one.
       </Callout>
 
       <h2 id="lifecycle">Credential lifecycle</h2>

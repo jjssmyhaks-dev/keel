@@ -48,10 +48,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
         <div className="relative z-10 flex items-center justify-between font-mono text-[10px] text-white/25">
           <span>© {new Date().getFullYear()} Keel Systems</span>
-          <span className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#eca8d6] live-dot" />
-            all systems operational
-          </span>
+          <Link href="/status" className="flex items-center gap-2 hover:text-white/60 transition-colors">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#eca8d6]" />
+            live status
+          </Link>
         </div>
       </aside>
 

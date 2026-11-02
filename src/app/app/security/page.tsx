@@ -7,6 +7,7 @@ import {
   updateEnvironmentSettingsAction,
   addAlertRuleAction,
   toggleAlertRuleAction,
+  runAlertChecksAction,
   verifyAuditAction,
 } from "@/app/app/actions";
 import { PageHeader, Panel, Stat, StatusBadge, Notice, formatDate } from "@/components/app/ui";
@@ -60,8 +61,23 @@ export default async function SecurityPage({
         }
       />
 
-      {query.error ? <Notice kind="error">Only owners and admins can change security settings.</Notice> : null}
+      {query.error ? (
+        <Notice kind="error">
+          {query.error === "slack"
+            ? "Enter a full https://hooks.slack.com/services/... webhook URL."
+            : query.error === "channels"
+              ? "Pick at least one delivery channel for the alert rule."
+              : "Only owners and admins can change security settings."}
+        </Notice>
+      ) : null}
       {query.saved ? <Notice kind="ok">Security settings saved. They apply to new calls immediately.</Notice> : null}
+      {query.checked !== undefined ? (
+        <Notice kind="ok">
+          {query.checked === "0"
+            ? "Alert rules evaluated. Nothing crossed its threshold."
+            : `${query.checked} alert${query.checked === "1" ? "" : "s"} fired and was delivered to its channels.`}
+        </Notice>
+      ) : null}
       {query.verified === "ok" ? (
         <Notice kind="ok">Audit chain verified over {query.checked} events.</Notice>
       ) : null}
@@ -147,6 +163,22 @@ export default async function SecurityPage({
                 </p>
               </div>
 
+              <div>
+                <label htmlFor="slackWebhookUrl" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                  Slack webhook for alerts
+                </label>
+                <input
+                  id="slackWebhookUrl"
+                  name="slackWebhookUrl"
+                  defaultValue={settings.slackWebhookUrl ?? ""}
+                  placeholder="https://hooks.slack.com/services/…"
+                  className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                />
+                <p className="mt-1 text-[10px] text-black/40 dark:text-muted-foreground">
+                  Used only by alert rules that select the Slack channel. Leave blank to disable Slack delivery.
+                </p>
+              </div>
+
               <button
                 disabled={!canManage}
                 className="border border-black bg-black px-4 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-white hover:bg-[#eca8d6] hover:text-black disabled:opacity-40"
@@ -158,8 +190,20 @@ export default async function SecurityPage({
 
           <Panel
             title="Alert rules"
-            hint="Signals worth waking someone for"
-            actions={<span className="font-mono text-[9px] uppercase tracking-[0.12em] text-black/35 dark:text-muted-foreground">{alerts.length} configured</span>}
+            hint="Evaluated by the cron sweep or on demand"
+            actions={
+              canManage ? (
+                <form action={runAlertChecksAction}>
+                  <button className="border border-black/15 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em] hover:border-black dark:border-border">
+                    Run checks now
+                  </button>
+                </form>
+              ) : (
+                <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-black/35 dark:text-muted-foreground">
+                  {alerts.length} configured
+                </span>
+              )
+            }
             bodyClassName="p-0"
           >
             {alerts.length ? (
@@ -176,6 +220,7 @@ export default async function SecurityPage({
                         <p className="font-mono text-[9px] text-black/40 dark:text-muted-foreground">
                           {config.threshold ? `> ${config.threshold} in ${config.windowMinutes ?? 60}m` : "default threshold"} ·{" "}
                           {channels.join(", ") || "no channels"} · created {formatDate(alert.createdAt)}
+                          {alert.lastFiredAt ? ` · last fired ${formatDate(alert.lastFiredAt)}` : ""}
                         </p>
                       </div>
                       {canManage ? (
@@ -226,6 +271,19 @@ export default async function SecurityPage({
                     defaultValue={60}
                     className="mt-1 block w-20 border border-black/15 bg-white px-2 py-1 font-mono text-[11px] dark:border-border dark:bg-card"
                   />
+                </div>
+                <div>
+                  <label className="font-mono text-[8px] uppercase tracking-[0.16em] text-black/40 dark:text-muted-foreground">Channels</label>
+                  <div className="mt-1.5 flex items-center gap-3 text-[11px]">
+                    <label className="flex items-center gap-1">
+                      <input type="checkbox" name="channels" value="email" defaultChecked className="size-3.5 accent-black" />
+                      email
+                    </label>
+                    <label className="flex items-center gap-1">
+                      <input type="checkbox" name="channels" value="slack" className="size-3.5 accent-black" />
+                      slack
+                    </label>
+                  </div>
                 </div>
                 <button className="border border-black bg-black px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.14em] text-white hover:bg-[#eca8d6] hover:text-black">
                   Add rule

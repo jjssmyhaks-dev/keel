@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { Logo } from "@/components/logo";
 import { getSession, can } from "@/lib/session";
 import { connector, RISK_META } from "@/lib/connectors";
+import { verifyApprovalLink } from "@/lib/signed-links";
 import { decideApprovalAction } from "./actions";
 
 export const metadata: Metadata = { title: "Approval request" };
@@ -26,16 +27,19 @@ export default async function ApprovePage({
 }) {
   const { token } = await params;
   const query = await searchParams;
+  const dbToken = verifyApprovalLink(token);
 
-  const approval = await db.approvalRequest.findUnique({
-    where: { token },
-    include: {
-      agent: true,
-      credential: true,
-      environment: { include: { project: { include: { org: true } } } },
-      grant: true,
-    },
-  });
+  const approval = dbToken
+    ? await db.approvalRequest.findUnique({
+        where: { token: dbToken },
+        include: {
+          agent: true,
+          credential: true,
+          environment: { include: { project: { include: { org: true } } } },
+          grant: true,
+        },
+      })
+    : null;
 
   if (!approval) {
     return (
@@ -130,7 +134,7 @@ export default async function ApprovePage({
       {pending ? (
         canDecide ? (
           <form action={decideApprovalAction} className="mt-8 border border-black/15 bg-white p-6">
-            <input type="hidden" name="token" value={approval.token} />
+            <input type="hidden" name="token" value={token} />
             <label className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground" htmlFor="note">
               Note to the agent owner (optional)
             </label>
@@ -177,7 +181,7 @@ export default async function ApprovePage({
                 : "Sign in with an Owner, Admin or Approver account to approve or deny this request."}
             </p>
             <Link
-              href={`/sign-in?next=${encodeURIComponent(`/approve/${approval.token}`)}`}
+              href={`/sign-in?next=${encodeURIComponent(`/approve/${token}`)}`}
               className="border border-black bg-black px-5 py-3 text-xs font-mono uppercase tracking-[0.18em] text-white"
             >
               Sign in to decide

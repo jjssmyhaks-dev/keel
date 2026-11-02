@@ -22,6 +22,7 @@ export function PricingSection({ standalone = false }: { standalone?: boolean })
   const [annual, setAnnual] = useState(true);
   const [visible, setVisible] = useState(false);
   const ref = useRef<HTMLElement>(null);
+  const Heading = standalone ? "h1" : "h2";
 
   useEffect(() => {
     const observer = new IntersectionObserver(([e]) => e.isIntersecting && setVisible(true), {
@@ -44,7 +45,7 @@ export function PricingSection({ standalone = false }: { standalone?: boolean })
               <span className="w-12 h-px bg-foreground/30" />
               Pricing
             </span>
-            <h2
+            <Heading
               className={`text-6xl md:text-7xl lg:text-[112px] font-display tracking-tight leading-[0.9] transition-all duration-1000 ${
                 visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
               }`}
@@ -52,7 +53,7 @@ export function PricingSection({ standalone = false }: { standalone?: boolean })
               Pay for
               <br />
               <span className="text-stroke">agents.</span>
-            </h2>
+            </Heading>
           </div>
           <div className="lg:col-span-5 flex flex-col justify-end gap-6">
             <p className="text-lg text-muted-foreground leading-relaxed max-w-sm">
@@ -168,7 +169,7 @@ export function PricingSection({ standalone = false }: { standalone?: boolean })
           <div className="flex flex-wrap gap-x-8 gap-y-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-2">
               <Check className="w-3.5 h-3.5 text-[#b0568f]" />
-              Overage billed per 10k calls
+              Limits enforced, no surprise overage
             </span>
             <span className="flex items-center gap-2">
               <Check className="w-3.5 h-3.5 text-[#b0568f]" />
@@ -176,7 +177,7 @@ export function PricingSection({ standalone = false }: { standalone?: boolean })
             </span>
             <span className="flex items-center gap-2">
               <Check className="w-3.5 h-3.5 text-[#b0568f]" />
-              GST invoices
+              Invoices in Billing
             </span>
             <span className="flex items-center gap-2">
               <Check className="w-3.5 h-3.5 text-[#b0568f]" />

@@ -112,8 +112,7 @@ export default function SecurityPage() {
             <p className="mono-label text-foreground/40 mb-3">Data residency</p>
             <p className="text-[13px] leading-relaxed text-foreground/60">
               The hosted service currently runs in Singapore (ap-southeast-1) on Neon Postgres, with encrypted backups
-              in the same region. Enterprise deployments can choose a region; self-hosted deployments run entirely in
-              your infrastructure.
+              in the same region. Region choices for larger deployments are discussed during Enterprise onboarding.
             </p>
           </div>
           <div>

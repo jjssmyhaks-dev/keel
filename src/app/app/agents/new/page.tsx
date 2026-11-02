@@ -37,7 +37,11 @@ export default async function NewAgentPage({
               ? "Give the agent a name of at least two characters."
               : error === "permission"
                 ? "Your role cannot register agents in this environment."
-                : "The agent could not be registered. Try again."}
+                : error === "plan"
+                  ? "Production mode requires a paid plan. Upgrade the workspace in Billing."
+                  : error === "limit"
+                    ? "This plan's agent limit is reached. Upgrade the workspace in Billing to register more agents."
+                    : "The agent could not be registered. Try again."}
         </Notice>
       ) : null}
 

@@ -15,6 +15,8 @@ const ERROR_COPY: Record<string, string> = {
   secret: "Paste a credential before saving.",
   permission: "Your role cannot add connections in this environment.",
   production: "Only owners and admins can add production connections.",
+  plan: "Production mode requires a paid plan. Upgrade the workspace in Billing.",
+  limit: "This plan's connection limit is reached. Upgrade the workspace in Billing to add more.",
 };
 
 export default async function NewConnectionPage({

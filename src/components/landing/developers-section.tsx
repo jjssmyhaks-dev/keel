@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Copy } from "lucide-react";
 
-const languages = ["TypeScript", "Python", "cURL"] as const;
+const languages = ["TypeScript", "cURL"] as const;
 
 const snippets: Record<(typeof languages)[number], string> = {
   TypeScript: `import { Keel } from "@keel/sdk";
@@ -30,30 +30,6 @@ await keel.proxy.call({
   action: "slack.post_message",
   input: { channel: "#support-eu", text: "Daily digest ready." },
 });`,
-  Python: `from keel import Keel
-
-keel = Keel(api_key=os.environ["KEEL_SECRET_KEY"])
-
-# 1. register an agent (identity is generated locally)
-agent = keel.agents.create(name="atlas")
-
-# 2. grant it a connector, scoped to one channel
-keel.grants.create(
-    agent_id=agent.id,
-    credential_id="cred_slack",
-    actions=["slack.post_message"],
-    resource_pattern="channel:#support-eu",
-    approval_mode="auto",
-)
-
-# 3. act. the credential never enters this process.
-token = keel.auth.token(agent.identity)
-keel.proxy.call(
-    token=token,
-    connector="slack",
-    action="slack.post_message",
-    input={"channel": "#support-eu", "text": "Daily digest ready."},
-)`,
   cURL: `# exchange the agent identity for a 5-minute token
 curl -X POST https://api.keel.dev/v1/agents/atlas/token \\
   -H "Authorization: Bearer $KEEL_SECRET_KEY" \\
@@ -70,7 +46,7 @@ curl -X POST https://api.keel.dev/v1/proxy/slack \\
 };
 
 const features = [
-  { title: "TypeScript & Python", description: "First-party SDKs with typed actions and errors." },
+  { title: "TypeScript SDK", description: "A first-party client with typed actions and errors." },
   { title: "CLI included", description: "Register, rotate, tail logs and promote from CI." },
   { title: "MCP native", description: "Connector catalogs become MCP tools automatically." },
   { title: "Framework ready", description: "LangGraph, CrewAI, OpenAI Agents, Vercel AI SDK." },
@@ -172,7 +148,6 @@ export function DevelopersSection() {
             </pre>
             <div className="border-t border-white/10 px-6 py-4 flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-[10px] text-white/30">
               <span>npm i @keel/sdk</span>
-              <span>pip install keel</span>
               <span>openapi 3.1</span>
               <span className="text-[#eca8d6]/70">typed errors · retries</span>
             </div>

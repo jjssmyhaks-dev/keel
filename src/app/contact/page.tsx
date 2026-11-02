@@ -87,14 +87,13 @@ export default function ContactPage() {
           <div className="lg:col-span-4">
             <p className="mono-label text-foreground/40 mb-4">Office</p>
             <p className="text-[14px] leading-relaxed text-foreground/65">
-              Keel Labs Pvt Ltd
+              Keel Systems
               <br />
-              100 Feet Road, Indiranagar
-              <br />
-              Bengaluru 560038, India
+              Bengaluru, India
             </p>
             <p className="mt-4 text-[12px] text-foreground/40">
-              Registered office. Visits by appointment only.
+              Registered office details are available on request at{" "}
+              <a href="mailto:legal@keel.dev" className="underline underline-offset-4">legal@keel.dev</a>.
             </p>
           </div>
           <div className="lg:col-span-8">
@@ -102,9 +101,9 @@ export default function ContactPage() {
             <div className="grid gap-px border border-foreground/12 bg-foreground/10 sm:grid-cols-2">
               {[
                 { title: "Debug a denied call", body: "The response includes a decision source and reason. The Activity page explains it months later.", href: "/docs/concepts/policy", label: "Policy docs" },
-                { title: "Set up SSO or SCIM", body: "These are Enterprise features under active rollout. Ask for the current scope.", href: "/pricing", label: "Plans" },
+                { title: "Discuss Enterprise", body: "Custom volume, annual invoicing and security review. Ask for the current scope.", href: "/pricing", label: "Plans" },
                 { title: "Report a vulnerability", body: "Follow the responsible disclosure policy and use security@keel.dev.", href: "/security#disclosure", label: "Disclosure" },
-                { title: "Understand billing", body: "Usage meters, overage and currency handling are documented on the billing page.", href: "/app/billing", label: "Billing" },
+                { title: "Understand billing", body: "Usage meters, allowances and currency handling are documented on the billing page.", href: "/app/billing", label: "Billing" },
               ].map((item) => (
                 <Link key={item.title} href={item.href} className="group bg-background p-5 hover:bg-foreground/[0.03]">
                   <p className="text-[14px] font-medium">{item.title}</p>

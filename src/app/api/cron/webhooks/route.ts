@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { retryPendingWebhooks } from "@/lib/webhooks";
 import { pruneRateLimitCounters } from "@/lib/rate-limit";
+import { expireStaleApprovals } from "@/lib/approvals";
+import { evaluateAlerts } from "@/lib/alerts";
+import { planFor } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -24,11 +27,47 @@ async function run(req: Request) {
   }
 
   const now = Date.now();
+  const nowDate = new Date(now);
   const retried = await retryPendingWebhooks(25);
-  const [challenges, counters, blocklist, idempotency, loginTokens, deliveries] = await Promise.all([
+
+  await expireStaleApprovals();
+  const alerts = await evaluateAlerts();
+
+  const expiring = await db.credential.updateMany({
+    where: {
+      revokedAt: null,
+      expiresAt: { gt: nowDate, lte: new Date(now + 7 * 86_400_000) },
+      status: { notIn: ["expiring", "expired", "revoked"] },
+    },
+    data: { status: "expiring" },
+  });
+  const expired = await db.credential.updateMany({
+    where: {
+      revokedAt: null,
+      expiresAt: { lte: nowDate },
+      status: { notIn: ["expired", "revoked"] },
+    },
+    data: { status: "expired" },
+  });
+
+  const orgs = await db.organization.findMany({ where: { deletedAt: null }, select: { id: true, plan: true } });
+  let prunedAudit = 0;
+  for (const org of orgs) {
+    const retentionDays = planFor(org.plan).limits.retentionDays;
+    if (retentionDays < 0) continue;
+    const result = await db.auditEvent.deleteMany({
+      where: {
+        environment: { project: { orgId: org.id } },
+        timestamp: { lt: new Date(now - retentionDays * 86_400_000) },
+      },
+    });
+    prunedAudit += result.count;
+  }
+
+  const [challenges, counters, blocklist, idempotency, loginTokens, deliveries, sessions, invitations] = await Promise.all([
     db.challengeUse.deleteMany({ where: { usedAt: { lt: new Date(now - 24 * 60 * 60_000) } } }),
     pruneRateLimitCounters(),
-    db.tokenBlocklist.deleteMany({ where: { expiresAt: { lt: new Date(now) } } }),
+    db.tokenBlocklist.deleteMany({ where: { expiresAt: { lt: nowDate } } }),
     db.idempotencyRecord.deleteMany({ where: { createdAt: { lt: new Date(now - 7 * 24 * 60 * 60_000) } } }),
     db.loginToken.deleteMany({
       where: {
@@ -39,17 +78,32 @@ async function run(req: Request) {
       },
     }),
     db.webhookDelivery.deleteMany({ where: { createdAt: { lt: new Date(now - 30 * 24 * 60 * 60_000) } } }),
+    db.session.deleteMany({
+      where: {
+        OR: [
+          { expiresAt: { lt: new Date(now - 7 * 24 * 60 * 60_000) } },
+          { revokedAt: { lt: new Date(now - 30 * 24 * 60 * 60_000) } },
+        ],
+      },
+    }),
+    db.invitation.deleteMany({ where: { expiresAt: { lt: new Date(now - 30 * 24 * 60 * 60_000) } } }),
   ]);
 
   return NextResponse.json({
     ok: true,
     webhooks: retried,
+    alertsFired: alerts.length,
+    credentialsExpiring: expiring.count,
+    credentialsExpired: expired.count,
+    prunedAudit,
     prunedChallenges: challenges.count,
     prunedRateLimits: counters.count,
     prunedBlocklist: blocklist.count,
     prunedIdempotency: idempotency.count,
     prunedLoginTokens: loginTokens.count,
     prunedDeliveries: deliveries.count,
+    prunedSessions: sessions.count,
+    prunedInvitations: invitations.count,
   });
 }
 

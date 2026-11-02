@@ -7,7 +7,9 @@ import { dispatchEvent } from "./webhooks";
 import { notifyApprovers, notify } from "./notifications";
 import { envSettings } from "./policy";
 import { executeAction, redact } from "./proxy";
-import { appUrl } from "./email";
+import { emailLayout, sendEmail } from "./email";
+import { checkPlanLimit, productionAccess } from "./limits";
+import { approvalUrlFor } from "./signed-links";
 
 export async function createApprovalRequest(opts: {
   environment: Environment;
@@ -85,6 +87,29 @@ export async function createApprovalRequest(opts: {
     href: `/app/approvals/${approval.id}`,
   });
 
+  const approvers = await db.membership.findMany({
+    where: { orgId, role: { in: ["owner", "admin", "approver"] } },
+    include: { user: true },
+  });
+  const link = approvalUrlFor(token);
+  const minutesLeft = minutes;
+  await Promise.all(
+    approvers.map((member) =>
+      sendEmail({
+        to: member.user.email,
+        subject: `Approval needed: ${connectorDef?.name ?? opts.credential.connectorSlug}`,
+        html: emailLayout(
+          "A human decision is needed",
+          `<p>${summary}</p>
+           <p style="color:#8b8b8b;font-size:13px">Risk: ${opts.risk} · Environment: ${opts.environment.type} · Expires in ${minutesLeft} minutes.</p>
+           <p style="margin:24px 0"><a href="${link}" style="background:#111;color:#fff;padding:12px 20px;text-decoration:none;display:inline-block">Review and decide</a></p>
+           <p style="color:#8b8b8b;font-size:12px">Keel never puts credentials in email. Open the request to see the redacted payload.</p>`,
+        ),
+        text: `${summary}\nRisk: ${opts.risk}\nExpires in ${minutesLeft} minutes.\nReview: ${link}`,
+      }).catch(() => null),
+    ),
+  );
+
   await dispatchEvent(opts.environment.id, "approval.requested", {
     approvalId: approval.id,
     agent: opts.agent.name,
@@ -92,7 +117,7 @@ export async function createApprovalRequest(opts: {
     resource: opts.resource,
     risk: opts.risk,
     summary,
-    approvalUrl: appUrl(`/approve/${token}`),
+    approvalUrl: link,
   });
 
   return approval;
@@ -177,22 +202,44 @@ export async function decideApproval(opts: {
           approval.credential.healthDetail ??
           "The provider rejected this credential. Rotate it in the vault before executing.",
       };
+    } else if (approval.credential.expiresAt && approval.credential.expiresAt < new Date()) {
+      status = "failed";
+      result = { error: "The connection expired before this approval was executed. Rotate it in the vault." };
+    } else if (approval.grant?.expiresAt && approval.grant.expiresAt < new Date()) {
+      status = "failed";
+      result = { error: "The grant expired before this approval was executed. Request a new grant." };
     } else {
-      try {
-        result = await executeAction({
-          environment: approval.environment,
-          agent: approval.agent,
-          credential: approval.credential,
-          action,
-          input: payload.input ?? {},
-          resource: payload.resource ?? undefined,
-          requestId: approval.requestId,
-          ip: opts.ip,
-          approvalId: approval.id,
-        });
-      } catch (error) {
+      const org = await db.organization.findUnique({
+        where: { id: approval.environment.project.orgId },
+        select: { plan: true },
+      });
+      const plan = org?.plan ?? "free";
+      if (approval.environment.type === "production" && !productionAccess(plan).allowed) {
         status = "failed";
-        result = { error: error instanceof Error ? error.message : "Execution failed." };
+        result = { error: productionAccess(plan).message };
+      } else {
+        const quota = await checkPlanLimit(approval.environment.project.orgId, "calls", plan);
+        if (!quota.allowed) {
+          status = "failed";
+          result = { error: quota.message };
+        } else {
+          try {
+            result = await executeAction({
+              environment: approval.environment,
+              agent: approval.agent,
+              credential: approval.credential,
+              action,
+              input: payload.input ?? {},
+              resource: payload.resource ?? undefined,
+              requestId: approval.requestId,
+              ip: opts.ip,
+              approvalId: approval.id,
+            });
+          } catch (error) {
+            status = "failed";
+            result = { error: error instanceof Error ? error.message : "Execution failed." };
+          }
+        }
       }
     }
   }

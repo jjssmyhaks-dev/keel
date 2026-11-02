@@ -345,7 +345,9 @@ export async function executeAction(opts: {
   if (injection.basic) {
     const username = fieldValue(secret, injection.basic.usernameField) || fieldValue(secret, "username");
     const password = fieldValue(secret, injection.basic.passwordField) || fieldValue(secret, "password");
-    if (!username || !password) throw new Error("The stored basic-auth credential is incomplete.");
+    if (!username || (!password && !injection.basic.allowEmptyPassword)) {
+      throw new Error("The stored basic-auth credential is incomplete.");
+    }
     headers.Authorization = `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
   }
 
@@ -381,8 +383,38 @@ export async function executeAction(opts: {
       const value = fieldValue(secret, param.field);
       if (value) body[param.name] = value;
     }
-    headers["Content-Type"] = "application/json";
-    init.body = JSON.stringify(body);
+
+    if (action.graphqlQuery) {
+      const variables: Record<string, unknown> = { ...body };
+      if (action.graphqlWrap) {
+        const wrapped: Record<string, unknown> = { ...body };
+        if (wrapped.id === undefined && opts.resource) wrapped.id = opts.resource;
+        variables[action.graphqlWrap] = wrapped;
+        for (const key of Object.keys(wrapped)) delete variables[key];
+      } else if (variables.id === undefined && opts.resource && /\$id\b/.test(action.graphqlQuery)) {
+        variables.id = opts.resource;
+      }
+      for (const key of Object.keys(variables)) {
+        if (variables[key] === undefined || variables[key] === null) delete variables[key];
+      }
+      headers["Content-Type"] = "application/json";
+      init.body = JSON.stringify({ query: action.graphqlQuery, variables });
+    } else if ((action.bodyFormat ?? connectorDef.bodyFormat ?? "json") === "form") {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(body)) {
+        if (value === undefined || value === null) continue;
+        if (Array.isArray(value)) {
+          for (const item of value) params.append(key, typeof item === "object" ? JSON.stringify(item) : String(item));
+        } else {
+          params.append(key, typeof value === "object" ? JSON.stringify(value) : String(value));
+        }
+      }
+      headers["Content-Type"] = "application/x-www-form-urlencoded";
+      if ([...params.keys()].length) init.body = params.toString();
+    } else {
+      headers["Content-Type"] = "application/json";
+      init.body = JSON.stringify(body);
+    }
   }
 
   const sensitiveParams = [
@@ -443,6 +475,7 @@ export async function executeAction(opts: {
         action: action.name,
         resource: opts.resource,
         credentialId: credential.id,
+        host: url.hostname,
         error: error instanceof Error ? error.message : "upstream_failure",
         input: redacted,
       },
@@ -479,6 +512,7 @@ export async function executeAction(opts: {
       action: action.name,
       resource: opts.resource,
       credentialId: credential.id,
+      host: url.hostname,
       status: result.status,
       latencyMs: result.latencyMs,
       truncated: result.truncated,

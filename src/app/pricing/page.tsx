@@ -4,7 +4,6 @@ import { Navigation } from "@/components/landing/navigation";
 import { PricingSection } from "@/components/landing/pricing-section";
 import { CtaSection } from "@/components/landing/cta-section";
 import { FooterSection } from "@/components/landing/footer-section";
-import { OVERAGE } from "@/lib/plans";
 
 export const metadata: Metadata = {
   title: "Pricing",
@@ -21,12 +20,12 @@ const faqs = [
     a: "Any request routed through the Keel proxy, including named actions and raw proxied requests. Token issuance, introspection and audit reads are free.",
   },
   {
-    q: "How does overage work?",
-    a: `Calls beyond your plan are billed at ${OVERAGE.callsPer10k.usd} USD (${OVERAGE.callsPer10k.inr} INR) per 10,000 calls. Additional active agents are ${OVERAGE.agent.usd} USD (${OVERAGE.agent.inr} INR) each per month.`,
+    q: "What happens when I reach my limit?",
+    a: "The allowance is enforced, not billed over. Once a workspace reaches its monthly call, agent or connection limit, the extra request is refused with a 402 response until the period resets or the plan changes. We do not add surprise overage charges.",
   },
   {
     q: "Can I pay in INR?",
-    a: "Yes. Indian customers are invoiced in INR with GST; international customers in USD. Paid plans are activated once the invoice clears — request a change from Billing or email hello@keel.dev.",
+    a: "Yes. Choose INR in Billing and Stripe checkout charges the INR price; international customers pay in USD. Paid plans activate as soon as Stripe confirms the subscription, and invoices appear in Billing.",
   },
   {
     q: "What happens when I downgrade?",
@@ -77,7 +76,7 @@ export default function PricingPage() {
 
           <div className="mt-16 flex flex-wrap items-center justify-between gap-4 border border-foreground/10 p-6 lg:p-8">
             <p className="text-sm text-muted-foreground">
-              Need SSO, SCIM, SIEM streaming or a private deployment?{" "}
+              Need custom volume, annual invoicing or a security review?{" "}
               <span className="text-foreground">Talk to us about Enterprise.</span>
             </p>
             <div className="flex gap-3">

@@ -18,6 +18,7 @@ import {
 import { auditEvent } from "@/lib/audit";
 import { dispatchEvent } from "@/lib/webhooks";
 import { serializeAgent } from "@/lib/serializers";
+import { checkPlanLimit, productionAccess } from "@/lib/limits";
 
 export async function GET(req: Request) {
   try {
@@ -64,8 +65,17 @@ export async function POST(req: Request) {
       throw new ApiError(422, "invalid_name", "Agent name is required and must be 60 characters or fewer.");
     }
     if (name.length < 2) throw new ApiError(422, "invalid_name", "Agent name must be at least 2 characters.");
-    if (ctx.environment.type === "production" && ctx.organization.plan === "free") {
-      throw new ApiError(402, "plan_required", "Production mode requires a paid plan.");
+    if (ctx.environment.type === "production") {
+      const access = productionAccess(ctx.organization.plan);
+      if (!access.allowed) throw new ApiError(402, "plan_required", access.message);
+    }
+    const quota = await checkPlanLimit(ctx.organization.id, "agents", ctx.organization.plan);
+    if (!quota.allowed) {
+      throw new ApiError(402, "plan_limit_reached", quota.message, {
+        used: quota.used,
+        limit: quota.limit,
+        plan: quota.plan,
+      });
     }
 
     const existing = await db.agent.findFirst({

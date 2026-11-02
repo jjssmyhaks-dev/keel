@@ -49,7 +49,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               </span>
               <div>
                 <p className="text-[12px]">{item.author}</p>
-                <p className="text-[10px] text-foreground/40">Keel Labs</p>
+                <p className="text-[10px] text-foreground/40">Keel Systems</p>
               </div>
             </div>
           </header>

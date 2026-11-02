@@ -4,7 +4,7 @@ import { LegalShell } from "@/components/legal/legal-shell";
 
 export const metadata: Metadata = {
   title: "Terms",
-  description: "The agreement that governs your use of Keel, the hosted service and self-hosted deployments.",
+  description: "The agreement that governs your use of Keel.",
 };
 
 export default function TermsPage() {
@@ -18,7 +18,7 @@ export default function TermsPage() {
     >
       <h2 id="agreement">1. The agreement</h2>
       <p>
-        This agreement is between Keel Systems Pvt Ltd (&ldquo;Keel&rdquo;, &ldquo;we&rdquo;) and the organisation or individual that creates a
+        This agreement is between Keel Systems (&ldquo;Keel&rdquo;, &ldquo;we&rdquo;) and the organisation or individual that creates a
         workspace (&ldquo;you&rdquo;). By creating a workspace, using the API, or deploying the software, you accept it. If you accept
         on behalf of an organisation, you confirm you are authorised to bind it.
       </p>
@@ -29,9 +29,8 @@ export default function TermsPage() {
 
       <h2 id="service">2. What we provide</h2>
       <p>
-        Keel is an identity, credential vault and governance layer for AI agents. The hosted service includes the
-        dashboard, API, agent proxy, approval workflow and audit trail. Self-hosted deployments are licensed under the
-        terms distributed with the software.
+        Keel is an identity, credential vault and governance layer for AI agents. The service includes the dashboard,
+        API, agent proxy, approval workflow and audit trail.
       </p>
       <p>
         We will provide the service with reasonable skill and care, maintain it as described on the{" "}
@@ -61,14 +60,14 @@ export default function TermsPage() {
         every credential you store.
       </p>
 
-      <h2 id="plans">5. Plans, billing and overage</h2>
+      <h2 id="plans">5. Plans and billing</h2>
       <p>
-        Plans, included call volumes and overage rates are described on the{" "}
-        <Link href="/pricing">pricing page</Link>, which forms part of these terms. Fees are billed in advance
-        monthly or annually. Indian customers are billed in INR with GST; other customers in USD.
+        Plans and included limits are described on the <Link href="/pricing">pricing page</Link>, which forms part of
+        these terms. Fees are billed in advance, monthly or annually, through our payment processor. Indian customers
+        can be billed in INR; other customers in USD. Applicable taxes are shown at checkout.
       </p>
       <ul>
-        <li>Overage is metered per proxied call and invoiced at the end of the billing period.</li>
+        <li>Usage beyond a plan&apos;s allowance is refused rather than billed over. We do not apply automatic overage charges.</li>
         <li>Fees are non-refundable except where required by law or where we terminate for our convenience.</li>
         <li>We may change prices with 30 days&apos; notice; changes apply at your next renewal.</li>
         <li>Late payment may result in suspension after notice. You remain liable for fees accrued before suspension.</li>
@@ -103,8 +102,8 @@ export default function TermsPage() {
 
       <h2 id="availability">9. Availability and support</h2>
       <p>
-        The hosted service targets 99.9% monthly availability, excluding scheduled maintenance announced in advance.
-        Enterprise plans may include a service credit schedule in their order form. Support response targets are
+        Current health is published on the <Link href="/status">status page</Link>. Any formal availability commitment
+        or service credit schedule exists only where a signed order form says so. Support response targets are
         published on the <Link href="/contact">contact page</Link> and are targets, not guarantees, unless a signed
         agreement says otherwise.
       </p>
