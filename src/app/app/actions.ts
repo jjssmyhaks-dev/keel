@@ -61,6 +61,9 @@ export async function switchEnvironmentAction(formData: FormData) {
   const environmentId = str(formData, "environmentId");
   const target = ctx.environments.find((env) => env.id === environmentId);
   if (!target) redirect("/app");
+  if (target.type === "production" && !productionAccess(ctx.org.plan, ctx.org.planStatus).allowed) {
+    redirect("/app/upgrade/production");
+  }
   await setActiveEnvironment(target.id);
   await auditEvent({
     environmentId: target.id,
