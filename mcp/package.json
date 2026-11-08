@@ -4,11 +4,11 @@
   "description": "MCP server that exposes Keel-governed connector tools to Claude, Cursor and other hosts.",
   "license": "MIT",
   "homepage": "https://keel.dev/docs/mcp",
+  "repository": { "type": "git", "url": "https://github.com/jjssmyhaks-dev/keel" },
   "type": "commonjs",
   "bin": { "keel-mcp": "dist/server.js" },
   "files": ["dist", "README.md"],
   "engines": { "node": ">=20" },
-  "dependencies": { "@keel/sdk": "^1.0.0" },
   "scripts": {
     "build": "node scripts/build.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"

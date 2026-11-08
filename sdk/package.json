@@ -4,7 +4,7 @@
   "description": "Server-side TypeScript client for Keel — agent identity, vault, grants, approvals, proxy and audit.",
   "license": "MIT",
   "homepage": "https://keel.dev/docs/sdk",
-  "repository": { "type": "git", "url": "https://github.com/keel-dev/keel" },
+  "repository": { "type": "git", "url": "https://github.com/jjssmyhaks-dev/keel" },
   "type": "commonjs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
