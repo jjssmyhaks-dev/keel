@@ -71,7 +71,7 @@ export default async function NewConnectionPage({
               <p className="mt-3 text-[11px] leading-relaxed text-black/55 dark:text-muted-foreground">{item.description}</p>
               <div className="mt-3 flex flex-wrap gap-1 border-t border-black/10 pt-2.5 dark:border-border">
                 {item.authMethods.map((method) => (
-                  <span key={method.type} className="border border-black/10 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-black/45 dark:border-border dark:text-muted-foreground">
+                  <span key={`${method.type}-${method.label}`} className="border border-black/10 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-black/45 dark:border-border dark:text-muted-foreground">
                     {method.label}
                   </span>
                 ))}
@@ -140,7 +140,7 @@ export default async function NewConnectionPage({
                 className="mt-1.5 w-full border border-black/15 bg-[#faf9f6] px-3 py-2 text-[13px] outline-none focus:border-black dark:border-border dark:bg-background"
               >
                 {def.authMethods.map((method) => (
-                  <option key={method.type} value={method.type}>
+                  <option key={`${method.type}-${method.label}`} value={method.type}>
                     {method.label}
                   </option>
                 ))}

@@ -206,11 +206,11 @@ export default async function ProductionUpgradePage() {
                           type="submit"
                           className="mt-4 w-full border border-black bg-black px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white hover:bg-[#eca8d6] hover:text-black"
                         >
-                          {checkoutReady ? candidate.cta : `Request ${candidate.name}`}
+                          {candidate.cta}
                         </button>
                         {!checkoutReady ? (
                           <p className="mt-2 text-[10px] text-black/40 dark:text-muted-foreground">
-                            Card checkout is not configured here — this sends an upgrade request to billing instead.
+                            Billing confirms payment before the plan activates. No card is charged here.
                           </p>
                         ) : null}
                       </>
