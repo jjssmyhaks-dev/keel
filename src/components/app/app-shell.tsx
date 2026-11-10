@@ -3,54 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Activity,
-  Bell,
-  BookOpen,
-  Bot,
-  ChevronsUpDown,
-  Code2,
-  CreditCard,
-  Inbox,
-  KeyRound,
-  LayoutDashboard,
-  Lock,
-  LogOut,
-  Menu,
-  Settings,
-  ShieldCheck,
-  Users,
-  X,
-} from "lucide-react";
+import { Bell, BookOpen, ChevronsUpDown, LogOut, Menu, X } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { NAV } from "@/components/app/nav";
+import { CommandMenu, type CommandSearch } from "@/components/app/command-menu";
 import { switchEnvironmentAction, signOutAction } from "@/app/app/actions";
-
-const NAV = [
-  {
-    label: "Workspace",
-    items: [
-      { href: "/app", label: "Overview", icon: LayoutDashboard, exact: true },
-      { href: "/app/agents", label: "Agents", icon: Bot },
-      { href: "/app/vault", label: "Vault", icon: KeyRound },
-      { href: "/app/permissions", label: "Permissions", icon: ShieldCheck },
-      { href: "/app/approvals", label: "Approvals", icon: Inbox, badge: "approvals" },
-      { href: "/app/activity", label: "Activity", icon: Activity },
-    ],
-  },
-  {
-    label: "Build",
-    items: [{ href: "/app/developers", label: "Developers", icon: Code2 }],
-  },
-  {
-    label: "Manage",
-    items: [
-      { href: "/app/team", label: "Team", icon: Users },
-      { href: "/app/billing", label: "Billing", icon: CreditCard },
-      { href: "/app/security", label: "Security", icon: Lock },
-      { href: "/app/settings", label: "Settings", icon: Settings },
-    ],
-  },
-];
 
 export function AppShell({
   user,
@@ -61,6 +18,7 @@ export function AppShell({
   activeEnvironment,
   pendingApprovals,
   unreadNotifications,
+  search,
   children,
 }: {
   user: { name: string; email: string };
@@ -71,6 +29,7 @@ export function AppShell({
   activeEnvironment: { id: string; type: string };
   pendingApprovals: number;
   unreadNotifications: number;
+  search: CommandSearch;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -232,6 +191,7 @@ export function AppShell({
             <span>{activeEnvironment.type === "production" ? "Production" : "Development"}</span>
           </div>
           <div className="ml-auto flex items-center gap-3">
+            <CommandMenu search={search} />
             <Link
               href="/app/notifications"
               className="relative flex items-center gap-1.5 border border-black/10 bg-white px-2.5 py-1.5 text-[11px] transition-colors hover:border-black/25 dark:border-border dark:bg-card"

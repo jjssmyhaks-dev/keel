@@ -12,10 +12,31 @@ export const metadata: Metadata = {
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const ctx = await getContext();
-  const [pendingApprovals, unreadNotifications] = await Promise.all([
-    db.approvalRequest.count({ where: { environmentId: ctx.environment.id, status: "pending", expiresAt: { gt: new Date() } } }),
+  const now = new Date();
+  const [pendingApprovals, unreadNotifications, agents, credentials, approvals] = await Promise.all([
+    db.approvalRequest.count({
+      where: { environmentId: ctx.environment.id, status: "pending", expiresAt: { gt: now } },
+    }),
     db.notification.count({
       where: { orgId: ctx.org.id, readAt: null, OR: [{ userId: ctx.user.id }, { userId: null }] },
+    }),
+    db.agent.findMany({
+      where: { environmentId: ctx.environment.id },
+      orderBy: { name: "asc" },
+      take: 100,
+      select: { id: true, name: true, status: true },
+    }),
+    db.credential.findMany({
+      where: { environmentId: ctx.environment.id },
+      orderBy: { name: "asc" },
+      take: 100,
+      select: { id: true, name: true, connectorSlug: true },
+    }),
+    db.approvalRequest.findMany({
+      where: { environmentId: ctx.environment.id, status: "pending", expiresAt: { gt: now } },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      select: { id: true, action: true, agent: { select: { name: true } } },
     }),
   ]);
 
@@ -29,6 +50,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       activeEnvironment={{ id: ctx.environment.id, type: ctx.environment.type }}
       pendingApprovals={pendingApprovals}
       unreadNotifications={unreadNotifications}
+      search={{
+        agents,
+        credentials: credentials.map((credential) => ({
+          id: credential.id,
+          name: credential.name,
+          connector: credential.connectorSlug,
+        })),
+        approvals: approvals.map((approval) => ({
+          id: approval.id,
+          label: `${approval.agent.name} · ${approval.action}`,
+        })),
+      }}
     >
       {children}
     </AppShell>
