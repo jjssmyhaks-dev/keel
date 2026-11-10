@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
 import { planFor } from "@/lib/plans";
+import { THEME_COOKIE, themeFor } from "@/lib/theme";
+import { ThemePicker } from "@/components/app/theme-picker";
 import {
   updateOrganizationAction,
   updateProjectAction,
@@ -22,6 +25,7 @@ export default async function SettingsPage({
   const ctx = await getContext();
   const query = await searchParams;
   const plan = planFor(ctx.org.plan);
+  const theme = themeFor((await cookies()).get(THEME_COOKIE)?.value);
 
   const sessions = await db.session.findMany({
     where: { userId: ctx.user.id, revokedAt: null, expiresAt: { gt: new Date() } },
@@ -138,6 +142,10 @@ export default async function SettingsPage({
                 Save project
               </button>
             </form>
+          </Panel>
+
+          <Panel title="Appearance" hint="This browser" bodyClassName="p-4">
+            <ThemePicker initial={theme.id} />
           </Panel>
 
           <Panel title="Sessions" hint="Devices holding a live cookie" bodyClassName="p-0">

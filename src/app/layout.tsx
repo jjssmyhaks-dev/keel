@@ -14,6 +14,9 @@ const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jet
 
 const appUrl = process.env.APP_URL || "http://localhost:3000";
 
+// Runs before first paint so a saved theme applies without a flash.
+const themeScript = `(function(){try{var m=document.cookie.match(/(?:^|; )keel_theme=([^;]+)/);var t=m?decodeURIComponent(m[1]):"";if(t&&/^(default|forest|bee|mint|parchment)$/.test(t)){document.documentElement.setAttribute("data-theme",t)}}catch(e){}})();`;
+
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
   title: {
@@ -50,6 +53,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       className={`${instrumentSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`}
     >
       <body className="font-sans antialiased">
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           {children}
           <Toaster position="bottom-right" />

@@ -39,6 +39,11 @@
   --sidebar-ring: oklch(0.708 0 0);
   --pink: #eca8d6;
   --paper: oklch(0.982 0.004 90);
+  --theme-page: #f7f6f3;
+  --theme-surface: #faf9f6;
+  --theme-card: #ffffff;
+  --theme-primary: #000000;
+  --theme-accent: #eca8d6;
 }
 
 .dark {
@@ -75,6 +80,40 @@
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
   --paper: oklch(0.16 0 0);
+}
+
+/* Workspace themes — set by the keel_theme cookie, applied to .app-theme. */
+html[data-theme='forest']:not(.dark) {
+  --theme-page: #edf3ea;
+  --theme-surface: #f4f8ef;
+  --theme-card: #fbfdf8;
+  --theme-primary: #1f4d2e;
+  --theme-accent: #bcd9b2;
+  --pink: #bcd9b2;
+}
+html[data-theme='bee']:not(.dark) {
+  --theme-page: #fbf3dd;
+  --theme-surface: #fdf8e9;
+  --theme-card: #fffdf5;
+  --theme-primary: #7a4a00;
+  --theme-accent: #f4d06f;
+  --pink: #f4d06f;
+}
+html[data-theme='mint']:not(.dark) {
+  --theme-page: #eaf6f2;
+  --theme-surface: #f2fbf7;
+  --theme-card: #fbfffd;
+  --theme-primary: #0f4f46;
+  --theme-accent: #a9e2d4;
+  --pink: #a9e2d4;
+}
+html[data-theme='parchment']:not(.dark) {
+  --theme-page: #f3ecdd;
+  --theme-surface: #f9f3e7;
+  --theme-card: #fdfaf2;
+  --theme-primary: #4a3a28;
+  --theme-accent: #dfc49a;
+  --pink: #dfc49a;
 }
 
 @theme inline {
@@ -238,6 +277,47 @@
   --border: oklch(0.27 0 0);
   --muted: oklch(0.23 0 0);
   background: var(--background);
+}
+
+/* Theme remap of the dashboard's hard-coded surfaces (light mode only). */
+html:not(.dark) .app-theme {
+  background-color: var(--theme-page);
+}
+html:not(.dark) .app-theme-surface {
+  background-color: var(--theme-surface);
+}
+html:not(.dark) .app-theme .bg-white {
+  background-color: var(--theme-card);
+}
+html:not(.dark) .app-theme .bg-\[\#faf9f6\] {
+  background-color: var(--theme-surface);
+}
+html:not(.dark) .app-theme .bg-\[\#f7f6f3\] {
+  background-color: var(--theme-page);
+}
+html:not(.dark) .app-theme .bg-\[\#f7f6f3\]\/85 {
+  background-color: color-mix(in srgb, var(--theme-page) 85%, transparent);
+}
+html:not(.dark) .app-theme .bg-\[\#f0efeb\] {
+  background-color: var(--theme-surface);
+}
+html:not(.dark) .app-theme .bg-black {
+  background-color: var(--theme-primary);
+}
+html:not(.dark) .app-theme .hover\:bg-\[\#eca8d6\]:hover {
+  background-color: var(--theme-accent);
+}
+html:not(.dark) .app-theme .bg-\[\#eca8d6\] {
+  background-color: var(--theme-accent);
+}
+html:not(.dark) .app-theme .bg-\[\#eca8d6\]\/20 {
+  background-color: color-mix(in srgb, var(--theme-accent) 20%, transparent);
+}
+html:not(.dark) .app-theme .border-black {
+  border-color: var(--theme-primary);
+}
+html:not(.dark) .app-theme .hover\:border-black:hover {
+  border-color: var(--theme-primary);
 }
 
 pre, code, .font-mono {

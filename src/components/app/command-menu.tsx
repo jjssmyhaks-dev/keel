@@ -100,7 +100,7 @@ export function CommandMenu({ search }: { search: CommandSearch }) {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
           showCloseButton={false}
-          className="top-[12%] translate-y-0 gap-0 rounded-none border-black/15 bg-[#faf9f6] p-0 shadow-[0_24px_80px_rgba(0,0,0,0.18)] sm:top-[16%] sm:max-w-[560px] dark:border-border dark:bg-card"
+          className="app-theme-surface top-[12%] translate-y-0 gap-0 rounded-none border-black/15 bg-[#faf9f6] p-0 shadow-[0_24px_80px_rgba(0,0,0,0.18)] sm:top-[16%] sm:max-w-[560px] dark:border-border dark:bg-card"
         >
           <DialogHeader className="sr-only">
             <DialogTitle>Search Keel</DialogTitle>

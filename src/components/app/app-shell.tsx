@@ -45,7 +45,7 @@ export function AppShell({
     exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <div className="min-h-screen bg-[#f7f6f3] text-black dark:bg-background dark:text-foreground">
+    <div className="app-theme min-h-screen bg-[#f7f6f3] text-black dark:bg-background dark:text-foreground">
       {open && (
         <button
           aria-label="Close navigation"
