@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "npm run typecheck",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "node --import tsx --test tests/signed-links.test.ts tests/plans.test.ts tests/policy.test.ts tests/invitations.test.ts",
+    "test": "node --import tsx --test tests/signed-links.test.ts tests/plans.test.ts tests/policy.test.ts tests/invitations.test.ts tests/provider-health.test.ts tests/runtime-config.test.ts",
     "connectors:check": "tsx scripts/check-connectors.mts",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate deploy",

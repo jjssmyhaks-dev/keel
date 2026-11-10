@@ -4,6 +4,7 @@ import { db } from "./db";
 import { auditEvent } from "./audit";
 import { actionFor, connector, type Connector, type ConnectorAction } from "./connectors";
 import { decryptSecret } from "./crypto";
+import { providerAuthFailure } from "./provider-health";
 
 export type ExecutionResult = {
   status: number;
@@ -235,10 +236,13 @@ async function noteCredentialHealth(
   actionName: string,
   status: number,
   orgId: string,
+  providerError: string | null = null,
 ) {
-  if (status === 401 || status === 403) {
+  if (status === 401 || status === 403 || providerError) {
     if (credential.status === "broken") return;
-    const detail = `The provider rejected this credential on ${actionName} (HTTP ${status}). Rotate it in the vault.`;
+    const detail = providerError
+      ? `The provider rejected this credential on ${actionName} (${providerError}). Rotate it in the vault.`
+      : `The provider rejected this credential on ${actionName} (HTTP ${status}). Rotate it in the vault.`;
     await db.credential
       .update({
         where: { id: credential.id },
@@ -494,7 +498,8 @@ export async function executeAction(opts: {
     select: { orgId: true },
   });
   await recordUsage(project?.orgId ?? "", "proxy_calls");
-  await noteCredentialHealth(credential, action.name, result.status, project?.orgId ?? "");
+  const providerError = providerAuthFailure(connectorDef.slug, result.body);
+  await noteCredentialHealth(credential, action.name, result.status, project?.orgId ?? "", providerError);
 
   await auditEvent({
     environmentId: environment.id,
@@ -505,7 +510,7 @@ export async function executeAction(opts: {
     action: "proxy.call",
     resourceType: "connector",
     resourceId: connectorDef.slug,
-    outcome: result.status < 400 ? "allowed" : "error",
+    outcome: result.status < 400 && !providerError ? "allowed" : "error",
     requestId: opts.requestId,
     ip: opts.ip,
     payloadSummary: {
@@ -517,6 +522,7 @@ export async function executeAction(opts: {
       latencyMs: result.latencyMs,
       truncated: result.truncated,
       approvalId: opts.approvalId,
+      ...(providerError ? { providerError } : {}),
       input: redacted,
     },
   });
