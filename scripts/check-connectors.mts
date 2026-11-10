@@ -81,6 +81,12 @@ for (const connector of CONNECTORS) {
 
     checkFieldRefs(connector, `${action.name}.baseUrlField`, action.baseUrlField, keys);
     checkFieldRefs(connector, `${action.name}.authField`, action.authField, keys);
+    if (action.argHeader) {
+      if (!action.argHeader.name) fail(`${at}: argHeader is missing a header name`);
+      if (action.argHeader.bodyField && !action.fields?.some((field) => field.key === action.argHeader?.bodyField)) {
+        fail(`${at}: argHeader.bodyField references unknown input field "${action.argHeader.bodyField}"`);
+      }
+    }
     for (const header of action.extraHeaders ?? []) {
       checkFieldRefs(connector, `${action.name}.extraHeaders`, header.field, keys);
     }

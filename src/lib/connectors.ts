@@ -38,6 +38,7 @@ export type ConnectorAction = {
   bodyFormat?: "json" | "form";
   graphqlQuery?: string;
   graphqlWrap?: string;
+  argHeader?: { name: string; bodyField?: string };
   extraHeaders?: ConnectorInjection["extraHeaders"];
   queryParams?: ConnectorInjection["queryParams"];
   fields?: { key: string; label: string; placeholder?: string; required?: boolean }[];
@@ -145,16 +146,6 @@ export const CONNECTORS: Connector[] = [
           ok: true,
           messages: [{ user: "U08ALEX", text: "Can someone check the billing webhook?", ts: "1730562900.1" }],
         },
-      },
-      {
-        name: "slack.upload_file",
-        label: "Upload file",
-        description: "Upload a file to a channel.",
-        method: "POST",
-        path: "/api/files.upload",
-        risk: "write",
-        resourceLabel: "Channel",
-        sample: { ok: true, file: { id: "F08REPORT", name: "weekly-report.pdf" } },
       },
     ],
   },
@@ -353,7 +344,12 @@ export const CONNECTORS: Connector[] = [
     authMethods: [{ type: "oauth", label: "OAuth 2.0" }],
     defaultAuth: "oauth",
     hosts: ["api.notion.com"],
-    injection: { type: "header", name: "Authorization", prefix: "Bearer " },
+    injection: {
+      type: "header",
+      name: "Authorization",
+      prefix: "Bearer ",
+      extraHeaders: [{ name: "Notion-Version", value: "2022-06-28" }],
+    },
     scopes: [
       { value: "read_content", label: "Read pages and databases shared with the integration" },
       { value: "insert_content", label: "Create and append content" },
@@ -617,7 +613,11 @@ export const CONNECTORS: Connector[] = [
     authMethods: [{ type: "api_key", label: "Workspace API key" }],
     defaultAuth: "api_key",
     hosts: ["api.anthropic.com"],
-    injection: { type: "header", name: "x-api-key" },
+    injection: {
+      type: "header",
+      name: "x-api-key",
+      extraHeaders: [{ name: "anthropic-version", value: "2023-06-01" }],
+    },
     scopes: [
       { value: "messages:write", label: "Create messages with Claude" },
       { value: "models:read", label: "List available models", optional: true },

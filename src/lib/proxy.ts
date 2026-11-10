@@ -4,6 +4,7 @@ import { db } from "./db";
 import { auditEvent } from "./audit";
 import { actionFor, connector, type Connector, type ConnectorAction } from "./connectors";
 import { decryptSecret } from "./crypto";
+import { gmailRawMessage } from "./gmail";
 import { providerAuthFailure } from "./provider-health";
 
 export type ExecutionResult = {
@@ -388,7 +389,27 @@ export async function executeAction(opts: {
       if (value) body[param.name] = value;
     }
 
-    if (action.graphqlQuery) {
+    if (connectorDef.slug === "google" && !action.graphqlQuery && typeof body.raw !== "string" && !body.message) {
+      const gmailKind = action.name === "gmail.send_message" ? "send" : action.name === "gmail.create_draft" ? "draft" : null;
+      if (gmailKind) {
+        const raw = gmailRawMessage(body);
+        if (!raw) throw new Error("Gmail needs to, subject and body (or a raw MIME message).");
+        for (const key of ["to", "subject", "body"]) delete body[key];
+        if (gmailKind === "send") body.raw = raw;
+        else body.message = { raw };
+      }
+    }
+
+    if (action.argHeader) {
+      const args: Record<string, unknown> = { ...body };
+      if (action.argHeader.bodyField) {
+        const raw = args[action.argHeader.bodyField];
+        delete args[action.argHeader.bodyField];
+        if (raw !== undefined && raw !== null) init.body = typeof raw === "string" ? raw : JSON.stringify(raw);
+      }
+      headers[action.argHeader.name] = JSON.stringify(args);
+      headers["Content-Type"] = "application/octet-stream";
+    } else if (action.graphqlQuery) {
       const variables: Record<string, unknown> = { ...body };
       if (action.graphqlWrap) {
         const wrapped: Record<string, unknown> = { ...body };

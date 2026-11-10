@@ -70,7 +70,7 @@ const huggingface: Connector = {
       resourceLabel: "Repository",
       sample: { path: "config.json", size: 812, content: "{}" },
     }),
-    action("run_inference", "Run inference", "POST", "/models/{repo}", "write", "Run a model through the inference router. Tokens count toward spend caps.", {
+    action("run_inference", "Run inference", "POST", "/hf-inference/models/{repo}", "write", "Run a model through the inference router. Tokens count toward spend caps.", {
       host: "router.huggingface.co",
       resourceLabel: "Model",
       fields: [
@@ -86,11 +86,6 @@ const huggingface: Connector = {
         { key: "private", label: "Private", placeholder: "true" },
       ],
       sample: { url: "https://huggingface.co/datasets/acme/agent-traces" },
-    }),
-    action("upload_file", "Upload file", "POST", "/api/{repo}/commit/main", "write", "Commit a file to a repository.", {
-      resourceLabel: "Repository",
-      fields: [{ key: "path", label: "Path", placeholder: "data/traces.jsonl", required: true }],
-      sample: { commitOid: "9f2a", success: true },
     }),
     action("delete_repo", "Delete repository", "DELETE", "/api/repos/delete", "destructive", "Delete a repository permanently.", {
       resourceLabel: "Repository",

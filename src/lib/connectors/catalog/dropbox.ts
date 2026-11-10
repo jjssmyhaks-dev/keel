@@ -57,12 +57,14 @@ const dropbox: Connector = {
     }),
     action("download_file", "Download file", "POST", "/2/files/download", "read", "Download a file with a size cap.", {
       host: "content.dropboxapi.com",
+      argHeader: { name: "Dropbox-API-Arg" },
       resourceLabel: "Path",
       fields: [{ key: "path", label: "Path", placeholder: "/Agents/run-1842.json", required: true }],
       sample: { content: "redacted file content", size: 4210 },
     }),
     action("upload_file", "Upload file", "POST", "/2/files/upload", "write", "Upload a file up to 150 MB. Larger files use an upload session.", {
       host: "content.dropboxapi.com",
+      argHeader: { name: "Dropbox-API-Arg", bodyField: "content" },
       resourceLabel: "Path",
       fields: [
         { key: "path", label: "Path", placeholder: "/Agents/run-1843.json", required: true },
