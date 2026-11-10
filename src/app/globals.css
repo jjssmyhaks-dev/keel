@@ -80,6 +80,11 @@
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
   --paper: oklch(0.16 0 0);
+  --theme-page: oklch(0.145 0 0);
+  --theme-surface: oklch(0.17 0 0);
+  --theme-card: oklch(0.17 0 0);
+  --theme-primary: #000000;
+  --theme-accent: #eca8d6;
 }
 
 /* Workspace themes — set by the keel_theme cookie, applied to .app-theme. */
@@ -114,6 +119,38 @@ html[data-theme='parchment']:not(.dark) {
   --theme-primary: #4a3a28;
   --theme-accent: #dfc49a;
   --pink: #dfc49a;
+}
+html[data-theme='forest'].dark {
+  --theme-page: #0c120c;
+  --theme-surface: #111a11;
+  --theme-card: #162115;
+  --theme-primary: #2f6b45;
+  --theme-accent: #8fbf82;
+  --pink: #8fbf82;
+}
+html[data-theme='bee'].dark {
+  --theme-page: #151007;
+  --theme-surface: #1c150b;
+  --theme-card: #231b0e;
+  --theme-primary: #8a5600;
+  --theme-accent: #e0b54d;
+  --pink: #e0b54d;
+}
+html[data-theme='mint'].dark {
+  --theme-page: #061310;
+  --theme-surface: #0b1a17;
+  --theme-card: #0f221e;
+  --theme-primary: #17695c;
+  --theme-accent: #6fc7b4;
+  --pink: #6fc7b4;
+}
+html[data-theme='parchment'].dark {
+  --theme-page: #13100a;
+  --theme-surface: #1a150e;
+  --theme-card: #211a11;
+  --theme-primary: #5c4933;
+  --theme-accent: #c9a86f;
+  --pink: #c9a86f;
 }
 
 @theme inline {
@@ -279,44 +316,58 @@ html[data-theme='parchment']:not(.dark) {
   background: var(--background);
 }
 
-/* Theme remap of the dashboard's hard-coded surfaces (light mode only). */
-html:not(.dark) .app-theme {
+/* Theme remap of the dashboard's hard-coded surfaces. */
+.app-theme {
   background-color: var(--theme-page);
 }
-html:not(.dark) .app-theme-surface {
+.app-theme-surface {
   background-color: var(--theme-surface);
 }
-html:not(.dark) .app-theme .bg-white {
+.app-theme .bg-white {
   background-color: var(--theme-card);
 }
-html:not(.dark) .app-theme .bg-\[\#faf9f6\] {
+.app-theme .bg-\[\#faf9f6\] {
   background-color: var(--theme-surface);
 }
-html:not(.dark) .app-theme .bg-\[\#f7f6f3\] {
+.app-theme .bg-\[\#f7f6f3\] {
   background-color: var(--theme-page);
 }
-html:not(.dark) .app-theme .bg-\[\#f7f6f3\]\/85 {
+.app-theme .bg-\[\#f7f6f3\]\/85 {
   background-color: color-mix(in srgb, var(--theme-page) 85%, transparent);
 }
-html:not(.dark) .app-theme .bg-\[\#f0efeb\] {
+.app-theme .bg-\[\#f0efeb\] {
   background-color: var(--theme-surface);
+}
+.app-theme .hover\:bg-\[\#eca8d6\]:hover {
+  background-color: var(--theme-accent);
+}
+.app-theme .bg-\[\#eca8d6\] {
+  background-color: var(--theme-accent);
+}
+.app-theme .bg-\[\#eca8d6\]\/20 {
+  background-color: color-mix(in srgb, var(--theme-accent) 20%, transparent);
 }
 html:not(.dark) .app-theme .bg-black {
   background-color: var(--theme-primary);
-}
-html:not(.dark) .app-theme .hover\:bg-\[\#eca8d6\]:hover {
-  background-color: var(--theme-accent);
-}
-html:not(.dark) .app-theme .bg-\[\#eca8d6\] {
-  background-color: var(--theme-accent);
-}
-html:not(.dark) .app-theme .bg-\[\#eca8d6\]\/20 {
-  background-color: color-mix(in srgb, var(--theme-accent) 20%, transparent);
 }
 html:not(.dark) .app-theme .border-black {
   border-color: var(--theme-primary);
 }
 html:not(.dark) .app-theme .hover\:border-black:hover {
+  border-color: var(--theme-primary);
+}
+/* In dark mode only non-default themes repaint primary buttons, keeping white text. */
+html.dark:not([data-theme='default']) .app-theme .bg-black {
+  background-color: var(--theme-primary);
+  color: #ffffff;
+}
+html.dark:not([data-theme='default']) .app-theme .bg-black.hover\:bg-\[\#eca8d6\]:hover {
+  color: #000000;
+}
+html.dark:not([data-theme='default']) .app-theme .border-black {
+  border-color: var(--theme-primary);
+}
+html.dark:not([data-theme='default']) .app-theme .hover\:border-black:hover {
   border-color: var(--theme-primary);
 }
 

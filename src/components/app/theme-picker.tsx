@@ -47,7 +47,7 @@ export function ThemePicker({ initial }: { initial: ThemeId }) {
         })}
       </div>
       <p className="mt-3 text-[10px] leading-relaxed text-black/40 dark:text-muted-foreground">
-        Applies to this browser only. Dark mode keeps its own palette.
+        Applies to this browser only. Each theme has a matching dark palette.
       </p>
     </div>
   );
