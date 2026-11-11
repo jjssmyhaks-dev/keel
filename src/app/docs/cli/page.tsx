@@ -32,11 +32,15 @@ export default function CliPage() {
       }
     >
       <h2 id="install">Install</h2>
-      <pre>{`npm install -g @keel/cli
+      <p>The npm package ships in the Keel repository; registry publication is pending the public launch.</p>
+      <pre>{`git clone https://github.com/jjssmyhaks-dev/keel.git
+cd keel && npm ci && npm run cli:build
+npm install -g ./cli
 keel --version
 keel --help`}</pre>
       <p>
-        Or run it without installing: <code>npx @keel/cli agents list</code>. Node 20 or newer.
+        Or run it from the checkout without a global install: <code>node cli/dist/keel.js agents list</code>. Node 20 or
+        newer.
       </p>
 
       <h2 id="auth">Authentication</h2>

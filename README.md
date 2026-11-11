@@ -112,23 +112,26 @@ Secret keys are environment-scoped and required for management endpoints. Agent 
 
 ## SDKs, CLI and MCP
 
+The npm and PyPI packages are not published yet. Build and install them from this repository:
+
 ```bash
 # TypeScript SDK
-cd sdk && npm run build
-npm install ../sdk          # or publish @keel/sdk
+npm ci
+npm --prefix sdk ci && npm run sdk:build
+npm install ./sdk
 
 # Python SDK
-pip install -e ./python
+pip install "./python"
 python -m unittest discover -s python/tests -v
 
 # CLI
-cd cli && npm run build
-./dist/keel.js --help
-KEEL_API_KEY=sk_dev_... KEEL_BASE_URL=http://localhost:3000/api/v1 ./dist/keel.js agents list
+npm run cli:build
+./cli/dist/keel.js --help
+KEEL_API_KEY=sk_dev_... KEEL_BASE_URL=http://localhost:3000/api/v1 ./cli/dist/keel.js agents list
 
 # MCP stdio server
-cd mcp && npm run build
-KEEL_API_KEY=sk_dev_... KEEL_AGENT_ID=agt_atlas KEEL_BASE_URL=http://localhost:3000/api/v1 node dist/server.js
+npm run mcp:build
+KEEL_API_KEY=sk_dev_... KEEL_AGENT_ID=agt_atlas KEEL_BASE_URL=http://localhost:3000/api/v1 node mcp/dist/server.js
 
 # Hosted MCP gateway
 curl -s http://localhost:3000/api/mcp/registry
@@ -136,7 +139,12 @@ curl -s http://localhost:3000/api/mcp \
   -H "Authorization: Bearer $KEEL_AGENT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+
+# Validate a live provider call once a real credential is in the vault and granted
+KEEL_API_KEY=sk_dev_... KEEL_AGENT_ID=agt_atlas KEEL_CONNECTOR=slack KEEL_RESOURCE=research-validation npm run provider:validate
 ```
+
+`provider:validate` picks a no-argument read action (override with `KEEL_ACTION`, `KEEL_INPUT`, `KEEL_RESOURCE` and `KEEL_CREDENTIAL_ID`) and fails unless the provider returns a 2xx result. It is the only check that needs a real third-party credential; the rest of the suite runs against stubs.
 
 - [TypeScript SDK and AI SDK tools](sdk/README.md)
 - [Python SDK and framework integrations](python/README.md)

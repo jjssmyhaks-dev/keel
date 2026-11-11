@@ -1,4 +1,4 @@
-# keel-sdk (Python)
+# Python SDK
 
 Server-side Python client for [Keel](https://keel.dev/docs/sdk): agent identity, credential vault, grants, policies, approvals, proxied connector calls, audit and webhooks.
 
@@ -7,13 +7,22 @@ Server-side Python client for [Keel](https://keel.dev/docs/sdk): agent identity,
 - Optional extras for Ed25519 signing, LangChain/LangGraph, CrewAI and the OpenAI Agents SDK.
 - Every call uses the environment of the API key. There is no environment parameter to forget.
 
+The SDK ships in the Keel repository. PyPI publication is pending the public launch and final package name, so install from source:
+
 ```bash
-pip install keel-sdk
-pip install "keel-sdk[signing]"        # Ed25519 client-key mode
-pip install "keel-sdk[langchain]"      # LangChain + LangGraph
-pip install "keel-sdk[crewai]"
-pip install "keel-sdk[openai-agents]"
-pip install "keel-sdk[all]"
+pip install "./python"
+pip install "./python[signing]"        # Ed25519 client-key mode
+pip install "./python[langchain]"      # LangChain + LangGraph
+pip install "./python[crewai]"
+pip install "./python[openai-agents]"
+pip install "./python[all]"
+```
+
+From another project, use the repository URL:
+
+```bash
+pip install "keel-sdk @ git+https://github.com/jjssmyhaks-dev/keel.git#subdirectory=python"
+pip install "keel-sdk[all] @ git+https://github.com/jjssmyhaks-dev/keel.git#subdirectory=python"
 ```
 
 ## Client
@@ -170,7 +179,7 @@ from keel.integrations.openai_agents import keel_openai_agents_tools
 keel = Keel.from_env()
 
 langchain_tools = keel_langchain_tools(keel, "agt_atlas")
-tool_node = keel_langgraph_tool_node(keel, "agt_atlas")       # LangGraph ToolNode
+tool_node = keel_langgraph_tool_node(keel, "agt_atlas")       # add to a StateGraph as the "tools" node
 crew_tools = keel_crewai_tools(keel, "agt_atlas")             # CrewAI BaseTool list
 agents_sdk_tools = keel_openai_agents_tools(keel, "agt_atlas")  # FunctionTool list
 ```
@@ -185,4 +194,9 @@ For the Vercel AI SDK, use [`@keel/sdk/ai`](../sdk/README.md#vercel-ai-sdk).
 python -m unittest discover -s python/tests -v
 ```
 
-The suite runs against a local stub API server and needs no credentials or network access.
+The default suite runs against a local stub API server and needs no credentials or network access. The adapter suite in `tests/test_integrations_real.py` runs against the real frameworks when their extras are installed; CI installs them in the `python-frameworks` job:
+
+```bash
+pip install "./python[langchain,langgraph,crewai,openai-agents]"
+python -m unittest discover -s python/tests -p "test_integrations_real.py" -v
+```

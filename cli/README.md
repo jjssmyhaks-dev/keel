@@ -2,8 +2,12 @@
 
 The `keel` command for [Keel](https://keel.dev/docs/cli): agents, vault, grants, approvals, governed calls and audit from a terminal. Node 20+. The published bundle has no runtime dependencies.
 
+The package ships in the Keel repository; npm publication is pending the public launch.
+
 ```bash
-npm install -g @keel/cli
+git clone https://github.com/jjssmyhaks-dev/keel.git
+cd keel && npm ci && npm run cli:build
+npm install -g ./cli
 keel login --api-key sk_dev_...
 keel whoami
 ```

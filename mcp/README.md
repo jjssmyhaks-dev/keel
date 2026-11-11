@@ -2,8 +2,11 @@
 
 An MCP server that lets Claude, Cursor and other MCP hosts use Keel-governed connectors. Every call goes through the same policy, grants, approvals and audit as the API — the model gets tools, not credentials. Zero runtime dependencies; JSON-RPC 2.0 over stdio; Node 20+.
 
+The package ships in the Keel repository; npm publication is pending the public launch. From a checkout:
+
 ```bash
-npm install -g @keel/mcp
+git clone https://github.com/jjssmyhaks-dev/keel.git
+cd keel && npm ci && npm run mcp:build
 ```
 
 Configure a host:
@@ -12,7 +15,8 @@ Configure a host:
 {
   "mcpServers": {
     "keel": {
-      "command": "keel-mcp",
+      "command": "node",
+      "args": ["/absolute/path/to/keel/mcp/dist/server.js"],
       "env": {
         "KEEL_API_KEY": "sk_dev_...",
         "KEEL_AGENT_ID": "agt_...",
@@ -42,6 +46,8 @@ There is deliberately no tool to approve a request. A human decides in the dashb
 ## Hosted gateway
 
 For hosted or remote MCP clients, the Keel app itself serves a stateless **Streamable HTTP** gateway at `POST /api/mcp`. It authenticates with a short-lived agent token (minted with a secret key through `POST /api/v1/agents/:id/token`), speaks JSON-RPC 2.0 over POST, and expands the agent's grants into one tool per granted action — `slack_post_message`, `github_list_repos` — with a JSON schema derived from the connector fields. Token scopes narrow the list further, and approvals, policy, rate limits and audit are identical to the stdio server and the REST proxy.
+
+For `2025-03-26` and `2024-11-05`, `POST` also accepts a batch: a JSON array of up to 20 requests, answered with one response per request in order under a single bearer token. Notifications add no entry, an all-notification batch returns `202`, and `initialize` must be sent alone. Protocol `2025-06-18` removed batching, so requests that declare that version must send a single object.
 
 `GET /api/mcp/registry` returns a public, CORS-enabled manifest with the gateway URL, protocol versions, bearer agent-token auth, capabilities and the connector/action catalogue. Use the stdio server below for a local single-agent host; use the gateway when the host cannot hold a secret key or when many agents share one endpoint. Full details are at `/docs/mcp`.
 

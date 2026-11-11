@@ -43,7 +43,10 @@ export default function QuickstartPage() {
         The SDK talks to the same REST API the dashboard uses. Install it in the backend that will run your agents —
         never in a browser bundle.
       </p>
-      <pre>{`npm install @keel/sdk
+      <pre>{`# not on npm yet: build the SDK from the Keel repository
+git clone https://github.com/jjssmyhaks-dev/keel.git
+cd keel && npm ci && npm run sdk:build
+npm install /path/to/keel/sdk
 
 export KEEL_API_KEY=sk_dev_...   # Settings → Developers → API keys`}</pre>
       <p>

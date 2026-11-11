@@ -352,8 +352,26 @@ test("MCP endpoint enforces JSON-RPC and bearer auth", async () => {
       body: JSON.stringify([{ jsonrpc: "2.0", id: 1, method: "ping" }]),
     }),
   );
-  assert.equal(batch.status, 400);
-  assert.equal((await batch.json()).error.code, -32600);
+  assert.equal(batch.status, 401);
+
+  const batchLatest = await mcpPost(
+    new Request("http://localhost:3000/api/mcp", {
+      method: "POST",
+      headers: { "content-type": "application/json", "mcp-protocol-version": "2025-06-18" },
+      body: JSON.stringify([{ jsonrpc: "2.0", id: 1, method: "ping" }]),
+    }),
+  );
+  assert.equal(batchLatest.status, 400);
+  assert.match((await batchLatest.json()).error.message, /Batch requests were removed/);
+
+  const emptyBatch = await mcpPost(
+    new Request("http://localhost:3000/api/mcp", {
+      method: "POST",
+      body: JSON.stringify([]),
+    }),
+  );
+  assert.equal(emptyBatch.status, 400);
+  assert.equal((await emptyBatch.json()).error.code, -32600);
 
   const version = await mcpPost(
     new Request("http://localhost:3000/api/mcp", {

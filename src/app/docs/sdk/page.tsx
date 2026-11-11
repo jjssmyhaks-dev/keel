@@ -35,7 +35,13 @@ export default function SdkPage() {
       }
     >
       <h2 id="install">Install</h2>
-      <pre>{`npm install @keel/sdk
+      <p>
+        The npm packages ship in the Keel repository; registry publication is pending the public launch. Build the SDK
+        from a checkout, then install it into your backend:
+      </p>
+      <pre>{`git clone https://github.com/jjssmyhaks-dev/keel.git
+cd keel && npm ci && npm run sdk:build
+npm install /path/to/keel/sdk
 # Node 20+, server-side only. Never bundle a secret key into a browser.`}</pre>
 
       <h2 id="client">Client</h2>
@@ -193,12 +199,16 @@ const valid = verifyWebhook({
 
       <h2 id="python">Python SDK</h2>
       <p>
-        <code>keel-sdk</code> mirrors the TypeScript client resource for resource, with no base dependencies: it uses
-        the standard library for HTTP, so it drops into any Python 3.9+ worker, notebook or agent runtime. Snake-case
+        The Python SDK mirrors the TypeScript client resource for resource, with no base dependencies: it uses the
+        standard library for HTTP, so it drops into any Python 3.9+ worker, notebook or agent runtime. Snake-case
         arguments map to the same camelCase JSON payloads, and retries, idempotency and typed errors behave identically.
       </p>
-      <pre>{`pip install keel-sdk
-pip install "keel-sdk[signing]"   # Ed25519 client-key mode (cryptography)`}</pre>
+      <p>
+        The SDK ships in this repository; PyPI publication is pending the public launch and final package name. Install
+        it from source:
+      </p>
+      <pre>{`pip install "keel-sdk @ git+https://github.com/jjssmyhaks-dev/keel.git#subdirectory=python"
+pip install "keel-sdk[signing] @ git+https://github.com/jjssmyhaks-dev/keel.git#subdirectory=python"  # Ed25519 client-key mode`}</pre>
       <pre>{`import os
 from keel import Keel
 
@@ -245,10 +255,10 @@ token = keel.agents.token(
         framework never sees a provider token, and restricted grants add a required <code>resource</code> argument.
         Install the matching extra; framework packages stay lazily imported, so the base SDK remains dependency-free.
       </p>
-      <pre>{`pip install "keel-sdk[langchain]"      # LangChain + LangGraph
-pip install "keel-sdk[crewai]"
-pip install "keel-sdk[openai-agents]"
-pip install "keel-sdk[all]"`}</pre>
+      <pre>{`pip install "keel-sdk[langchain] @ git+https://github.com/jjssmyhaks-dev/keel.git#subdirectory=python"   # LangChain + LangGraph
+pip install "keel-sdk[crewai] @ git+https://github.com/jjssmyhaks-dev/keel.git#subdirectory=python"
+pip install "keel-sdk[openai-agents] @ git+https://github.com/jjssmyhaks-dev/keel.git#subdirectory=python"
+pip install "keel-sdk[all] @ git+https://github.com/jjssmyhaks-dev/keel.git#subdirectory=python"`}</pre>
       <pre>{`# LangChain / LangGraph
 from keel.integrations.langchain import keel_langchain_tools, keel_langgraph_tool_node
 

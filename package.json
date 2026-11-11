@@ -22,7 +22,8 @@
     "cli:typecheck": "tsc -p cli/tsconfig.json --noEmit",
     "mcp:build": "node mcp/scripts/build.mjs",
     "mcp:typecheck": "tsc -p mcp/tsconfig.json --noEmit",
-    "python:test": "python -m unittest discover -s python/tests -v"
+    "python:test": "python -m unittest discover -s python/tests -v",
+    "provider:validate": "node scripts/validate-provider.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

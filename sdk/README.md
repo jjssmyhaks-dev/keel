@@ -2,8 +2,11 @@
 
 Server-side TypeScript client for [Keel](https://keel.dev/docs/sdk). Node 20+. Never bundle a secret key into a browser.
 
+The package ships in the Keel repository; npm publication is pending the public launch. From a checkout:
+
 ```bash
-npm install @keel/sdk
+npm ci && npm run sdk:build
+npm install /path/to/keel/sdk
 ```
 
 ## Client
@@ -107,7 +110,8 @@ A pending approval is a normal return value. A policy denial throws `KeelError` 
 `@keel/sdk/ai` builds a `ToolSet` from the agent's grants: one tool per granted action, with a JSON schema derived from the connector's fields. Every tool executes through the Keel proxy with the agent's identity; the model never sees a provider token. `ai` is an optional peer dependency (`>=5`).
 
 ```bash
-npm install @keel/sdk ai
+npm install ai
+npm install /path/to/keel/sdk
 ```
 
 ```ts

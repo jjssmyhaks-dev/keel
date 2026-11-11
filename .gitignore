@@ -12,5 +12,8 @@ dist
 next-env.d.ts
 .neon
 __pycache__/
+.venv*/
+python/build/
+python/*.egg-info/
 *.py[cod]
 .pytest_cache/

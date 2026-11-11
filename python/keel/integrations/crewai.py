@@ -55,6 +55,9 @@ def _tool_from_spec(client: Any, spec: ToolSpec, agent_id: str):
         class_name,
         (BaseTool,),
         {
+            "__module__": __name__,
+            "__qualname__": class_name,
+            "__annotations__": {"name": str, "description": str, "args_schema": type},
             "name": spec.name,
             "description": spec.description,
             "args_schema": _args_model(spec),

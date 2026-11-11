@@ -37,12 +37,15 @@ export default function McpPage() {
       </p>
 
       <h2 id="run">Run the stdio server</h2>
-      <pre>{`npx @keel/mcp
+      <p>The npm package ships in the Keel repository; registry publication is pending the public launch.</p>
+      <pre>{`git clone https://github.com/jjssmyhaks-dev/keel.git
+cd keel && npm ci && npm run mcp:build
 
 # environment
 KEEL_API_KEY=sk_dev_...          # server-side secret key
 KEEL_AGENT_ID=agt_atlas          # the agent whose grants shape the tool list
-KEEL_BASE_URL=https://api.keel.dev/v1   # optional`}</pre>
+KEEL_BASE_URL=https://api.keel.dev/v1   # optional
+node mcp/dist/server.js`}</pre>
       <p>
         The server mints a short-lived token for <code>KEEL_AGENT_ID</code> on demand and refreshes it before expiry. If
         the agent is paused or killed, tool calls fail with the same <code>agent_inactive</code> error the proxy
@@ -54,8 +57,8 @@ KEEL_BASE_URL=https://api.keel.dev/v1   # optional`}</pre>
       <pre>{`{
   "mcpServers": {
     "keel": {
-      "command": "npx",
-      "args": ["-y", "@keel/mcp"],
+      "command": "node",
+      "args": ["/absolute/path/to/keel/mcp/dist/server.js"],
       "env": {
         "KEEL_API_KEY": "sk_dev_...",
         "KEEL_AGENT_ID": "agt_atlas"
@@ -67,8 +70,8 @@ KEEL_BASE_URL=https://api.keel.dev/v1   # optional`}</pre>
       <pre>{`{
   "mcpServers": {
     "keel": {
-      "command": "npx",
-      "args": ["-y", "@keel/mcp"],
+      "command": "node",
+      "args": ["/absolute/path/to/keel/mcp/dist/server.js"],
       "env": {
         "KEEL_API_KEY": "sk_dev_...",
         "KEEL_AGENT_ID": "agt_atlas"
@@ -143,6 +146,13 @@ Content-Type: application/json
         the server negotiates the version during <code>initialize</code> and rejects requests that send an unsupported{" "}
         <code>MCP-Protocol-Version</code> header. <code>GET</code> and <code>DELETE</code> return <code>405</code> because
         the endpoint has no SSE stream or session to close.
+      </p>
+      <p>
+        For the two older protocol versions, <code>POST</code> also accepts a JSON array of up to 20 requests and
+        returns one response per request in order, sharing a single bearer token. Notifications produce no response
+        entry, an all-notification batch returns <code>202</code>, and <code>initialize</code> must be sent on its own.
+        The <code>2025-06-18</code> protocol removed batching, so a request that declares that version must be a single
+        JSON-RPC object.
       </p>
       <p>
         Tool schemas follow the grant. Unrestricted grants expose the connector&apos;s declared fields; a grant scoped to
