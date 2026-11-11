@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
 import { planFor } from "@/lib/plans";
 import { THEME_COOKIE, themeFor } from "@/lib/theme";
+import { ColorModePicker } from "@/components/app/color-mode-picker";
 import { ThemePicker } from "@/components/app/theme-picker";
 import {
   updateOrganizationAction,
@@ -145,7 +146,24 @@ export default async function SettingsPage({
           </Panel>
 
           <Panel title="Appearance" hint="This browser" bodyClassName="p-4">
-            <ThemePicker initial={theme.id} />
+            <div className="space-y-5">
+              <div>
+                <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                  Color mode
+                </p>
+                <div className="mt-2">
+                  <ColorModePicker />
+                </div>
+              </div>
+              <div>
+                <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                  Workspace theme
+                </p>
+                <div className="mt-2">
+                  <ThemePicker initial={theme.id} />
+                </div>
+              </div>
+            </div>
           </Panel>
 
           <Panel title="Sessions" hint="Devices holding a live cookie" bodyClassName="p-0">
