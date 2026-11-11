@@ -21,7 +21,7 @@ export default async function NewAgentPage({
       <PageHeader
         eyebrow="Agents · register"
         title="Give it a name."
-        description="The agent gets an Ed25519 identity. Keel holds the private key, signs five-minute tokens and keeps the audit trail."
+        description="The agent gets an Ed25519 identity. Authab holds the private key, signs five-minute tokens and keeps the audit trail."
         actions={
           <Link href="/app/agents" className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card">
             Cancel
@@ -115,7 +115,7 @@ export default async function NewAgentPage({
             <div className="border border-black/10 bg-[#faf9f6] p-3 dark:border-border dark:bg-background">
               <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">Key mode</p>
               <p className="mt-1 text-[12px] leading-relaxed">
-                <strong>Keel-managed</strong> — the private key is encrypted with this project&apos;s envelope key and never
+                <strong>Authab-managed</strong> — the private key is encrypted with this project&apos;s envelope key and never
                 leaves the platform. Tokens are minted from the dashboard or API.
               </p>
             </div>
@@ -134,7 +134,7 @@ export default async function NewAgentPage({
             <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/45">What happens next</p>
             <ol className="mt-3 space-y-3 text-[12px] leading-relaxed text-white/75">
               <li>
-                <span className="font-mono text-[10px] text-[#eca8d6]">01</span> Keel generates an Ed25519 key pair and stores
+                <span className="font-mono text-[10px] text-[#eca8d6]">01</span> Authab generates an Ed25519 key pair and stores
                 the private half sealed with AES-256-GCM.
               </li>
               <li>

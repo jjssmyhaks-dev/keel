@@ -1,5 +1,5 @@
 import { createInterface } from "node:readline";
-import { KeelTools, TOOLS, errorResult, toolResult } from "./tools";
+import { AuthabTools, TOOLS, errorResult, toolResult } from "./tools";
 
 const VERSION = "1.0.0";
 const DEFAULT_PROTOCOL_VERSION = "2024-11-05";
@@ -12,24 +12,24 @@ interface JsonRpcRequest {
 }
 
 function log(message: string) {
-  process.stderr.write(`[keel-mcp] ${message}\n`);
+  process.stderr.write(`[authab-mcp] ${message}\n`);
 }
 
-const apiKey = process.env.KEEL_API_KEY?.trim();
-const agentId = process.env.KEEL_AGENT_ID?.trim();
+const apiKey = process.env.AUTHAB_API_KEY?.trim();
+const agentId = process.env.AUTHAB_AGENT_ID?.trim();
 
 if (!apiKey) {
-  log("KEEL_API_KEY is required. Create a secret key in the Keel dashboard.");
+  log("AUTHAB_API_KEY is required. Create a secret key in the Authab dashboard.");
   process.exit(1);
 }
 if (!agentId) {
-  log("KEEL_AGENT_ID is required. It scopes the tools to one agent's grants.");
+  log("AUTHAB_AGENT_ID is required. It scopes the tools to one agent's grants.");
   process.exit(1);
 }
 
-const baseUrl = process.env.KEEL_BASE_URL?.trim() || undefined;
-const tools = new KeelTools({ apiKey, agentId, baseUrl });
-log(`serving agent ${agentId} via ${baseUrl ?? "https://api.keel.dev/v1"} over stdio`);
+const baseUrl = process.env.AUTHAB_BASE_URL?.trim() || undefined;
+const tools = new AuthabTools({ apiKey, agentId, baseUrl });
+log(`serving agent ${agentId} via ${baseUrl ?? "https://api.authab.dev/v1"} over stdio`);
 
 function send(message: Record<string, unknown>) {
   process.stdout.write(`${JSON.stringify(message)}\n`);
@@ -65,9 +65,9 @@ async function handle(request: JsonRpcRequest) {
       sendResult(id, {
         protocolVersion,
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: "keel", title: "Keel", version: VERSION },
+        serverInfo: { name: "authab", title: "Authab", version: VERSION },
         instructions:
-          "Keel governs this agent's connector calls. Start with keel_whoami, then keel_list_connections. Use keel_call for actions; a 202 means a human must approve before execution. No tool can approve its own request.",
+          "Authab governs this agent's connector calls. Start with authab_whoami, then authab_list_connections. Use authab_call for actions; a 202 means a human must approve before execution. No tool can approve its own request.",
       });
       return;
     }

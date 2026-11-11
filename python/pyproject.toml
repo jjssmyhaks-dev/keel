@@ -3,14 +3,14 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "keel-sdk"
+name = "authab-sdk"
 version = "1.0.0"
-description = "Server-side Python client for Keel — agent identity, vault, grants, approvals, proxy and audit."
+description = "Server-side Python client for Authab — agent identity, vault, grants, approvals, proxy and audit."
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.9"
-authors = [{ name = "Keel" }]
-keywords = ["keel", "agents", "identity", "vault", "policy", "audit", "langchain", "crewai"]
+authors = [{ name = "Authab" }]
+keywords = ["authab", "agents", "identity", "vault", "policy", "audit", "langchain", "crewai"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "License :: OSI Approved :: MIT License",
@@ -34,9 +34,9 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://keel.dev/docs/python"
-Documentation = "https://keel.dev/docs/python"
+Homepage = "https://authab.dev/docs/python"
+Documentation = "https://authab.dev/docs/python"
 Repository = "https://github.com/jjssmyhaks-dev/keel"
 
 [tool.setuptools.packages.find]
-include = ["keel*"]
+include = ["authab*"]

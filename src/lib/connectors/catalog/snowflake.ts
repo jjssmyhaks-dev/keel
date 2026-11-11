@@ -30,7 +30,7 @@ const snowflake: Connector = {
   injection: { type: "header", name: "Authorization", prefix: "Bearer ", field: "private_key" },
   credentialFields: [
     { key: "account_identifier", label: "Account identifier", required: true, placeholder: "acme-ap-south-1" },
-    { key: "user", label: "Service user", required: true, placeholder: "KEEL_AGENT" },
+    { key: "user", label: "Service user", required: true, placeholder: "AUTHAB_AGENT" },
     {
       key: "private_key",
       label: "Private key (PEM)",

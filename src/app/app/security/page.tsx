@@ -95,7 +95,7 @@ export default async function SecurityPage({
           <Panel title="Proxy guardrails" hint="Enforced on every call" bodyClassName="p-4">
             <p className="mb-4 border border-black/10 bg-[#faf9f6] p-3 text-[11px] leading-relaxed text-black/55 dark:border-border dark:bg-background dark:text-muted-foreground">
               Provider calls are live. Every request is evaluated against grants, risk class, rate limits and approvals
-              before Keel decrypts a credential and calls the provider. Responses are capped at 2 MB and redirects must
+              before Authab decrypts a credential and calls the provider. Responses are capped at 2 MB and redirects must
               stay on the credential&apos;s own origin.
             </p>
             <form action={updateEnvironmentSettingsAction} className="space-y-4">
@@ -350,7 +350,7 @@ export default async function SecurityPage({
               <li>Master key → project key → per-credential data key.</li>
               <li>AES-256-GCM with authenticated encryption on every payload.</li>
               <li>Secrets are injected inside the proxy; agent processes never receive them.</li>
-              <li>Agent private keys are sealed with the same envelope when Keel-managed.</li>
+              <li>Agent private keys are sealed with the same envelope when Authab-managed.</li>
               <li>Logs redact connector-specific fields before they are written.</li>
             </ul>
           </Panel>

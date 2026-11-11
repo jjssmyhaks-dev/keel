@@ -312,11 +312,11 @@ export default async function OverviewPage() {
 
           <div className="border border-black/10 bg-[#0b0b0b] p-4 text-[#e8e6e1] dark:border-border">
             <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/45">Quickstart</p>
-            <pre className="mt-3 overflow-x-auto text-[10px] leading-relaxed text-[#cfcdc6]">{`const keel = new Keel("sk_dev_…");
+            <pre className="mt-3 overflow-x-auto text-[10px] leading-relaxed text-[#cfcdc6]">{`const authab = new Authab("sk_dev_…");
 
-const token = await keel.agents.token("agt_atlas");
+const token = await authab.agents.token("agt_atlas");
 
-await keel.proxy.call(token, "slack", {
+await authab.proxy.call(token, "slack", {
   action: "slack.post_message",
   input: { channel: "#research", text: "…" },
 });`}</pre>

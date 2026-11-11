@@ -13,7 +13,7 @@ import {
 
 export const MCP_PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"] as const;
 export const MCP_PROTOCOL_VERSION = MCP_PROTOCOL_VERSIONS[0];
-export const MCP_SERVER_INFO = { name: "keel", title: "Keel MCP Gateway", version: "1.0.0" };
+export const MCP_SERVER_INFO = { name: "authab", title: "Authab MCP Gateway", version: "1.0.0" };
 
 export interface GatewayProxyCall {
   authorization: string;
@@ -37,7 +37,7 @@ export async function invokeProxyRoute(call: GatewayProxyCall): Promise<GatewayP
   // provider execution behave identically for MCP and direct API callers.
   const { POST } = await import("@/app/api/v1/proxy/[connector]/route");
   const request = new Request(
-    `http://keel.internal/api/v1/proxy/${encodeURIComponent(call.connector)}`,
+    `http://authab.internal/api/v1/proxy/${encodeURIComponent(call.connector)}`,
     {
       method: "POST",
       headers: {
@@ -140,7 +140,7 @@ export function proxyResponseToToolResult(response: GatewayProxyResponse) {
     (payload !== null && typeof payload === "object" && "error" in payload);
   if (failed) {
     const error = payload !== null && typeof payload === "object" ? (payload as { error?: unknown }).error : null;
-    return mcpErrorResult(error ?? new Error(`The Keel proxy call failed with HTTP ${response.status}.`));
+    return mcpErrorResult(error ?? new Error(`The Authab proxy call failed with HTTP ${response.status}.`));
   }
   return mcpToolResult(payload);
 }

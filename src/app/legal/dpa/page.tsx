@@ -4,7 +4,7 @@ import { LegalShell } from "@/components/legal/legal-shell";
 
 export const metadata: Metadata = {
   title: "Data processing agreement",
-  description: "How Keel processes workspace data on your behalf, where it is stored, and who helps us run the service.",
+  description: "How Authab processes workspace data on your behalf, where it is stored, and who helps us run the service.",
 };
 
 const subprocessors = [
@@ -18,14 +18,14 @@ export default function DpaPage() {
       slug="dpa"
       eyebrow="DPA"
       title="Processing, on your terms."
-      intro="This data processing agreement applies when Keel processes personal data on your behalf as part of the hosted service. It sits alongside the terms of service and the privacy policy, and it prevails over them for workspace data."
+      intro="This data processing agreement applies when Authab processes personal data on your behalf as part of the hosted service. It sits alongside the terms of service and the privacy policy, and it prevails over them for workspace data."
       updated="24 October 2026"
     >
       <h2 id="roles">1. Roles and scope</h2>
       <p>
-        You are the controller and Keel is the processor for personal data contained in workspace data — for example,
+        You are the controller and Authab is the processor for personal data contained in workspace data — for example,
         the name and email of an approver, an agent credential belonging to a named person, or personal data inside a
-        proxied request. Keel is the controller for account, billing and website data, as described in the{" "}
+        proxied request. Authab is the controller for account, billing and website data, as described in the{" "}
         <Link href="/legal/privacy">privacy policy</Link>.
       </p>
       <p>
@@ -137,7 +137,7 @@ export default function DpaPage() {
           </tr>
           <tr>
             <td>Special categories</td>
-            <td>None intended. You agree not to store special-category data in Keel without a separate written agreement</td>
+            <td>None intended. You agree not to store special-category data in Authab without a separate written agreement</td>
           </tr>
           <tr>
             <td>Purpose</td>
@@ -160,7 +160,7 @@ export default function DpaPage() {
       <p>
         Enterprise customers can execute this DPA through their order form. For everyone else, accepting the terms of
         service and using the hosted service constitutes acceptance of this agreement. Need a countersigned copy or a
-        specific jurisdiction&apos;s template? Write to <a href="mailto:legal@keel.dev">legal@keel.dev</a>.
+        specific jurisdiction&apos;s template? Write to <a href="mailto:legal@authab.dev">legal@authab.dev</a>.
       </p>
     </LegalShell>
   );

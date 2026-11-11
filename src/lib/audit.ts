@@ -93,7 +93,7 @@ export async function auditEvent(input: AuditInput, attempt = 0): Promise<void> 
       await new Promise((r) => setTimeout(r, 15 + Math.random() * 30));
       return auditEvent(input, attempt + 1);
     }
-    console.error("[keel] audit write failed", error);
+    console.error("[authab] audit write failed", error);
     throw error;
   }
 }

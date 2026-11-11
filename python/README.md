@@ -1,13 +1,13 @@
 # Python SDK
 
-Server-side Python client for [Keel](https://keel.dev/docs/sdk): agent identity, credential vault, grants, policies, approvals, proxied connector calls, audit and webhooks.
+Server-side Python client for [Authab](https://authab.dev/docs/sdk): agent identity, credential vault, grants, policies, approvals, proxied connector calls, audit and webhooks.
 
 - Python 3.9+, no required dependencies (standard-library HTTP).
-- Sync `Keel` and async `AsyncKeel` with identical behaviour.
+- Sync `Authab` and async `AsyncAuthab` with identical behaviour.
 - Optional extras for Ed25519 signing, LangChain/LangGraph, CrewAI and the OpenAI Agents SDK.
 - Every call uses the environment of the API key. There is no environment parameter to forget.
 
-The SDK ships in the Keel repository. PyPI publication is pending the public launch and final package name, so install from source:
+The SDK ships in the Authab repository. PyPI publication is pending the public launch and final package name, so install from source:
 
 ```bash
 pip install "./python"
@@ -21,56 +21,56 @@ pip install "./python[all]"
 From another project, use the repository URL:
 
 ```bash
-pip install "keel-sdk @ git+https://github.com/jjssmyhaks-dev/keel.git#subdirectory=python"
-pip install "keel-sdk[all] @ git+https://github.com/jjssmyhaks-dev/keel.git#subdirectory=python"
+pip install "authab-sdk @ git+https://github.com/jjssmyhaks-dev/keel.git#subdirectory=python"
+pip install "authab-sdk[all] @ git+https://github.com/jjssmyhaks-dev/keel.git#subdirectory=python"
 ```
 
 ## Client
 
 ```python
 import os
-from keel import Keel
+from authab import Authab
 
-keel = Keel(os.environ["KEEL_API_KEY"], base_url="https://api.keel.dev/v1")
-# or: Keel.from_env()  # KEEL_API_KEY, optional KEEL_BASE_URL
+authab = Authab(os.environ["AUTHAB_API_KEY"], base_url="https://api.authab.dev/v1")
+# or: Authab.from_env()  # AUTHAB_API_KEY, optional AUTHAB_BASE_URL
 
-me = keel.me()
+me = authab.me()
 print(me["environment"]["type"], me["key"]["type"])
 ```
 
-`Keel` is thread-safe; each request opens its own connection. `AsyncKeel` runs the same calls on worker threads, so it works on every Python 3.9+ runtime without an async HTTP dependency:
+`Authab` is thread-safe; each request opens its own connection. `AsyncAuthab` runs the same calls on worker threads, so it works on every Python 3.9+ runtime without an async HTTP dependency:
 
 ```python
-from keel import AsyncKeel
+from authab import AsyncAuthab
 
-keel = AsyncKeel.from_env()
-page = await keel.audit.list(limit=50)
+authab = AsyncAuthab.from_env()
+page = await authab.audit.list(limit=50)
 ```
 
 ## Agents and tokens
 
 ```python
-agent = keel.agents.create(
+agent = authab.agents.create(
     name="Atlas Research",
     description="Summarises research threads.",
     tags=["research"],
     framework="langgraph",
     key_mode="client",            # or "platform"
 )
-# agent["privateKey"] is present only on create, only when Keel generated it.
+# agent["privateKey"] is present only on create, only when Authab generated it.
 
-token = keel.agents.token(agent["id"], ttl=300)
+token = authab.agents.token(agent["id"], ttl=300)
 # {"accessToken": ..., "tokenId": ..., "expiresIn": ..., "scopes": [...]}
 ```
 
 Client-key agents sign a challenge. The SDK can sign it for you, or you can sign elsewhere:
 
 ```python
-from keel import generate_agent_keypair, sign_challenge
+from authab import generate_agent_keypair, sign_challenge
 
 keys = generate_agent_keypair()       # public_key, private_key, fingerprint
 signed = sign_challenge(agent["id"], keys["private_key"])
-keel.agents.token(
+authab.agents.token(
     agent["id"],
     challenge=signed["challenge"],
     signature=signed["signature"],
@@ -83,23 +83,23 @@ Management: `list`, `get`, `update`, `pause`, `resume`, `suspend`, `kill`, `rota
 ## Vault
 
 ```python
-credential = keel.vault.create(
+credential = authab.vault.create(
     connector="slack",
     name="Northwind workspace",
     type="oauth",
     secret={"accessToken": os.environ["SLACK_TOKEN"]},
 )
 
-keel.vault.list(connector="slack")
-keel.vault.get(credential["id"])          # metadata + maskedHint, never the secret
-keel.vault.rotate(credential["id"], secret={"accessToken": next_token})
-keel.vault.revoke(credential["id"])
+authab.vault.list(connector="slack")
+authab.vault.get(credential["id"])          # metadata + maskedHint, never the secret
+authab.vault.rotate(credential["id"], secret={"accessToken": next_token})
+authab.vault.revoke(credential["id"])
 ```
 
 ## Grants, policy and approvals
 
 ```python
-grant = keel.grants.create(
+grant = authab.grants.create(
     agent_id=agent["id"],
     credential_id=credential["id"],
     actions=["slack.post_message"],
@@ -109,16 +109,16 @@ grant = keel.grants.create(
     purpose="Launch briefs",
 )
 
-keel.policies.create(agent_id=agent["id"], action_pattern="stripe.*", mode="deny")
+authab.policies.create(agent_id=agent["id"], action_pattern="stripe.*", mode="deny")
 
-pending = keel.approvals.list(status="pending", risk="financial")
-keel.approvals.approve(pending["data"][0]["id"], note="Duplicate charge confirmed.")
+pending = authab.approvals.list(status="pending", risk="financial")
+authab.approvals.approve(pending["data"][0]["id"], note="Duplicate charge confirmed.")
 ```
 
 ## Proxy
 
 ```python
-result = keel.proxy.call(
+result = authab.proxy.call(
     connector="slack",
     action="slack.post_message",
     resource="#research-launch",
@@ -133,20 +133,20 @@ else:
     print(result["status"], result["approvalUrl"])
 ```
 
-A pending approval is a normal return value. A policy denial raises `KeelError` with `code="policy_denied"` and `details["decision"]`. The client retries `429` and retries `5xx`/transport failures for reads and idempotent proxy calls.
+A pending approval is a normal return value. A policy denial raises `AuthabError` with `code="policy_denied"` and `details["decision"]`. The client retries `429` and retries `5xx`/transport failures for reads and idempotent proxy calls.
 
 ## Audit and webhooks
 
 ```python
-page = keel.audit.list(agent=agent["id"], limit=50)
-check = keel.audit.verify()                 # {"valid": True, "eventsChecked": ...}
-csv = keel.audit.export(format="csv")       # raw text
+page = authab.audit.list(agent=agent["id"], limit=50)
+check = authab.audit.verify()                 # {"valid": True, "eventsChecked": ...}
+csv = authab.audit.export(format="csv")       # raw text
 
-from keel import verify_webhook
+from authab import verify_webhook
 
 valid = verify_webhook(
-    os.environ["KEEL_WEBHOOK_SECRET"],
-    request.headers["Keel-Signature"],
+    os.environ["AUTHAB_WEBHOOK_SECRET"],
+    request.headers["Authab-Signature"],
     raw_body,
     tolerance_seconds=300,
 )
@@ -155,11 +155,11 @@ valid = verify_webhook(
 ## Errors
 
 ```python
-from keel import KeelError
+from authab import AuthabError
 
 try:
-    keel.proxy.call(...)
-except KeelError as error:
+    authab.proxy.call(...)
+except AuthabError as error:
     if error.code == "policy_denied":
         print(error.message, error.details)
 ```
@@ -168,25 +168,25 @@ Every error has `status`, `code`, `message`, `details` and `request_id`. Transpo
 
 ## Framework integrations
 
-The adapters turn the agent's grants into one tool per granted action. Calls always go through the Keel proxy with the agent's identity; the framework never sees a provider token. Restricted grants add a required `resource` argument, and token scopes narrow the tool list.
+The adapters turn the agent's grants into one tool per granted action. Calls always go through the Authab proxy with the agent's identity; the framework never sees a provider token. Restricted grants add a required `resource` argument, and token scopes narrow the tool list.
 
 ```python
-from keel import Keel
-from keel.integrations.langchain import keel_langchain_tools, keel_langgraph_tool_node
-from keel.integrations.crewai import keel_crewai_tools
-from keel.integrations.openai_agents import keel_openai_agents_tools
+from authab import Authab
+from authab.integrations.langchain import authab_langchain_tools, authab_langgraph_tool_node
+from authab.integrations.crewai import authab_crewai_tools
+from authab.integrations.openai_agents import authab_openai_agents_tools
 
-keel = Keel.from_env()
+authab = Authab.from_env()
 
-langchain_tools = keel_langchain_tools(keel, "agt_atlas")
-tool_node = keel_langgraph_tool_node(keel, "agt_atlas")       # add to a StateGraph as the "tools" node
-crew_tools = keel_crewai_tools(keel, "agt_atlas")             # CrewAI BaseTool list
-agents_sdk_tools = keel_openai_agents_tools(keel, "agt_atlas")  # FunctionTool list
+langchain_tools = authab_langchain_tools(authab, "agt_atlas")
+tool_node = authab_langgraph_tool_node(authab, "agt_atlas")       # add to a StateGraph as the "tools" node
+crew_tools = authab_crewai_tools(authab, "agt_atlas")             # CrewAI BaseTool list
+agents_sdk_tools = authab_openai_agents_tools(authab, "agt_atlas")  # FunctionTool list
 ```
 
 Pass `connector="slack"` to narrow any adapter to one provider. Framework imports stay lazy, so the base SDK remains dependency-free. A pending approval comes back as a result with `status: "pending_approval"`; a denial comes back as an error payload the model can read.
 
-For the Vercel AI SDK, use [`@keel/sdk/ai`](../sdk/README.md#vercel-ai-sdk).
+For the Vercel AI SDK, use [`@authab/sdk/ai`](../sdk/README.md#vercel-ai-sdk).
 
 ## Tests
 

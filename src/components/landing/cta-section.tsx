@@ -72,17 +72,17 @@ export function CtaSection({ demoEnabled = false }: { demoEnabled?: boolean }) {
               </div>
               {demoEnabled ? (
                 <p className="text-[11px] text-muted-foreground mt-8 font-mono">
-                  Or sign in with the demo workspace → demo@keel.dev
+                  Or sign in with the demo workspace → demo@authab.dev
                 </p>
               ) : null}
             </div>
 
             <div className="lg:col-span-4 font-mono text-[10px] leading-[1.9] text-muted-foreground border-l border-foreground/10 pl-6 hidden lg:block">
               <div className="text-foreground/60 mb-2">// first call, abridged</div>
-              <div><span className="text-[#b0568f]">const</span> atlas = await keel.agents.create({`{`}</div>
+              <div><span className="text-[#b0568f]">const</span> atlas = await authab.agents.create({`{`}</div>
               <div className="pl-4">name: <span className="text-foreground/70">&quot;atlas&quot;</span>,</div>
               <div>{`})`};</div>
-              <div className="mt-2"><span className="text-[#b0568f]">await</span> keel.proxy.call({`{`}</div>
+              <div className="mt-2"><span className="text-[#b0568f]">await</span> authab.proxy.call({`{`}</div>
               <div className="pl-4">token, connector: <span className="text-foreground/70">&quot;slack&quot;</span>,</div>
               <div className="pl-4">action: <span className="text-foreground/70">&quot;slack.post_message&quot;</span>,</div>
               <div>{`})`};</div>

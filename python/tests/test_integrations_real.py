@@ -10,11 +10,11 @@ from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from keel.integrations import (
-    keel_crewai_tools,
-    keel_langchain_tools,
-    keel_langgraph_tool_node,
-    keel_openai_agents_tools,
+from authab.integrations import (
+    authab_crewai_tools,
+    authab_langchain_tools,
+    authab_langgraph_tool_node,
+    authab_openai_agents_tools,
 )
 
 CATALOG = {
@@ -88,7 +88,7 @@ class RealLangChainTests(unittest.TestCase):
         from pydantic import ValidationError
 
         client = FakeClient()
-        tools = keel_langchain_tools(client, "agt_1")
+        tools = authab_langchain_tools(client, "agt_1")
         self.assertTrue(all(isinstance(tool, StructuredTool) for tool in tools))
         post = next(tool for tool in tools if tool.name == "slack_post_message")
         self.assertEqual(set(post.args_schema.model_fields), {"channel", "text", "resource"})
@@ -112,7 +112,7 @@ class RealLangChainTests(unittest.TestCase):
         from langgraph.prebuilt import ToolNode
 
         client = FakeClient()
-        node = keel_langgraph_tool_node(client, "agt_1")
+        node = authab_langgraph_tool_node(client, "agt_1")
         self.assertIsInstance(node, ToolNode)
         graph = StateGraph(MessagesState)
         graph.add_node("tools", node)
@@ -148,7 +148,7 @@ class RealCrewAITests(unittest.TestCase):
         from crewai.tools import BaseTool
 
         client = FakeClient()
-        tools = keel_crewai_tools(client, "agt_1")
+        tools = authab_crewai_tools(client, "agt_1")
         self.assertTrue(all(isinstance(tool, BaseTool) for tool in tools))
         post = next(tool for tool in tools if tool.name == "slack_post_message")
         self.assertEqual(set(post.args_schema.model_fields), {"channel", "text", "resource"})
@@ -167,7 +167,7 @@ class RealOpenAIAgentsTests(unittest.TestCase):
         from agents import FunctionTool
 
         client = FakeClient()
-        tools = keel_openai_agents_tools(client, "agt_1")
+        tools = authab_openai_agents_tools(client, "agt_1")
         self.assertTrue(all(isinstance(tool, FunctionTool) for tool in tools))
         post = next(tool for tool in tools if tool.name == "slack_post_message")
         self.assertEqual(post.params_json_schema["required"], ["channel", "resource", "text"])

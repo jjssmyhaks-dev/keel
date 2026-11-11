@@ -53,7 +53,7 @@ export async function GET(req: Request) {
   });
 
   const stamp = new Date().toISOString().slice(0, 10);
-  const filename = `keel-audit-${ctx.environment.type}-${stamp}.${format}`;
+  const filename = `authab-audit-${ctx.environment.type}-${stamp}.${format}`;
   let body: string;
   if (format === "csv") {
     const header = "seq,timestamp,actorType,actorName,action,resourceType,resourceId,outcome,requestId,agentId,ip,hash";
@@ -102,7 +102,7 @@ export async function GET(req: Request) {
     headers: {
       "content-type": format === "csv" ? "text/csv; charset=utf-8" : "application/x-ndjson",
       "content-disposition": `attachment; filename="${filename}"`,
-      "x-keel-export-count": String(events.length),
+      "x-authab-export-count": String(events.length),
     },
   });
 }

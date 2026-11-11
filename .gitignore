@@ -5,7 +5,7 @@ node_modules
 *.db
 *.db-journal
 prisma/dev.db
-.keel
+.authab
 dist
 .DS_Store
 *.tsbuildinfo

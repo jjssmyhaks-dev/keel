@@ -169,7 +169,7 @@ export function FooterSection() {
         </div>
 
         <div className="py-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-white/30">© {new Date().getFullYear()} Keel Systems. All rights reserved.</p>
+          <p className="text-sm text-white/30">© {new Date().getFullYear()} Authab Systems. All rights reserved.</p>
           <div className="flex flex-wrap items-center gap-6 text-sm text-white/30">
             <Link href="/status" className="hover:text-white transition-colors">
               Live status

@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const def = connector(slug);
   if (!def) return { title: "Connector" };
   return {
-    title: `${def.name} connector — Keel docs`,
+    title: `${def.name} connector — Authab docs`,
     description: def.description,
   };
 }
@@ -84,7 +84,7 @@ export default async function ConnectorDetailPage({ params }: { params: Promise<
 
       <h2>Scopes</h2>
       <p>
-        OAuth scopes to request when you connect a real provider account. Keel stores the token, not the scopes; the
+        OAuth scopes to request when you connect a real provider account. Authab stores the token, not the scopes; the
         grant is the effective permission. Request the minimum the agent needs.
       </p>
       <table>
@@ -131,7 +131,7 @@ Idempotency-Key: ${def.slug}-${sample.name.split(".")[1]?.replace(/_/g, "-") ?? 
         <>
           <h2>Example response</h2>
           <p>
-            Illustrative shape only — Keel returns the provider&apos;s own response body and status unchanged. Fields vary
+            Illustrative shape only — Authab returns the provider&apos;s own response body and status unchanged. Fields vary
             by account, plan and resource.
           </p>
           <pre>{JSON.stringify(sample.sample, null, 2)}</pre>

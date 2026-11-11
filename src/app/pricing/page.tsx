@@ -17,7 +17,7 @@ const faqs = [
   },
   {
     q: "What counts as a proxy call?",
-    a: "Any request routed through the Keel proxy, including named actions and raw proxied requests. Token issuance, introspection and audit reads are free.",
+    a: "Any request routed through the Authab proxy, including named actions and raw proxied requests. Token issuance, introspection and audit reads are free.",
   },
   {
     q: "What happens when I reach my limit?",
@@ -33,7 +33,7 @@ const faqs = [
   },
   {
     q: "Do you offer a startup or nonprofit discount?",
-    a: "We offer 50% off Pro for the first year for pre-seed startups and registered nonprofits. Email hello@keel.dev.",
+    a: "We offer 50% off Pro for the first year for pre-seed startups and registered nonprofits. Email hello@authab.dev.",
   },
 ];
 

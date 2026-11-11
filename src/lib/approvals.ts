@@ -103,7 +103,7 @@ export async function createApprovalRequest(opts: {
           `<p>${summary}</p>
            <p style="color:#8b8b8b;font-size:13px">Risk: ${opts.risk} · Environment: ${opts.environment.type} · Expires in ${minutesLeft} minutes.</p>
            <p style="margin:24px 0"><a href="${link}" style="background:#111;color:#fff;padding:12px 20px;text-decoration:none;display:inline-block">Review and decide</a></p>
-           <p style="color:#8b8b8b;font-size:12px">Keel never puts credentials in email. Open the request to see the redacted payload.</p>`,
+           <p style="color:#8b8b8b;font-size:12px">Authab never puts credentials in email. Open the request to see the redacted payload.</p>`,
         ),
         text: `${summary}\nRisk: ${opts.risk}\nExpires in ${minutesLeft} minutes.\nReview: ${link}`,
       }).catch(() => null),

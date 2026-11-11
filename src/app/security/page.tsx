@@ -5,7 +5,7 @@ import { FooterSection } from "@/components/landing/footer-section";
 
 export const metadata: Metadata = {
   title: "Security",
-  description: "How Keel protects agent identity, credentials, approvals and the audit trail.",
+  description: "How Authab protects agent identity, credentials, approvals and the audit trail.",
 };
 
 const layers = [
@@ -27,7 +27,7 @@ const layers = [
   {
     label: "Audit",
     title: "Tamper-evident by design",
-    body: "Every event is appended to a per-environment SHA-256 hash chain. Verification is available in the dashboard and API, and exports preserve the chain columns so evidence survives outside Keel.",
+    body: "Every event is appended to a per-environment SHA-256 hash chain. Verification is available in the dashboard and API, and exports preserve the chain columns so evidence survives outside Authab.",
   },
 ];
 
@@ -53,7 +53,7 @@ export default function SecurityPage() {
             <span className="text-foreground/35">of small proofs.</span>
           </h1>
           <p className="mt-8 max-w-2xl text-[16px] leading-relaxed text-foreground/60">
-            Keel holds the credentials and permissions your agents use. That makes our security model your security
+            Authab holds the credentials and permissions your agents use. That makes our security model your security
             model, so we document it plainly: what is encrypted, what is enforced, what is logged, and what you can
             verify without taking our word for it.
           </p>
@@ -105,7 +105,7 @@ export default function SecurityPage() {
             <p className="text-[13px] leading-relaxed text-foreground/60">
               We do not claim certifications we do not hold. Current audit status, subprocessors and the latest
               penetration-test summary are available to customers under NDA. Request them at{" "}
-              <a href="mailto:security@keel.dev" className="underline underline-offset-4">security@keel.dev</a>.
+              <a href="mailto:security@authab.dev" className="underline underline-offset-4">security@authab.dev</a>.
             </p>
           </div>
           <div>
@@ -134,7 +134,7 @@ export default function SecurityPage() {
               Tell us first.
             </h2>
             <p className="mt-5 text-[13px] leading-relaxed text-foreground/55">
-              Email <a href="mailto:security@keel.dev" className="underline underline-offset-4">security@keel.dev</a>.
+              Email <a href="mailto:security@authab.dev" className="underline underline-offset-4">security@authab.dev</a>.
               Encrypt with our PGP key on request. Include reproduction steps, affected endpoints and the earliest
               date you intend to publish.
             </p>
@@ -152,7 +152,7 @@ export default function SecurityPage() {
             <div>
               <h3 className="font-medium text-foreground">In scope</h3>
               <p className="mt-2">
-                The Keel dashboard, API, authentication flows and the agent proxy. Test only against workspaces you
+                The Authab dashboard, API, authentication flows and the agent proxy. Test only against workspaces you
                 own, use demo data, and stop at the first proof of access.
               </p>
             </div>

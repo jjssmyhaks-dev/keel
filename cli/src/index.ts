@@ -1,5 +1,5 @@
 import { writeFile } from "node:fs/promises";
-import { Keel, KeelError, type Approval, type GrantConditions } from "@keel/sdk";
+import { Authab, AuthabError, type Approval, type GrantConditions } from "@authab/sdk";
 import {
   UsageError,
   flagBool,
@@ -14,52 +14,52 @@ import { heading, kv, printJson, shortTime, table } from "./format";
 import { promptHidden, promptText, readStdin, requireYes } from "./io";
 
 const VERSION = "1.0.0";
-const DEFAULT_BASE_URL = "https://api.keel.dev/v1";
+const DEFAULT_BASE_URL = "https://api.authab.dev/v1";
 
-const HELP = `keel ${VERSION} — identity, vault and governance for AI agents
+const HELP = `authab ${VERSION} — identity, vault and governance for AI agents
 
-Usage: keel <command> [subcommand] [options]
+Usage: authab <command> [subcommand] [options]
 
 Authentication
-  keel login --api-key sk_... [--env development] [--base-url URL]
-  keel whoami [--json]
+  authab login --api-key sk_... [--env development] [--base-url URL]
+  authab whoami [--json]
 
 Agents
-  keel agents list [--status active] [--tag research] [--json]
-  keel agents create --name "Atlas" [--description ...] [--framework ...] [--tag ...]
-  keel agents token <id> [--ttl 300] [--json]
-  keel agents pause|resume <id>
-  keel agents kill <id> --yes
-  keel agents rotate-key <id>
-  keel promote <id> [--confirm --email owner@example.com]
+  authab agents list [--status active] [--tag research] [--json]
+  authab agents create --name "Atlas" [--description ...] [--framework ...] [--tag ...]
+  authab agents token <id> [--ttl 300] [--json]
+  authab agents pause|resume <id>
+  authab agents kill <id> --yes
+  authab agents rotate-key <id>
+  authab promote <id> [--confirm --email owner@example.com]
 
 Vault
-  keel vault list
-  keel vault add --connector slack [--name ...] [--type oauth] [--from-stdin]
-  keel vault rotate <id> [--from-stdin]
-  keel vault revoke <id> --yes
+  authab vault list
+  authab vault add --connector slack [--name ...] [--type oauth] [--from-stdin]
+  authab vault rotate <id> [--from-stdin]
+  authab vault revoke <id> --yes
 
 Grants and policy
-  keel grants list [--agent <id>]
-  keel grants create --agent <id> --credential <id> --actions slack.post_message [--resource ...] [--mode ...]
-  keel grants update <id> [--actions ...] [--resource ...] [--mode ...]
-  keel grants rm <id> --yes
+  authab grants list [--agent <id>]
+  authab grants create --agent <id> --credential <id> --actions slack.post_message [--resource ...] [--mode ...]
+  authab grants update <id> [--actions ...] [--resource ...] [--mode ...]
+  authab grants rm <id> --yes
 
 Calls and approvals
-  keel call <connector.action> --agent <id> [--credential <id>] [--resource ...] [--input '{"...":...}'] [--idempotency-key ...] [--watch]
-  keel approvals list [--status pending] [--risk financial]
-  keel approvals show <id>
-  keel approvals approve <id> [--note ...]
-  keel approvals deny <id> [--note ...]
+  authab call <connector.action> --agent <id> [--credential <id>] [--resource ...] [--input '{"...":...}'] [--idempotency-key ...] [--watch]
+  authab approvals list [--status pending] [--risk financial]
+  authab approvals show <id>
+  authab approvals approve <id> [--note ...]
+  authab approvals deny <id> [--note ...]
 
 Audit
-  keel audit verify
-  keel audit tail [--agent <id>] [--action proxy] [--limit 20]
-  keel audit export [--format jsonl|csv] [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--out file]
+  authab audit verify
+  authab audit tail [--agent <id>] [--action proxy] [--limit 20]
+  authab audit export [--format jsonl|csv] [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--out file]
 
 Global
   --json      machine-readable output on read commands
-  --env NAME  use a stored profile (or KEEL_ENV)
+  --env NAME  use a stored profile (or AUTHAB_ENV)
   --base-url  override the API origin
   --help      show this help
   --version   print the version`;
@@ -101,7 +101,7 @@ async function main(argv: string[]): Promise<void> {
     case "promote":
       return promote(args);
     default:
-      throw new UsageError(`Unknown command “${first}”. Run \`keel --help\`.`);
+      throw new UsageError(`Unknown command “${first}”. Run \`authab --help\`.`);
   }
 }
 
@@ -114,9 +114,9 @@ async function login(args: ParsedArgs) {
   if (!apiKey.startsWith("sk_")) {
     throw new UsageError("That does not look like a secret key. Secret keys start with sk_.");
   }
-  const baseUrl = flagString(args, "base-url") ?? process.env.KEEL_BASE_URL ?? DEFAULT_BASE_URL;
-  const keel = new Keel({ apiKey, baseUrl });
-  const me = await keel.me();
+  const baseUrl = flagString(args, "base-url") ?? process.env.AUTHAB_BASE_URL ?? DEFAULT_BASE_URL;
+  const authab = new Authab({ apiKey, baseUrl });
+  const me = await authab.me();
   const profileName = flagString(args, "env") ?? me.environment.type;
 
   await saveProfile(profileName, { apiKey, baseUrl: baseUrl === DEFAULT_BASE_URL ? undefined : baseUrl });
@@ -135,8 +135,8 @@ async function login(args: ParsedArgs) {
 }
 
 async function whoami(args: ParsedArgs) {
-  const { keel, profileName, baseUrl } = await resolveClient(args);
-  const me = await keel.me();
+  const { authab, profileName, baseUrl } = await resolveClient(args);
+  const me = await authab.me();
   if (flagBool(args, "json")) {
     printJson({ profile: profileName, baseUrl, ...me });
     return;
@@ -158,11 +158,11 @@ async function whoami(args: ParsedArgs) {
 async function agents(args: ParsedArgs) {
   const sub = args.positionals[0];
   const rest = args.positionals.slice(1);
-  const { keel } = await resolveClient(args);
+  const { authab } = await resolveClient(args);
   const json = flagBool(args, "json");
 
   if (sub === "list") {
-    const listed = await keel.agents.list({
+    const listed = await authab.agents.list({
       status: flagString(args, "status"),
       tag: flagList(args, "tag")[0],
       q: flagString(args, "q"),
@@ -183,12 +183,12 @@ async function agents(args: ParsedArgs) {
   }
 
   if (sub === "create") {
-    const name = requireFlag(args, "name", 'Example: keel agents create --name "Atlas Research".');
+    const name = requireFlag(args, "name", 'Example: authab agents create --name "Atlas Research".');
     const keyMode = flagString(args, "key-mode");
     if (keyMode && keyMode !== "client" && keyMode !== "platform") {
       throw new UsageError("--key-mode must be client or platform.");
     }
-    const agent = await keel.agents.create({
+    const agent = await authab.agents.create({
       name,
       description: flagString(args, "description"),
       framework: flagString(args, "framework"),
@@ -205,14 +205,14 @@ async function agents(args: ParsedArgs) {
     ]);
     if (agent.privateKey) {
       process.stdout.write(`\nPrivate key (shown once):\n${agent.privateKey}\n`);
-      process.stderr.write("Store this key securely. Keel cannot show it again.\n");
+      process.stderr.write("Store this key securely. Authab cannot show it again.\n");
     }
     return;
   }
 
   if (sub === "token") {
     const id = requiredId(rest[0], "agent");
-    const token = await keel.agents.token(id, { ttl: numberFlag(args, "ttl") });
+    const token = await authab.agents.token(id, { ttl: numberFlag(args, "ttl") });
     if (json) {
       return printJson({
         token: token.accessToken,
@@ -233,10 +233,10 @@ async function agents(args: ParsedArgs) {
     const id = requiredId(rest[0], "agent");
     const agent =
       sub === "pause"
-        ? await keel.agents.pause(id)
+        ? await authab.agents.pause(id)
         : sub === "resume"
-          ? await keel.agents.resume(id)
-          : await keel.agents.suspend(id);
+          ? await authab.agents.resume(id)
+          : await authab.agents.suspend(id);
     if (json) return printJson(agent);
     process.stdout.write(`${agent.name} is ${agent.status}.\n`);
     return;
@@ -245,7 +245,7 @@ async function agents(args: ParsedArgs) {
   if (sub === "kill" || sub === "revoke") {
     const id = requiredId(rest[0], "agent");
     await requireYes(args, `Kill ${id}? This revokes tokens, retires keys and deletes grants.`);
-    const agent = await keel.agents.kill(id);
+    const agent = await authab.agents.kill(id);
     if (json) return printJson(agent);
     process.stdout.write(`${agent.name} is revoked. Its keys are retired and grants are gone.\n`);
     return;
@@ -253,7 +253,7 @@ async function agents(args: ParsedArgs) {
 
   if (sub === "rotate-key") {
     const id = requiredId(rest[0], "agent");
-    const rotated = await keel.agents.rotateKey(id);
+    const rotated = await authab.agents.rotateKey(id);
     if (json) return printJson(rotated);
     kv([
       ["Agent", `${rotated.name} (${rotated.id})`],
@@ -264,16 +264,16 @@ async function agents(args: ParsedArgs) {
     return;
   }
 
-  throw new UsageError(`Unknown agents command “${sub ?? ""}”. Run \`keel --help\`.`);
+  throw new UsageError(`Unknown agents command “${sub ?? ""}”. Run \`authab --help\`.`);
 }
 
 async function promote(args: ParsedArgs) {
   const id = requiredId(args.positionals[0], "agent");
-  const { keel } = await resolveClient(args);
+  const { authab } = await resolveClient(args);
   const json = flagBool(args, "json");
 
   if (!flagBool(args, "confirm")) {
-    const preview = await keel.agents.previewPromotion(id);
+    const preview = await authab.agents.previewPromotion(id);
     if (json) return printJson(preview);
     heading(`Readiness for ${id} · plan ${preview.plan}`);
     for (const check of preview.readiness) {
@@ -291,13 +291,13 @@ async function promote(args: ParsedArgs) {
       ]),
     );
     process.stdout.write(
-      `\nRun \`keel promote ${id} --confirm --email you@example.com\` to create the production identity.\n`,
+      `\nRun \`authab promote ${id} --confirm --email you@example.com\` to create the production identity.\n`,
     );
     return;
   }
 
   const email = flagString(args, "email") ?? (await promptText("Approver email (Owner or Admin): "));
-  const result = await keel.agents.promote(id, { email });
+  const result = await authab.agents.promote(id, { email });
   if (json) return printJson(result);
   kv([
     ["Production agent", `${result.agent.name} (${result.agent.id})`],
@@ -316,11 +316,11 @@ async function promote(args: ParsedArgs) {
 async function vault(args: ParsedArgs) {
   const sub = args.positionals[0];
   const rest = args.positionals.slice(1);
-  const { keel } = await resolveClient(args);
+  const { authab } = await resolveClient(args);
   const json = flagBool(args, "json");
 
   if (sub === "list") {
-    const listed = await keel.vault.list({ connector: flagString(args, "connector") });
+    const listed = await authab.vault.list({ connector: flagString(args, "connector") });
     if (json) return printJson(listed);
     table(
       ["id", "connector", "name", "status", "hint"],
@@ -336,9 +336,9 @@ async function vault(args: ParsedArgs) {
   }
 
   if (sub === "add") {
-    const connector = requireFlag(args, "connector", "Example: keel vault add --connector slack --from-stdin.");
+    const connector = requireFlag(args, "connector", "Example: authab vault add --connector slack --from-stdin.");
     const secret = await readSecret(args, `Secret for ${connector}: `);
-    const credential = await keel.vault.create({
+    const credential = await authab.vault.create({
       connector,
       name: flagString(args, "name"),
       type: flagString(args, "type"),
@@ -358,7 +358,7 @@ async function vault(args: ParsedArgs) {
   if (sub === "rotate") {
     const id = requiredId(rest[0], "connection");
     const secret = await readSecret(args, "New secret: ");
-    const credential = await keel.vault.rotate(id, { secret });
+    const credential = await authab.vault.rotate(id, { secret });
     if (json) return printJson(credential);
     process.stdout.write(`Rotated ${credential.name}. New hint: ${credential.maskedHint}.\n`);
     return;
@@ -367,13 +367,13 @@ async function vault(args: ParsedArgs) {
   if (sub === "revoke") {
     const id = requiredId(rest[0], "connection");
     await requireYes(args, `Revoke ${id}? Grants that depend on it will fail closed.`);
-    const credential = await keel.vault.revoke(id);
+    const credential = await authab.vault.revoke(id);
     if (json) return printJson(credential);
     process.stdout.write(`${credential.name} is revoked.\n`);
     return;
   }
 
-  throw new UsageError(`Unknown vault command “${sub ?? ""}”. Run \`keel --help\`.`);
+  throw new UsageError(`Unknown vault command “${sub ?? ""}”. Run \`authab --help\`.`);
 }
 
 async function readSecret(args: ParsedArgs, prompt: string): Promise<string> {
@@ -388,11 +388,11 @@ async function readSecret(args: ParsedArgs, prompt: string): Promise<string> {
 async function grants(args: ParsedArgs) {
   const sub = args.positionals[0];
   const rest = args.positionals.slice(1);
-  const { keel } = await resolveClient(args);
+  const { authab } = await resolveClient(args);
   const json = flagBool(args, "json");
 
   if (sub === "list") {
-    const listed = await keel.grants.list({ agent: flagString(args, "agent") });
+    const listed = await authab.grants.list({ agent: flagString(args, "agent") });
     if (json) return printJson(listed);
     table(
       ["id", "agent", "connector", "actions", "resource", "mode"],
@@ -413,7 +413,7 @@ async function grants(args: ParsedArgs) {
     if (!actions.length) {
       throw new UsageError("Pass at least one action with --actions, for example --actions slack.post_message.");
     }
-    const grant = await keel.grants.create({
+    const grant = await authab.grants.create({
       agentId: requireFlag(args, "agent", "Which agent should receive this grant?"),
       credentialId: requireFlag(args, "credential", "Which connection should it use?"),
       actions,
@@ -452,7 +452,7 @@ async function grants(args: ParsedArgs) {
       ...(conditions ? { conditions } : {}),
     };
     if (!Object.keys(patch).length) throw new UsageError("Provide a field to update.");
-    const grant = await keel.grants.update(id, patch);
+    const grant = await authab.grants.update(id, patch);
     if (json) return printJson(grant);
     process.stdout.write(`Updated grant ${grant.id}.\n`);
     return;
@@ -461,12 +461,12 @@ async function grants(args: ParsedArgs) {
   if (sub === "rm" || sub === "remove") {
     const id = requiredId(rest[0], "grant");
     await requireYes(args, `Remove grant ${id}? The agent will lose access immediately.`);
-    await keel.grants.remove(id);
+    await authab.grants.remove(id);
     process.stdout.write(`Removed grant ${id}.\n`);
     return;
   }
 
-  throw new UsageError(`Unknown grants command “${sub ?? ""}”. Run \`keel --help\`.`);
+  throw new UsageError(`Unknown grants command “${sub ?? ""}”. Run \`authab --help\`.`);
 }
 
 function approvalMode(args: ParsedArgs): "allow" | "require_approval" | "deny" | undefined {
@@ -499,9 +499,9 @@ function conditionsFrom(args: ParsedArgs): GrantConditions | undefined {
 
 async function call(args: ParsedArgs) {
   const action = args.positionals[0];
-  if (!action) throw new UsageError("Usage: keel call slack.post_message --agent agt_... [--input '{\"channel\":\"#x\"}']");
+  if (!action) throw new UsageError("Usage: authab call slack.post_message --agent agt_... [--input '{\"channel\":\"#x\"}']");
   const agentId = requireFlag(args, "agent", "Which agent should make the call?");
-  const { keel } = await resolveClient(args);
+  const { authab } = await resolveClient(args);
   const json = flagBool(args, "json");
   const connector = flagString(args, "connector") ?? action.split(".")[0];
 
@@ -515,7 +515,7 @@ async function call(args: ParsedArgs) {
     }
   }
 
-  const result = await keel.proxy.call({
+  const result = await authab.proxy.call({
     agentId,
     connector,
     action,
@@ -551,7 +551,7 @@ async function call(args: ParsedArgs) {
   let approval: Approval = result.approval;
   while (approval.status === "pending") {
     await sleep(2000);
-    approval = await keel.approvals.get(approval.id);
+    approval = await authab.approvals.get(approval.id);
     process.stderr.write(`status: ${approval.status}\n`);
   }
 
@@ -580,11 +580,11 @@ function sleep(ms: number) {
 async function approvals(args: ParsedArgs) {
   const sub = args.positionals[0];
   const rest = args.positionals.slice(1);
-  const { keel } = await resolveClient(args);
+  const { authab } = await resolveClient(args);
   const json = flagBool(args, "json");
 
   if (sub === "list" || sub === undefined) {
-    const listed = await keel.approvals.list({
+    const listed = await authab.approvals.list({
       status: flagString(args, "status"),
       risk: flagString(args, "risk"),
       limit: numberFlag(args, "limit"),
@@ -606,7 +606,7 @@ async function approvals(args: ParsedArgs) {
 
   if (sub === "show") {
     const id = requiredId(rest[0], "approval");
-    const approval = await keel.approvals.get(id);
+    const approval = await authab.approvals.get(id);
     if (json) return printJson(approval);
     kv([
       ["Approval", approval.id],
@@ -631,8 +631,8 @@ async function approvals(args: ParsedArgs) {
     const note = flagString(args, "note");
     const approval =
       sub === "approve"
-        ? await keel.approvals.approve(id, { note, approveAlways: flagBool(args, "always") })
-        : await keel.approvals.deny(id, { note });
+        ? await authab.approvals.approve(id, { note, approveAlways: flagBool(args, "always") })
+        : await authab.approvals.deny(id, { note });
     if (json) return printJson(approval);
     process.stdout.write(`Approval ${approval.id} is ${approval.status}.\n`);
     if (approval.executionResult) {
@@ -641,7 +641,7 @@ async function approvals(args: ParsedArgs) {
     return;
   }
 
-  throw new UsageError(`Unknown approvals command “${sub ?? ""}”. Run \`keel --help\`.`);
+  throw new UsageError(`Unknown approvals command “${sub ?? ""}”. Run \`authab --help\`.`);
 }
 
 /* ------------------------------------------------------------------ */
@@ -650,11 +650,11 @@ async function approvals(args: ParsedArgs) {
 
 async function audit(args: ParsedArgs) {
   const sub = args.positionals[0];
-  const { keel } = await resolveClient(args);
+  const { authab } = await resolveClient(args);
   const json = flagBool(args, "json");
 
   if (sub === "verify") {
-    const result = await keel.audit.verify();
+    const result = await authab.audit.verify();
     if (json) {
       printJson(result);
     } else if (result.valid) {
@@ -667,7 +667,7 @@ async function audit(args: ParsedArgs) {
   }
 
   if (sub === "tail") {
-    const page = await keel.audit.list({
+    const page = await authab.audit.list({
       agent: flagString(args, "agent"),
       action: flagString(args, "action"),
       limit: numberFlag(args, "limit") ?? 20,
@@ -689,7 +689,7 @@ async function audit(args: ParsedArgs) {
 
   if (sub === "export") {
     const format = (flagString(args, "format") ?? "jsonl") === "csv" ? "csv" : "jsonl";
-    const body = await keel.audit.export({
+    const body = await authab.audit.export({
       format,
       from: flagString(args, "from"),
       to: flagString(args, "to"),
@@ -707,7 +707,7 @@ async function audit(args: ParsedArgs) {
     return;
   }
 
-  throw new UsageError(`Unknown audit command “${sub ?? ""}”. Run \`keel --help\`.`);
+  throw new UsageError(`Unknown audit command “${sub ?? ""}”. Run \`authab --help\`.`);
 }
 
 /* ------------------------------------------------------------------ */
@@ -739,7 +739,7 @@ main(process.argv.slice(2)).catch((error: unknown) => {
     process.exitCode = 1;
     return;
   }
-  if (error instanceof KeelError) {
+  if (error instanceof AuthabError) {
     process.stderr.write(`error [${error.code}]${error.status ? ` HTTP ${error.status}` : ""}: ${error.message}\n`);
     if (error.requestId) process.stderr.write(`request: ${error.requestId}\n`);
     process.exitCode = error.status === 403 ? 2 : 1;

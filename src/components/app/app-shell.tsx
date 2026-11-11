@@ -60,7 +60,7 @@ export function AppShell({
         }`}
       >
         <div className="flex h-16 items-center justify-between border-b border-black/10 px-5 dark:border-border">
-          <Link href="/app" aria-label="Keel dashboard">
+          <Link href="/app" aria-label="Authab dashboard">
             <Logo tone="dark" />
           </Link>
           <button className="lg:hidden" aria-label="Close menu" onClick={() => setOpen(false)}>

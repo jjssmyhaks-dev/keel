@@ -43,7 +43,7 @@ export function DocsShell({
               </div>
               <div className="docs-prose">{children}</div>
               <div className="mt-16 flex flex-wrap items-center justify-between gap-4 border-t border-foreground/10 pt-6">
-                <p className="text-[12px] text-foreground/45">Something missing? Write to docs@keel.dev.</p>
+                <p className="text-[12px] text-foreground/45">Something missing? Write to docs@authab.dev.</p>
                 <Link
                   href="/app/developers"
                   className="inline-flex items-center gap-2 text-[12px] text-foreground/60 hover:text-foreground"

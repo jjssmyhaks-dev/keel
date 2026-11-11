@@ -3,28 +3,28 @@ import { createPublicKey } from "node:crypto";
 import { jwtPrivateKeyDer } from "./secrets";
 import { newId } from "./crypto";
 
-const ISSUER = process.env.JWT_ISSUER || "https://keel.dev";
-const AUDIENCE = process.env.JWT_AUDIENCE || "keel-api";
+const ISSUER = process.env.JWT_ISSUER || "https://authab.dev";
+const AUDIENCE = process.env.JWT_AUDIENCE || "authab-api";
 
 const globalForJwt = globalThis as unknown as {
-  keelSignKey?: Awaited<ReturnType<typeof importPKCS8>>;
-  keelJwks?: { keys: JWK[]; kid: string };
+  authabSignKey?: Awaited<ReturnType<typeof importPKCS8>>;
+  authabJwks?: { keys: JWK[]; kid: string };
 };
 
 async function signingKey() {
-  if (!globalForJwt.keelSignKey) {
+  if (!globalForJwt.authabSignKey) {
     const der = jwtPrivateKeyDer();
     const pem = `-----BEGIN PRIVATE KEY-----\n${der
       .toString("base64")
       .match(/.{1,64}/g)!
       .join("\n")}\n-----END PRIVATE KEY-----`;
-    globalForJwt.keelSignKey = await importPKCS8(pem, "EdDSA");
+    globalForJwt.authabSignKey = await importPKCS8(pem, "EdDSA");
   }
-  return globalForJwt.keelSignKey;
+  return globalForJwt.authabSignKey;
 }
 
 async function jwks() {
-  if (!globalForJwt.keelJwks) {
+  if (!globalForJwt.authabJwks) {
     const der = jwtPrivateKeyDer();
     const keyObject = await importPKCS8(
       `-----BEGIN PRIVATE KEY-----\n${der
@@ -35,13 +35,13 @@ async function jwks() {
     );
     const publicKey = createPublicKey(keyObject as never);
     const jwk = await exportJWK(publicKey as never);
-    const kid = (jwk.x || "keel").slice(0, 16);
-    globalForJwt.keelJwks = {
+    const kid = (jwk.x || "authab").slice(0, 16);
+    globalForJwt.authabJwks = {
       keys: [{ ...jwk, kid, use: "sig", alg: "EdDSA" }],
       kid,
     };
   }
-  return globalForJwt.keelJwks;
+  return globalForJwt.authabJwks;
 }
 
 export async function getJwks() {

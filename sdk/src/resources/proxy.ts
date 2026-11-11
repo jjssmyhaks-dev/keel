@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { HttpClient } from "../client";
-import { KeelError } from "../errors";
+import { AuthabError } from "../errors";
 import type { AgentsResource } from "./agents";
 import type { ProxyCallInput, ProxyResponse } from "../types";
 
@@ -13,12 +13,12 @@ export class ProxyResource {
   /**
    * Execute a governed connector call. Pass an agent token directly, or an
    * agent id and the SDK mints a short-lived token first. A pending approval
-   * is returned as a value, not thrown; a policy denial throws KeelError.
+   * is returned as a value, not thrown; a policy denial throws AuthabError.
    */
   async call(input: ProxyCallInput): Promise<ProxyResponse> {
     const connector = input.connector || input.action.split(".")[0];
     if (!connector || !input.action) {
-      throw new KeelError({
+      throw new AuthabError({
         status: 0,
         code: "invalid_call",
         message: "proxy.call requires a connector and an action (for example slack.post_message).",
@@ -28,7 +28,7 @@ export class ProxyResource {
     let token = input.token;
     if (!token) {
       if (!input.agentId) {
-        throw new KeelError({
+        throw new AuthabError({
           status: 0,
           code: "token_or_agent_required",
           message: "proxy.call requires either an agent token or an agentId to mint one.",

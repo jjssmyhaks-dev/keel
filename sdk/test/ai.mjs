@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { generateText, stepCountIs } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 import { agentToolName, buildAgentToolSpecs } from "../dist/index.js";
-import { keelAiTools } from "../dist/ai.js";
+import { authabAiTools } from "../dist/ai.js";
 
 const catalog = {
   object: "list",
@@ -54,7 +54,7 @@ const grants = {
   ],
 };
 
-function fakeKeel() {
+function fakeAuthab() {
   const calls = [];
   return {
     calls,
@@ -75,7 +75,7 @@ function test(name, fn) {
 }
 
 test("buildAgentToolSpecs filters to granted actions and scopes resources", async () => {
-  const specs = await buildAgentToolSpecs(fakeKeel(), "agt_1");
+  const specs = await buildAgentToolSpecs(fakeAuthab(), "agt_1");
   assert.deepEqual(
     specs.map((spec) => spec.name),
     ["slack_list_channels", "slack_post_message"],
@@ -92,9 +92,9 @@ test("agentToolName keeps provider-safe names", () => {
   assert.ok(agentToolName("slack." + "a".repeat(100)).length <= 64);
 });
 
-test("keelAiTools returns AI SDK tools that call the proxy", async () => {
-  const keel = fakeKeel();
-  const tools = await keelAiTools({ keel, agentId: "agt_1" });
+test("authabAiTools returns AI SDK tools that call the proxy", async () => {
+  const authab = fakeAuthab();
+  const tools = await authabAiTools({ authab, agentId: "agt_1" });
   assert.deepEqual(Object.keys(tools).sort(), ["slack_list_channels", "slack_post_message"]);
   assert.ok(tools.slack_post_message.inputSchema);
   const result = await tools.slack_post_message.execute(
@@ -102,7 +102,7 @@ test("keelAiTools returns AI SDK tools that call the proxy", async () => {
     { toolCallId: "call_1", messages: [] },
   );
   assert.equal(result.status, "executed");
-  assert.deepEqual(keel.calls[0], {
+  assert.deepEqual(authab.calls[0], {
     connector: "slack",
     action: "slack.post_message",
     resource: "#eng-launch",
@@ -112,8 +112,8 @@ test("keelAiTools returns AI SDK tools that call the proxy", async () => {
   });
 });
 
-test("keelAiTools rejects a missing scoped resource", async () => {
-  const tools = await keelAiTools({ keel: fakeKeel(), agentId: "agt_1" });
+test("authabAiTools rejects a missing scoped resource", async () => {
+  const tools = await authabAiTools({ authab: fakeAuthab(), agentId: "agt_1" });
   await assert.rejects(
     tools.slack_post_message.execute({ channel: "#eng", text: "hello" }, { toolCallId: "call_2", messages: [] }),
     /requires a resource/,
@@ -121,13 +121,13 @@ test("keelAiTools rejects a missing scoped resource", async () => {
 });
 
 test("connector filter narrows the tool set", async () => {
-  const tools = await keelAiTools({ keel: fakeKeel(), agentId: "agt_1", connector: "github" });
+  const tools = await authabAiTools({ authab: fakeAuthab(), agentId: "agt_1", connector: "github" });
   assert.deepEqual(Object.keys(tools), []);
 });
 
 test("AI SDK executes a generated tool call end to end", async () => {
-  const keel = fakeKeel();
-  const tools = await keelAiTools({ keel, agentId: "agt_1" });
+  const authab = fakeAuthab();
+  const tools = await authabAiTools({ authab, agentId: "agt_1" });
   const usage = {
     inputTokens: { total: 10, noCache: 10, cacheRead: 0, cacheWrite: 0 },
     outputTokens: { total: 5, text: 5, reasoning: 0 },
@@ -164,9 +164,9 @@ test("AI SDK executes a generated tool call end to end", async () => {
   });
 
   assert.equal(result.text, "done");
-  assert.equal(keel.calls.length, 1);
-  assert.equal(keel.calls[0].action, "slack.post_message");
-  assert.equal(keel.calls[0].resource, "#eng-launch");
+  assert.equal(authab.calls.length, 1);
+  assert.equal(authab.calls[0].action, "slack.post_message");
+  assert.equal(authab.calls[0].resource, "#eng-launch");
   const toolResult = result.toolResults[0];
   assert.equal(toolResult.output.status, "executed");
 });

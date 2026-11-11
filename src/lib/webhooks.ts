@@ -25,7 +25,7 @@ export const WEBHOOK_EVENTS: { value: WebhookEvent; label: string }[] = [
 const MAX_ATTEMPTS = 5;
 
 function privateAllowed() {
-  return process.env.KEEL_ALLOW_PRIVATE_WEBHOOKS === "1" && process.env.NODE_ENV !== "production";
+  return process.env.AUTHAB_ALLOW_PRIVATE_WEBHOOKS === "1" && process.env.NODE_ENV !== "production";
 }
 
 function isPrivateAddress(address: string) {
@@ -143,9 +143,9 @@ async function attemptDelivery(input: {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Keel-Event": input.event,
-          "Keel-Event-Id": input.eventId,
-          "Keel-Signature": signWebhook(secret, timestamp, input.body),
+          "Authab-Event": input.event,
+          "Authab-Event-Id": input.eventId,
+          "Authab-Signature": signWebhook(secret, timestamp, input.body),
         },
         body: input.body,
         redirect: "error",

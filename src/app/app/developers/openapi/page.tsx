@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "OpenAPI",
-  description: "The OpenAPI 3.1 document for this Keel deployment, rendered in the dashboard.",
+  description: "The OpenAPI 3.1 document for this Authab deployment, rendered in the dashboard.",
 };
 
 type Operation = {

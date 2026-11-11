@@ -1,4 +1,4 @@
-export class KeelError extends Error {
+export class AuthabError extends Error {
   readonly status: number;
   readonly code: string;
   readonly details: unknown;
@@ -12,12 +12,12 @@ export class KeelError extends Error {
     requestId?: string;
   }) {
     super(args.message);
-    this.name = "KeelError";
+    this.name = "AuthabError";
     this.status = args.status;
     this.code = args.code;
     this.details = args.details;
     this.requestId = args.requestId;
-    Object.setPrototypeOf(this, KeelError.prototype);
+    Object.setPrototypeOf(this, AuthabError.prototype);
   }
 
   toJSON() {
@@ -32,6 +32,6 @@ export class KeelError extends Error {
   }
 }
 
-export function isKeelError(error: unknown): error is KeelError {
-  return error instanceof KeelError;
+export function isAuthabError(error: unknown): error is AuthabError {
+  return error instanceof AuthabError;
 }

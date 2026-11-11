@@ -44,7 +44,7 @@ export async function consumeRateLimit(
       resetAt: new Date(row.resetAt).getTime(),
     };
   } catch (error) {
-    console.error("[keel] durable rate limiter unavailable, using in-memory fallback", error);
+    console.error("[authab] durable rate limiter unavailable, using in-memory fallback", error);
     return checkRateLimit(key, limit, windowMs);
   }
 }

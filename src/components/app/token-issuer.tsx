@@ -11,7 +11,7 @@ export function TokenIssuer({ agentId, keyMode }: { agentId: string; keyMode: st
     return (
       <p className="text-[12px] leading-relaxed text-black/50 dark:text-muted-foreground">
         This agent holds its own private key. Issue tokens from your backend with a signed challenge, or rotate to a
-        Keel-managed key from the identity panel.
+        Authab-managed key from the identity panel.
       </p>
     );
   }

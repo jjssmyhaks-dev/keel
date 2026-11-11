@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Keel — Identity, vault and governance for AI agents",
-    short_name: "Keel",
+    name: "Authab — Identity, vault and governance for AI agents",
+    short_name: "Authab",
     description:
       "Give every AI agent a short-lived cryptographic identity, a vault it can use but never read, and permissions a human approved.",
     start_url: "/",

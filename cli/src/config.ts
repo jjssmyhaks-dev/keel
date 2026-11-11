@@ -1,7 +1,7 @@
 import { chmod, mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { Keel } from "@keel/sdk";
+import { Authab } from "@authab/sdk";
 import { UsageError, flagString, type ParsedArgs } from "./args";
 
 export interface Profile {
@@ -14,7 +14,7 @@ interface ConfigFile {
   profiles: Record<string, Profile>;
 }
 
-export const CONFIG_PATH = process.env.KEEL_CONFIG ?? join(homedir(), ".keel", "config.json");
+export const CONFIG_PATH = process.env.AUTHAB_CONFIG ?? join(homedir(), ".authab", "config.json");
 
 export async function loadConfig(): Promise<ConfigFile> {
   try {
@@ -27,7 +27,7 @@ export async function loadConfig(): Promise<ConfigFile> {
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return { profiles: {} };
     if (error instanceof SyntaxError) {
-      throw new UsageError(`${CONFIG_PATH} is not valid JSON. Fix or remove it, then run keel login again.`);
+      throw new UsageError(`${CONFIG_PATH} is not valid JSON. Fix or remove it, then run authab login again.`);
     }
     throw error;
   }
@@ -44,16 +44,16 @@ export async function saveProfile(name: string, profile: Profile, makeDefault = 
   await rename(temp, CONFIG_PATH);
 }
 
-export async function resolveClient(args: ParsedArgs): Promise<{ keel: Keel; profileName: string; baseUrl: string }> {
-  const envKey = process.env.KEEL_API_KEY;
-  const requested = flagString(args, "env") ?? process.env.KEEL_ENV;
+export async function resolveClient(args: ParsedArgs): Promise<{ authab: Authab; profileName: string; baseUrl: string }> {
+  const envKey = process.env.AUTHAB_API_KEY;
+  const requested = flagString(args, "env") ?? process.env.AUTHAB_ENV;
   const baseUrlFlag = flagString(args, "base-url");
-  const baseUrlEnv = process.env.KEEL_BASE_URL;
+  const baseUrlEnv = process.env.AUTHAB_BASE_URL;
 
   if (envKey) {
-    const baseUrl = baseUrlFlag ?? baseUrlEnv ?? "https://api.keel.dev/v1";
+    const baseUrl = baseUrlFlag ?? baseUrlEnv ?? "https://api.authab.dev/v1";
     return {
-      keel: new Keel({ apiKey: envKey, baseUrl }),
+      authab: new Authab({ apiKey: envKey, baseUrl }),
       profileName: requested ?? "env",
       baseUrl,
     };
@@ -64,17 +64,17 @@ export async function resolveClient(args: ParsedArgs): Promise<{ keel: Keel; pro
   if (!name || !config.profiles[name]) {
     if (!requested && config.defaultProfile === undefined) {
       throw new UsageError(
-        "No Keel credentials found. Run `keel login --api-key sk_...` or set KEEL_API_KEY.",
+        "No Authab credentials found. Run `authab login --api-key sk_...` or set AUTHAB_API_KEY.",
       );
     }
     throw new UsageError(
-      `No stored key for profile “${name ?? "default"}”. Run \`keel login --env ${name ?? "production"} --api-key sk_...\`.`,
+      `No stored key for profile “${name ?? "default"}”. Run \`authab login --env ${name ?? "production"} --api-key sk_...\`.`,
     );
   }
   const profile = config.profiles[name];
-  const baseUrl = baseUrlFlag ?? profile.baseUrl ?? baseUrlEnv ?? "https://api.keel.dev/v1";
+  const baseUrl = baseUrlFlag ?? profile.baseUrl ?? baseUrlEnv ?? "https://api.authab.dev/v1";
   return {
-    keel: new Keel({ apiKey: profile.apiKey, baseUrl }),
+    authab: new Authab({ apiKey: profile.apiKey, baseUrl }),
     profileName: name,
     baseUrl,
   };

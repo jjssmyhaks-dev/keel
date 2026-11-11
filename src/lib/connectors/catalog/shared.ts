@@ -22,4 +22,4 @@ export function actionFactory(slug: string) {
   });
 }
 
-export const docsBase = "https://keel.dev/docs/connectors";
+export const docsBase = "https://authab.dev/docs/connectors";

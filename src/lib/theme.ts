@@ -7,7 +7,7 @@ export type Theme = {
   swatches: [string, string, string];
 };
 
-export const THEME_COOKIE = "keel_theme";
+export const THEME_COOKIE = "authab_theme";
 
 export const THEMES: Theme[] = [
   {

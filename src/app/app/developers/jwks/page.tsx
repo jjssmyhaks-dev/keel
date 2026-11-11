@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "JWKS",
-  description: "Public signing keys for verifying Keel agent tokens.",
+  description: "Public signing keys for verifying Authab agent tokens.",
 };
 
 export default async function JwksPage() {

@@ -1,10 +1,10 @@
-"""Wire the same Keel grants into LangChain, CrewAI and the OpenAI Agents SDK.
+"""Wire the same Authab grants into LangChain, CrewAI and the OpenAI Agents SDK.
 
 Install the extras first:
-    pip install "keel-sdk[all]"
+    pip install "authab-sdk[all]"
 
 Usage:
-    KEEL_API_KEY=sk_dev_... KEEL_AGENT_ID=agt_atlas python python/examples/framework_tools.py
+    AUTHAB_API_KEY=sk_dev_... AUTHAB_AGENT_ID=agt_atlas python python/examples/framework_tools.py
 """
 
 import os
@@ -14,13 +14,13 @@ from pathlib import Path
 # Allow running from a checkout without `pip install -e ./python`.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from keel import Keel, KeelError
+from authab import Authab, AuthabError
 
 
 def show(label: str, build) -> None:
     try:
         tools = build()
-    except KeelError as error:
+    except AuthabError as error:
         print(f"{label}: {error.message}")
         return
     print(f"{label}: {len(tools)} tools")
@@ -30,17 +30,17 @@ def show(label: str, build) -> None:
 
 
 def main() -> None:
-    keel = Keel.from_env()
-    agent_id = os.environ["KEEL_AGENT_ID"]
+    authab = Authab.from_env()
+    agent_id = os.environ["AUTHAB_AGENT_ID"]
 
-    from keel.integrations.crewai import keel_crewai_tools
-    from keel.integrations.langchain import keel_langchain_tools, keel_langgraph_tool_node
-    from keel.integrations.openai_agents import keel_openai_agents_tools
+    from authab.integrations.crewai import authab_crewai_tools
+    from authab.integrations.langchain import authab_langchain_tools, authab_langgraph_tool_node
+    from authab.integrations.openai_agents import authab_openai_agents_tools
 
-    show("LangChain", lambda: keel_langchain_tools(keel, agent_id))
-    show("LangGraph ToolNode", lambda: [keel_langgraph_tool_node(keel, agent_id)])
-    show("CrewAI", lambda: keel_crewai_tools(keel, agent_id))
-    show("OpenAI Agents", lambda: keel_openai_agents_tools(keel, agent_id))
+    show("LangChain", lambda: authab_langchain_tools(authab, agent_id))
+    show("LangGraph ToolNode", lambda: [authab_langgraph_tool_node(authab, agent_id)])
+    show("CrewAI", lambda: authab_crewai_tools(authab, agent_id))
+    show("OpenAI Agents", lambda: authab_openai_agents_tools(authab, agent_id))
 
 
 if __name__ == "__main__":

@@ -21,7 +21,7 @@ const resend: Connector = {
     {
       key: "default_from",
       label: "Default sender",
-      placeholder: "Keel <agents@acme.dev>",
+      placeholder: "Authab <agents@acme.dev>",
       help: "Optional. Used when an action omits the from address. Must belong to a verified domain.",
     },
   ],
@@ -40,7 +40,7 @@ const resend: Connector = {
   actions: [
     action("send_email", "Send email", "POST", "/emails", "write", "Send one email. Supports idempotency keys and an allowlist of recipient domains.", {
       fields: [
-        { key: "from", label: "From", placeholder: "Keel <agents@acme.dev>", required: true },
+        { key: "from", label: "From", placeholder: "Authab <agents@acme.dev>", required: true },
         { key: "to", label: "To", placeholder: "ops@acme.dev", required: true },
         { key: "subject", label: "Subject", placeholder: "Deploy finished", required: true },
         { key: "text", label: "Body", placeholder: "Build 1842 is live." },

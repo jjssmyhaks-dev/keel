@@ -82,7 +82,7 @@ async function deliver(opts: {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: `*${opts.title}*\n${opts.body}\n${appUrl("/app/security")}` }),
       signal: AbortSignal.timeout(5000),
-    }).catch((error) => console.error("[keel:alerts] slack delivery failed", error));
+    }).catch((error) => console.error("[authab:alerts] slack delivery failed", error));
   }
 
   if (members.length) {

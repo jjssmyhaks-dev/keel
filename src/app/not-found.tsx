@@ -6,7 +6,7 @@ export default function NotFound() {
     <main className="min-h-screen bg-background text-foreground flex flex-col">
       <header className="border-b border-foreground/10">
         <div className="mx-auto flex h-16 w-full max-w-[1400px] items-center justify-between px-6 lg:px-12">
-          <Link href="/" aria-label="Keel home">
+          <Link href="/" aria-label="Authab home">
             <Logo />
           </Link>
           <div className="flex items-center gap-5 font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/50">
@@ -31,7 +31,7 @@ export default function NotFound() {
             href="/"
             className="inline-flex h-12 items-center bg-foreground px-6 text-sm font-medium text-background hover:bg-foreground/90"
           >
-            Back to Keel
+            Back to Authab
           </Link>
           <Link
             href="/docs"
@@ -44,7 +44,7 @@ export default function NotFound() {
 
       <footer className="border-t border-foreground/10 px-6 py-6 lg:px-12">
         <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/35">
-          <span>Keel Systems</span>
+          <span>Authab Systems</span>
           <Link href="/status" className="hover:text-foreground">All systems monitored</Link>
         </div>
       </footer>

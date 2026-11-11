@@ -51,9 +51,9 @@ def verify_webhook(
     tolerance_seconds: int = 300,
     now: Optional[float] = None,
 ) -> bool:
-    """Verify a Keel webhook delivery.
+    """Verify a Authab webhook delivery.
 
-    ``header`` is the ``Keel-Signature`` value: ``t=<unix-seconds>,v1=<hex
+    ``header`` is the ``Authab-Signature`` value: ``t=<unix-seconds>,v1=<hex
     HMAC-SHA256 of "t.body">``. ``body`` must be the exact raw request body.
     """
 

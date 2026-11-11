@@ -1,12 +1,12 @@
 {
-  "name": "@keel/cli",
+  "name": "@authab/cli",
   "version": "1.0.0",
-  "description": "Command line interface for Keel — agents, vault, grants, approvals, calls and audit.",
+  "description": "Command line interface for Authab — agents, vault, grants, approvals, calls and audit.",
   "license": "MIT",
-  "homepage": "https://keel.dev/docs/cli",
+  "homepage": "https://authab.dev/docs/cli",
   "repository": { "type": "git", "url": "https://github.com/jjssmyhaks-dev/keel" },
   "type": "commonjs",
-  "bin": { "keel": "dist/keel.js" },
+  "bin": { "authab": "dist/authab.js" },
   "files": ["dist", "README.md"],
   "engines": { "node": ">=20" },
   "scripts": {

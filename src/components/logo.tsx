@@ -26,7 +26,7 @@ export function Logo({
           <circle cx="47" cy="47" r="4" fill="#eca8d6" />
         </svg>
       )}
-      <span className="font-display text-[1.35em] leading-none tracking-tight">KEEL</span>
+      <span className="font-display text-[1.35em] leading-none tracking-tight">AUTHAB</span>
       <span className="font-mono text-[9px] leading-none opacity-50 -translate-y-1.5">TM</span>
     </span>
   );

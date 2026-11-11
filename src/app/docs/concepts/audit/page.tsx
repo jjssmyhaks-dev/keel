@@ -116,7 +116,7 @@ body = {
         Export the raw chain as CSV or JSONL with the same fields as the API:
       </p>
       <pre>{`GET /v1/audit/export?format=csv&from=2026-10-01&to=2026-10-31
-# x-keel-export-count: 18422
+# x-authab-export-count: 18422
 
 GET /v1/audit?limit=100&order=asc&before=4200
 GET /v1/audit/export?format=jsonl&agent=agt_ledger`}</pre>
@@ -128,7 +128,7 @@ GET /v1/audit/export?format=jsonl&agent=agt_ledger`}</pre>
       <p>
         For near-real-time delivery, subscribe webhooks to <code>proxy.call</code>,{" "}
         <code>approval.requested</code> and <code>approval.decided</code>. Each delivery is signed with{" "}
-        <code>Keel-Signature: t=…,v1=…</code> (HMAC-SHA256 over <code>timestamp.body</code>), includes a stable event
+        <code>Authab-Signature: t=…,v1=…</code> (HMAC-SHA256 over <code>timestamp.body</code>), includes a stable event
         id, and retries with backoff. Treat webhooks as a notification channel, not the system of record — reconcile
         against the export.
       </p>

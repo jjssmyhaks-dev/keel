@@ -12,7 +12,7 @@ export default function ApprovalsPage() {
     <DocsShell
       eyebrow="Concepts"
       title="Approvals"
-      intro="Approvals are how an agent escalates instead of failing. The request is stored with a redacted payload, sent to the people who can decide, and executed by Keel once a human approves — never by the agent."
+      intro="Approvals are how an agent escalates instead of failing. The request is stored with a redacted payload, sent to the people who can decide, and executed by Authab once a human approves — never by the agent."
       updated="31 October 2026"
       aside={
         <DocsAside
@@ -37,7 +37,7 @@ export default function ApprovalsPage() {
       </p>
       <pre>{`agent request ──▶ policy: require_approval
                 ├─ 202 { status: "pending_approval", approval, approvalUrl }
-                ├─ human approves ──▶ Keel executes ──▶ status: approved
+                ├─ human approves ──▶ Authab executes ──▶ status: approved
                 └─ human denies   ──▶ status: denied`}</pre>
 
       <h2 id="request">What is stored</h2>
@@ -71,7 +71,7 @@ export default function ApprovalsPage() {
         stored on the approval and shown on its page.
       </p>
       <Callout tone="warning" title="Approval is not idempotent by itself">
-        If the provider succeeds but the network drops before Keel records the result, the approval is marked{" "}
+        If the provider succeeds but the network drops before Authab records the result, the approval is marked{" "}
         <code>failed</code> rather than retried automatically. Check the provider before deciding again. Provider
         idempotency keys are your second line of defence for financial actions.
       </Callout>
@@ -79,7 +79,7 @@ export default function ApprovalsPage() {
       <h2 id="polling">Polling safely</h2>
       <p>
         The agent gets a <code>202</code> with the approval id. Retry the identical proxy request with the same{" "}
-        <code>Idempotency-Key</code>: while the approval is pending Keel replays the <code>202</code>; after a decision
+        <code>Idempotency-Key</code>: while the approval is pending Authab replays the <code>202</code>; after a decision
         it replays the final outcome — <code>200 executed</code> with the provider result, or <code>403</code> if the
         approval was denied or expired. The provider is never called twice for the same key.
       </p>
@@ -99,7 +99,7 @@ POST /v1/proxy/slack        Idempotency-Key: slack-post-launch-v3
 
       <h2 id="links">Approval links</h2>
       <p>
-        Each request carries an HMAC-signed token. The link <code>https://keel.dev/approve/&lt;signed-token&gt;</code>{" "}
+        Each request carries an HMAC-signed token. The link <code>https://authab.dev/approve/&lt;signed-token&gt;</code>{" "}
         opens a minimal decision page without requiring a dashboard session, but still requires the viewer to be signed
         in as a member with approval rights. Links expire with the request and cannot be replayed after a decision.
       </p>

@@ -13,7 +13,7 @@ await build({
   target: "node20",
   format: "cjs",
   banner: { js: "#!/usr/bin/env node" },
-  alias: { "@keel/sdk": resolve(pkg, "../sdk/src/index.ts") },
+  alias: { "@authab/sdk": resolve(pkg, "../sdk/src/index.ts") },
   sourcemap: false,
   logLevel: "info",
 });

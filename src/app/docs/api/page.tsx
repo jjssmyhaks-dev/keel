@@ -95,7 +95,7 @@ export default function ApiReferencePage() {
       }
     >
       <h2 id="base">Base URL</h2>
-      <pre>{`https://api.keel.dev/v1`}</pre>
+      <pre>{`https://api.authab.dev/v1`}</pre>
       <p>
         The machine-readable specification is at <a href="/api/v1/openapi">/api/v1/openapi</a>. Generate a client from it
         if you are not using the <Link href="/docs/sdk">TypeScript SDK</Link>. Deployments serve the same paths under
@@ -162,7 +162,7 @@ Content-Type: application/json
       </p>
       <Callout title="Connector selection">
         The <code>:connector</code> segment must match the credential&apos;s connector. If <code>credentialId</code> is
-        omitted, Keel picks the oldest non-revoked credential for that connector in the environment. Multi-account
+        omitted, Authab picks the oldest non-revoked credential for that connector in the environment. Multi-account
         teams should always pass <code>credentialId</code>.
       </Callout>
 

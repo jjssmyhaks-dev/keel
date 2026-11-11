@@ -1,12 +1,12 @@
-# @keel/mcp
+# @authab/mcp
 
-An MCP server that lets Claude, Cursor and other MCP hosts use Keel-governed connectors. Every call goes through the same policy, grants, approvals and audit as the API — the model gets tools, not credentials. Zero runtime dependencies; JSON-RPC 2.0 over stdio; Node 20+.
+An MCP server that lets Claude, Cursor and other MCP hosts use Authab-governed connectors. Every call goes through the same policy, grants, approvals and audit as the API — the model gets tools, not credentials. Zero runtime dependencies; JSON-RPC 2.0 over stdio; Node 20+.
 
-The package ships in the Keel repository; npm publication is pending the public launch. From a checkout:
+The package ships in the Authab repository; npm publication is pending the public launch. From a checkout:
 
 ```bash
-git clone https://github.com/jjssmyhaks-dev/keel.git
-cd keel && npm ci && npm run mcp:build
+git clone https://github.com/jjssmyhaks-dev/keel.git authab
+cd authab && npm ci && npm run mcp:build
 ```
 
 Configure a host:
@@ -14,38 +14,38 @@ Configure a host:
 ```json
 {
   "mcpServers": {
-    "keel": {
+    "authab": {
       "command": "node",
-      "args": ["/absolute/path/to/keel/mcp/dist/server.js"],
+      "args": ["/absolute/path/to/authab/mcp/dist/server.js"],
       "env": {
-        "KEEL_API_KEY": "sk_dev_...",
-        "KEEL_AGENT_ID": "agt_...",
-        "KEEL_BASE_URL": "https://api.keel.dev/v1"
+        "AUTHAB_API_KEY": "sk_dev_...",
+        "AUTHAB_AGENT_ID": "agt_...",
+        "AUTHAB_BASE_URL": "https://api.authab.dev/v1"
       }
     }
   }
 }
 ```
 
-`KEEL_API_KEY` must be a secret key for the agent's environment. `KEEL_AGENT_ID` fixes the identity the tools run as, so the model cannot choose a different agent. `KEEL_BASE_URL` is optional.
+`AUTHAB_API_KEY` must be a secret key for the agent's environment. `AUTHAB_AGENT_ID` fixes the identity the tools run as, so the model cannot choose a different agent. `AUTHAB_BASE_URL` is optional.
 
 ## Tools
 
 | Tool | Purpose |
 | --- | --- |
-| `keel_whoami` | Confirm the agent, environment, project and granted scopes. |
-| `keel_list_connections` | Connections this agent can reach, with masked hints, actions and approval mode. |
-| `keel_list_actions` | Granted actions per connection, with risk levels; optional `connector` filter. |
-| `keel_call` | Make a governed connector call. Returns `executed` or `pending_approval`; policy denials are errors with a code. |
-| `keel_pending_approvals` | This agent's pending approvals. |
-| `keel_approval_status` | Status and result of one approval. |
-| `keel_search_audit` | Recent audit events, filtered by action prefix or outcome. |
+| `authab_whoami` | Confirm the agent, environment, project and granted scopes. |
+| `authab_list_connections` | Connections this agent can reach, with masked hints, actions and approval mode. |
+| `authab_list_actions` | Granted actions per connection, with risk levels; optional `connector` filter. |
+| `authab_call` | Make a governed connector call. Returns `executed` or `pending_approval`; policy denials are errors with a code. |
+| `authab_pending_approvals` | This agent's pending approvals. |
+| `authab_approval_status` | Status and result of one approval. |
+| `authab_search_audit` | Recent audit events, filtered by action prefix or outcome. |
 
 There is deliberately no tool to approve a request. A human decides in the dashboard or from the approval link; the model can only observe status.
 
 ## Hosted gateway
 
-For hosted or remote MCP clients, the Keel app itself serves a stateless **Streamable HTTP** gateway at `POST /api/mcp`. It authenticates with a short-lived agent token (minted with a secret key through `POST /api/v1/agents/:id/token`), speaks JSON-RPC 2.0 over POST, and expands the agent's grants into one tool per granted action — `slack_post_message`, `github_list_repos` — with a JSON schema derived from the connector fields. Token scopes narrow the list further, and approvals, policy, rate limits and audit are identical to the stdio server and the REST proxy.
+For hosted or remote MCP clients, the Authab app itself serves a stateless **Streamable HTTP** gateway at `POST /api/mcp`. It authenticates with a short-lived agent token (minted with a secret key through `POST /api/v1/agents/:id/token`), speaks JSON-RPC 2.0 over POST, and expands the agent's grants into one tool per granted action — `slack_post_message`, `github_list_repos` — with a JSON schema derived from the connector fields. Token scopes narrow the list further, and approvals, policy, rate limits and audit are identical to the stdio server and the REST proxy.
 
 For `2025-03-26` and `2024-11-05`, `POST` also accepts a batch: a JSON array of up to 20 requests, answered with one response per request in order under a single bearer token. Notifications add no entry, an all-notification batch returns `202`, and `initialize` must be sent alone. Protocol `2025-06-18` removed batching, so requests that declare that version must send a single object.
 
@@ -54,7 +54,7 @@ For `2025-03-26` and `2024-11-05`, `POST` also accepts a batch: a JSON array of 
 ## What the host sees
 
 ```text
-keel_call { connector: "slack", action: "slack.post_message",
+authab_call { connector: "slack", action: "slack.post_message",
             resource: "#research-launch",
             input: { channel: "#research-launch", text: "Launch brief v3." } }
 ```
@@ -80,8 +80,8 @@ Manual smoke test over stdio:
 printf '%s\n' \
   '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"smoke","version":"1"}}}' \
   '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
-  '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"keel_whoami","arguments":{}}}' \
-  | KEEL_API_KEY=sk_dev_... KEEL_AGENT_ID=agt_... node mcp/dist/server.js
+  '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"authab_whoami","arguments":{}}}' \
+  | AUTHAB_API_KEY=sk_dev_... AUTHAB_AGENT_ID=agt_... node mcp/dist/server.js
 ```
 
 The server supports `initialize`, `ping`, `tools/list` and `tools/call`, and answers unknown methods with JSON-RPC `-32601`. It ignores notifications and drains queued calls before exiting when stdin closes.

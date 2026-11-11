@@ -33,7 +33,7 @@ export default async function InvitePage({
           Ask an owner or admin in the workspace to send a new invitation. Invitation links expire after seven days.
         </p>
         <Link href="/sign-in" className="mt-8 inline-flex border border-black bg-black px-5 py-3 font-mono text-xs uppercase tracking-widest text-white">
-          Sign in to Keel
+          Sign in to Authab
         </Link>
       </Shell>
     );
@@ -143,7 +143,7 @@ export default async function InvitePage({
               href="/sign-in"
               className="mt-6 inline-block font-mono text-[10px] uppercase tracking-[0.2em] underline"
             >
-              Sign in to Keel
+              Sign in to Authab
             </Link>
           )}
         </div>
@@ -166,7 +166,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     <main className="min-h-screen bg-[var(--paper)] text-black">
       <header className="border-b border-black/10">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-5">
-          <Link href="/" aria-label="Keel home">
+          <Link href="/" aria-label="Authab home">
             <Logo tone="dark" />
           </Link>
           <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
@@ -176,7 +176,7 @@ function Shell({ children }: { children: React.ReactNode }) {
       </header>
       <div className="mx-auto max-w-4xl px-6 py-14 md:py-20">{children}</div>
       <footer className="mx-auto max-w-4xl px-6 pb-12 text-[11px] leading-relaxed text-muted-foreground">
-        This link is single-purpose and expires after seven days. Keel never puts credentials in email.
+        This link is single-purpose and expires after seven days. Authab never puts credentials in email.
       </footer>
     </main>
   );

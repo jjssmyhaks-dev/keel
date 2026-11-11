@@ -120,7 +120,7 @@ export default async function DevelopersPage({
                 <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#245f47]">Signing secret — shown once</p>
                 <pre className="mt-1 break-all font-mono text-[10px] text-[#245f47]">{issuedUrl}</pre>
                 <p className="mt-1 text-[10px] text-[#245f47]/80">
-                  Verify with <span className="font-mono">Keel-Signature: t=&lt;ts&gt;,v1=&lt;hmac&gt;</span> over <span className="font-mono">&lt;ts&gt;.&lt;body&gt;</span>.
+                  Verify with <span className="font-mono">Authab-Signature: t=&lt;ts&gt;,v1=&lt;hmac&gt;</span> over <span className="font-mono">&lt;ts&gt;.&lt;body&gt;</span>.
                 </p>
               </div>
             ) : null}
@@ -131,7 +131,7 @@ export default async function DevelopersPage({
                   name="url"
                   type="url"
                   required
-                  placeholder="https://example.com/hooks/keel"
+                  placeholder="https://example.com/hooks/authab"
                   className="w-full border border-black/15 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
                 />
                 <div className="grid gap-1.5 sm:grid-cols-2">
@@ -229,7 +229,7 @@ export default async function DevelopersPage({
 
           <Panel title="Quick start" hint="Call the proxy from an agent" bodyClassName="p-0">
             <pre className="overflow-auto bg-[#0b0b0b] p-4 font-mono text-[10px] leading-relaxed text-[#e8e6e1]">{`curl -X POST ${origin}/api/v1/proxy/slack \\
-  -H "Authorization: Bearer $KEEL_AGENT_TOKEN" \\
+  -H "Authorization: Bearer $AUTHAB_AGENT_TOKEN" \\
   -H "Content-Type: application/json" \\
   -H "Idempotency-Key: $(uuidgen)" \\
   -d '{
@@ -245,8 +245,8 @@ export default async function DevelopersPage({
           <Panel title="Tooling" hint="Ship without hand-rolling crypto" bodyClassName="p-4">
             <div className="space-y-2.5">
               {[
-                { title: "TypeScript SDK", detail: "@keel/sdk — typed clients, token cache, idempotent proxy calls.", href: "/docs/sdk" },
-                { title: "CLI", detail: "keel agents list, keel token issue, keel audit tail.", href: "/docs/cli" },
+                { title: "TypeScript SDK", detail: "@authab/sdk — typed clients, token cache, idempotent proxy calls.", href: "/docs/sdk" },
+                { title: "CLI", detail: "authab agents list, authab token issue, authab audit tail.", href: "/docs/cli" },
                 { title: "MCP server", detail: "Expose governed tools to Claude, Cursor and other MCP hosts.", href: "/docs/mcp" },
               ].map((item) => (
                 <Link key={item.title} href={item.href} className="block border border-black/10 p-3 transition-colors hover:border-black/35 dark:border-border">

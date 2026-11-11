@@ -6,7 +6,7 @@ import { POSTS } from "@/lib/blog";
 
 export const metadata: Metadata = {
   title: "Blog",
-  description: "Notes on agent identity, governance and audit from the Keel team.",
+  description: "Notes on agent identity, governance and audit from the Authab team.",
 };
 
 export default function BlogPage() {

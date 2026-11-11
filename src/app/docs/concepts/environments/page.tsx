@@ -63,7 +63,7 @@ export default function EnvironmentsPage() {
       </table>
       <p>
         Every environment calls providers for real. Policy, approvals, rate limits and audit run before any request
-        leaves Keel, and the response returned to the agent is the provider&apos;s own status and body. Calls are capped
+        leaves Authab, and the response returned to the agent is the provider&apos;s own status and body. Calls are capped
         at 2 MB, must stay on the connector&apos;s allowed hosts, and cannot follow a redirect to a different origin.
       </p>
 
@@ -89,7 +89,7 @@ agt_atlas  ──promote──▶  agt_atlas_prod (new keypair)
 
       <h2 id="readiness">Readiness checks</h2>
       <p>
-        Before the confirmation step, Keel evaluates the development agent and blocks or warns:
+        Before the confirmation step, Authab evaluates the development agent and blocks or warns:
       </p>
       <table>
         <thead>

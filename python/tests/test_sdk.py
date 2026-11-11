@@ -13,7 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from keel import AsyncKeel, Keel, KeelError, generate_agent_keypair, sign_challenge, verify_webhook
+from authab import AsyncAuthab, Authab, AuthabError, generate_agent_keypair, sign_challenge, verify_webhook
 
 
 class FakeApp:
@@ -67,19 +67,19 @@ class ApiTestCase(unittest.TestCase):
         self.server.server_close()
         self.thread.join(timeout=2)
 
-    def client(self, **options) -> Keel:
+    def client(self, **options) -> Authab:
         options.setdefault("max_retries", 0)
         options.setdefault("timeout_ms", 5000)
-        return Keel("sk_test_123", base_url=self.base_url, **options)
+        return Authab("sk_test_123", base_url=self.base_url, **options)
 
 
 class TransportTests(ApiTestCase):
     def test_requires_a_secret_key(self):
-        with self.assertRaises(KeelError) as missing:
-            Keel("")
+        with self.assertRaises(AuthabError) as missing:
+            Authab("")
         self.assertEqual(missing.exception.code, "missing_api_key")
-        with self.assertRaises(KeelError) as publishable:
-            Keel("pk_live_123")
+        with self.assertRaises(AuthabError) as publishable:
+            Authab("pk_live_123")
         self.assertEqual(publishable.exception.code, "publishable_key_not_allowed")
 
     def test_sends_auth_query_and_json(self):
@@ -94,7 +94,7 @@ class TransportTests(ApiTestCase):
         self.assertEqual(request["method"], "GET")
         self.assertEqual(request["path"], "/v1/agents?status=active&limit=5")
         self.assertEqual(request["headers"]["authorization"], "Bearer sk_test_123")
-        self.assertIn("keel-python/1.0.0", request["headers"]["user-agent"])
+        self.assertIn("authab-python/1.0.0", request["headers"]["user-agent"])
 
     def test_snake_case_input_maps_to_api_fields(self):
         self.app.responder = lambda method, path, headers, body: (200, {}, {"id": "agt_1"})
@@ -113,7 +113,7 @@ class TransportTests(ApiTestCase):
         self.assertTrue(payload["autonomousMode"])
         self.assertNotIn("framework", payload)
 
-    def test_error_response_becomes_keel_error(self):
+    def test_error_response_becomes_authab_error(self):
         self.app.responder = lambda method, path, headers, body: (
             403,
             {"x-request-id": "req_123"},
@@ -126,7 +126,7 @@ class TransportTests(ApiTestCase):
                 }
             },
         )
-        with self.assertRaises(KeelError) as caught:
+        with self.assertRaises(AuthabError) as caught:
             self.client().agents.get("agt_1")
         error = caught.exception
         self.assertEqual(error.status, 403)
@@ -150,7 +150,7 @@ class TransportTests(ApiTestCase):
             {},
             {"error": {"code": "boom", "message": "down"}},
         )
-        with self.assertRaises(KeelError):
+        with self.assertRaises(AuthabError):
             self.client(max_retries=2).agents.create("Atlas")
         self.assertEqual(len(self.app.requests), 1)
 
@@ -169,7 +169,7 @@ class TransportTests(ApiTestCase):
 
     def test_async_client_works(self):
         self.app.responder = lambda method, path, headers, body: (200, {}, {"object": "api_key_context"})
-        client = AsyncKeel("sk_test_123", base_url=self.base_url)
+        client = AsyncAuthab("sk_test_123", base_url=self.base_url)
         self.assertEqual(asyncio.run(client.me())["object"], "api_key_context")
 
     @staticmethod
@@ -230,7 +230,7 @@ class ProxyTests(ApiTestCase):
             {
                 "status": "pending_approval",
                 "approval": {"id": "apr_1", "status": "pending"},
-                "approvalUrl": "https://keel.dev/approvals/apr_1",
+                "approvalUrl": "https://authab.dev/approvals/apr_1",
             },
         )
         result = self.client().proxy.call(action="stripe.refund", input={}, token="tok")
@@ -245,7 +245,7 @@ class ProxyTests(ApiTestCase):
         try:
             import cryptography  # noqa: F401
         except ImportError:
-            with self.assertRaises(KeelError) as caught:
+            with self.assertRaises(AuthabError) as caught:
                 sign_challenge("agt_1", "not-a-key")
             self.assertEqual(caught.exception.code, "signing_dependency_missing")
 
@@ -285,7 +285,7 @@ class SigningTests(unittest.TestCase):
                 return 200, {}, {"accessToken": "tok", "expiresAt": "2099-01-01T00:00:00Z"}
 
             app.responder = responder
-            client = Keel("sk_test", base_url=f"http://127.0.0.1:{server.server_address[1]}/v1")
+            client = Authab("sk_test", base_url=f"http://127.0.0.1:{server.server_address[1]}/v1")
             client.agents.token("agt_1", private_key=pair["private_key"], ttl=120)
             payload = json.loads(app.requests[0]["body"])
             self.assertEqual(payload["ttl"], 120)

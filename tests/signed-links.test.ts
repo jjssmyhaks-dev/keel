@@ -56,7 +56,7 @@ test("rejects unknown versions and malformed links", () => {
 });
 
 test("builds an approval URL without duplicate slashes", () => {
-  process.env.APP_URL = "https://keel.example/";
+  process.env.APP_URL = "https://authab.example/";
   const url = approvalUrlFor("approval_url");
-  assert.ok(url.startsWith("https://keel.example/approve/apr1.approval_url."));
+  assert.ok(url.startsWith("https://authab.example/approve/apr1.approval_url."));
 });

@@ -18,16 +18,16 @@ const pick = <T,>(items: T[]) => items[Math.floor(rand() * items.length)];
 const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000);
 
 async function main() {
-  console.log("Seeding Keel demo workspace…");
+  console.log("Seeding Authab demo workspace…");
 
   const existing = await db.organization.findUnique({ where: { slug: "northwind-labs" } });
   if (existing) {
     await db.organization.delete({ where: { id: existing.id } });
   }
 
-  const password = hashPassword("KeelDemo!2026");
+  const password = hashPassword("AuthabDemo!2026");
   const demo = await db.user.upsert({
-    where: { email: "demo@keel.dev" },
+    where: { email: "demo@authab.dev" },
     update: {
       passwordHash: password,
       emailVerifiedAt: new Date(),
@@ -36,7 +36,7 @@ async function main() {
       avatarUrl: null,
     },
     create: {
-      email: "demo@keel.dev",
+      email: "demo@authab.dev",
       name: "Ashif Khan",
       passwordHash: password,
       emailVerifiedAt: new Date(),
@@ -382,7 +382,7 @@ async function main() {
     env: dev,
     connectorSlug: "slack",
     name: "Northwind workspace",
-    secret: { accessToken: "xoxb-demo-4481201932-keel", refreshToken: "xoxr-demo", scopes: ["channels:read", "chat:write", "files:write"] },
+    secret: { accessToken: "xoxb-demo-4481201932-authab", refreshToken: "xoxr-demo", scopes: ["channels:read", "chat:write", "files:write"] },
     mask: "••••932",
     type: "oauth",
     expiresInDays: 27,
@@ -958,7 +958,7 @@ async function main() {
   await db.webhookEndpoint.create({
     data: {
       environmentId: dev.id,
-      url: "https://hooks.northwind.dev/keel",
+      url: "https://hooks.northwind.dev/authab",
       secret: await storeWebhookSecret(project.id, "whsec_demo_northwind_hook"),
       eventsJson: JSON.stringify(["approval.requested", "approval.decided", "agent.status_changed", "credential.expiring"]),
       status: "active",
@@ -997,9 +997,9 @@ async function main() {
 
   await db.invoice.createMany({
     data: [
-      { orgId: org.id, number: "KEEL-2026-0042", amount: 399900, currency: "INR", status: "paid", issuedAt: new Date("2026-10-01") },
-      { orgId: org.id, number: "KEEL-2026-0031", amount: 399900, currency: "INR", status: "paid", issuedAt: new Date("2026-09-01") },
-      { orgId: org.id, number: "KEEL-2026-0020", amount: 399900, currency: "INR", status: "paid", issuedAt: new Date("2026-08-01") },
+      { orgId: org.id, number: "AUTHAB-2026-0042", amount: 399900, currency: "INR", status: "paid", issuedAt: new Date("2026-10-01") },
+      { orgId: org.id, number: "AUTHAB-2026-0031", amount: 399900, currency: "INR", status: "paid", issuedAt: new Date("2026-09-01") },
+      { orgId: org.id, number: "AUTHAB-2026-0020", amount: 399900, currency: "INR", status: "paid", issuedAt: new Date("2026-08-01") },
     ],
   });
 
@@ -1078,7 +1078,7 @@ async function main() {
     resourceId: "demo",
     outcome: "recorded",
     timestamp: minutesAgo(600),
-    payloadSummary: { url: "https://hooks.northwind.dev/keel" },
+    payloadSummary: { url: "https://hooks.northwind.dev/authab" },
   });
 
   await auditEvent({
@@ -1103,7 +1103,7 @@ async function main() {
     audit: await db.auditEvent.count(),
   };
   console.log("Seed complete", counts);
-  console.log("Demo login: demo@keel.dev / KeelDemo!2026");
+  console.log("Demo login: demo@authab.dev / AuthabDemo!2026");
   console.log("Dev API key:", demoKeys.devSecret);
 }
 

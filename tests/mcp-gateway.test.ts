@@ -142,11 +142,11 @@ test("a resource input field cannot collide with the call resource", () => {
       connectorSlug: "synthetic",
     },
   ]);
-  assert.equal(tool.resourceKey, "_keel_resource");
+  assert.equal(tool.resourceKey, "_authab_resource");
 
   const { input, resource } = extractGatewayInput(tool, {
     resource: "record_1",
-    _keel_resource: "record_2",
+    _authab_resource: "record_2",
   });
   assert.equal(resource, "record_2");
   assert.equal(input.resource, "record_1");
@@ -259,13 +259,13 @@ test("executing a tool forwards identity, credential and resource to the proxy",
   assert.equal((result.structuredContent as { status: string }).status, "executed");
 });
 
-test("pending approvals and denials keep their Keel semantics", async () => {
+test("pending approvals and denials keep their Authab semantics", async () => {
   const pending = proxyResponseToToolResult({
     status: 202,
     payload: {
       status: "pending_approval",
       approval: { id: "apr_1", status: "pending" },
-      approvalUrl: "https://keel.dev/approve/token",
+      approvalUrl: "https://authab.dev/approve/token",
     },
   });
   assert.equal(pending.isError, false);
@@ -338,7 +338,7 @@ test("MCP endpoint enforces JSON-RPC and bearer auth", async () => {
   assert.match(unauthenticated.headers.get("www-authenticate") ?? "", /Bearer/);
   const authBody = await unauthenticated.json();
   assert.equal(authBody.error.code, -32001);
-  assert.equal(authBody.error.data.keelCode, "missing_agent_token");
+  assert.equal(authBody.error.data.authabCode, "missing_agent_token");
 
   const malformed = await mcpPost(
     new Request("http://localhost:3000/api/mcp", { method: "POST", body: "{not json" }),
@@ -395,8 +395,8 @@ test("registry manifest advertises the gateway, auth and connector catalogue", a
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("access-control-allow-origin"), "*");
   const manifest = await response.json();
-  assert.equal(manifest.name, "dev.keel/gateway");
-  assert.equal(manifest.title, "Keel MCP Gateway");
+  assert.equal(manifest.name, "dev.authab/gateway");
+  assert.equal(manifest.title, "Authab MCP Gateway");
   assert.equal(manifest.protocolVersion, "2025-06-18");
   assert.ok(manifest.protocolVersions.includes("2024-11-05"));
   assert.equal(manifest.transport.type, "streamable-http");

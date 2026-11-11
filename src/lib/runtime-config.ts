@@ -16,7 +16,7 @@ export function runtimeConfigIssues(env: NodeJS.ProcessEnv = process.env): Runti
   if (!rawAppUrl) {
     issues.push({
       key: "APP_URL",
-      message: "Set APP_URL to the public https origin, for example https://keel.dev.",
+      message: "Set APP_URL to the public https origin, for example https://authab.dev.",
     });
   } else {
     try {
@@ -55,7 +55,7 @@ export function assertRuntimeConfig(env: NodeJS.ProcessEnv = process.env) {
   const issues = runtimeConfigIssues(env);
   if (issues.length === 0) return;
   throw new Error(
-    "[keel] Refusing to start in production with broken configuration:\n" +
+    "[authab] Refusing to start in production with broken configuration:\n" +
       issues.map((issue) => `  - ${issue.key}: ${issue.message}`).join("\n"),
   );
 }

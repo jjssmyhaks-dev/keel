@@ -20,7 +20,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="absolute bottom-24 right-24 w-[140px] h-[140px] rounded-full border border-[#eca8d6]/20" />
 
         <div className="relative z-10">
-          <Link href="/" aria-label="Keel home">
+          <Link href="/" aria-label="Authab home">
             <Logo tone="light" className="text-2xl" />
           </Link>
         </div>
@@ -47,7 +47,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         <div className="relative z-10 flex items-center justify-between font-mono text-[10px] text-white/25">
-          <span>© {new Date().getFullYear()} Keel Systems</span>
+          <span>© {new Date().getFullYear()} Authab Systems</span>
           <Link href="/status" className="flex items-center gap-2 hover:text-white/60 transition-colors">
             <span className="w-1.5 h-1.5 rounded-full bg-[#eca8d6]" />
             live status

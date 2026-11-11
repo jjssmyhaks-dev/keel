@@ -745,7 +745,7 @@ export async function inviteMemberAction(formData: FormData) {
   });
   const delivery = await sendEmail({
     to: email,
-    subject: `${ctx.user.name} invited you to ${ctx.org.name} on Keel`,
+    subject: `${ctx.user.name} invited you to ${ctx.org.name} on Authab`,
     html: `<p>${ctx.user.name} invited you to join <strong>${ctx.org.name}</strong> as a ${role}.</p><p><a href="${appUrl(`/invite/${token}`)}">Accept the invitation</a>. This link expires in 7 days.</p>`,
     text: `${ctx.user.name} invited you to ${ctx.org.name} as a ${role}. Accept: ${appUrl(`/invite/${token}`)}`,
   }).catch(() => ({ delivered: false, reason: "error" }));
@@ -1036,9 +1036,9 @@ export async function requestPlanChangeAction(formData: FormData) {
   const to = ctx.org.billingEmail || ctx.user.email;
   await sendEmail({
     to,
-    subject: `Keel plan change requested — ${plan.name}`,
-    text: `Hi ${ctx.user.name},\n\nWe received a request to move ${ctx.org.name} from ${ctx.org.plan} to ${plan.name}. A member of the billing team will reply to confirm pricing and activation.\n\nCurrent workspace: ${appUrl("/app/billing")}\n\n— Keel`,
-    html: `<p>Hi ${ctx.user.name},</p><p>We received a request to move <strong>${ctx.org.name}</strong> from ${ctx.org.plan} to <strong>${plan.name}</strong>. A member of the billing team will reply to confirm pricing and activation.</p><p><a href="${appUrl("/app/billing")}">Open billing</a></p><p>— Keel</p>`,
+    subject: `Authab plan change requested — ${plan.name}`,
+    text: `Hi ${ctx.user.name},\n\nWe received a request to move ${ctx.org.name} from ${ctx.org.plan} to ${plan.name}. A member of the billing team will reply to confirm pricing and activation.\n\nCurrent workspace: ${appUrl("/app/billing")}\n\n— Authab`,
+    html: `<p>Hi ${ctx.user.name},</p><p>We received a request to move <strong>${ctx.org.name}</strong> from ${ctx.org.plan} to <strong>${plan.name}</strong>. A member of the billing team will reply to confirm pricing and activation.</p><p><a href="${appUrl("/app/billing")}">Open billing</a></p><p>— Authab</p>`,
   }).catch(() => null);
 
   revalidatePath("/app/billing");
@@ -1076,7 +1076,7 @@ export async function startCheckoutAction(formData: FormData) {
     });
     checkoutUrl = session.url;
   } catch (error) {
-    console.error("[keel:stripe] checkout session failed", error);
+    console.error("[authab:stripe] checkout session failed", error);
     redirect("/app/billing?error=stripe");
   }
 
@@ -1110,7 +1110,7 @@ export async function openBillingPortalAction() {
     });
     portalUrl = session.url;
   } catch (error) {
-    console.error("[keel:stripe] portal session failed", error);
+    console.error("[authab:stripe] portal session failed", error);
     redirect("/app/billing?error=stripe");
   }
 

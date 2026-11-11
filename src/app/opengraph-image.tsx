@@ -1,11 +1,11 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "Keel — Identity, vault and governance for AI agents";
+export const alt = "Authab — Identity, vault and governance for AI agents";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default async function OpenGraphImage() {
-  const host = (process.env.APP_URL || "https://keel.dev").replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const host = (process.env.APP_URL || "https://authab.dev").replace(/^https?:\/\//, "").replace(/\/$/, "");
 
   return new ImageResponse(
     (
@@ -24,7 +24,7 @@ export default async function OpenGraphImage() {
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10, fontSize: 30, letterSpacing: 8, fontWeight: 700 }}>
-            <span>KEEL</span>
+            <span>AUTHAB</span>
             <span style={{ fontSize: 14, letterSpacing: 2, color: "#777" }}>TM</span>
           </div>
           <div style={{ display: "flex", fontSize: 18, letterSpacing: 4, color: "#777" }}>IDENTITY INFRASTRUCTURE FOR AI AGENTS</div>

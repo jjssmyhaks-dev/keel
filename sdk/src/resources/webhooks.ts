@@ -35,7 +35,7 @@ export class WebhooksResource {
 
 export interface VerifyWebhookOptions {
   secret: string;
-  /** The Keel-Signature header value, e.g. `t=1730563200,v1=ab12...`. */
+  /** The Authab-Signature header value, e.g. `t=1730563200,v1=ab12...`. */
   header: string;
   /** The exact raw request body, before JSON parsing. */
   body: string;
@@ -44,7 +44,7 @@ export interface VerifyWebhookOptions {
 }
 
 /**
- * Verify a Keel webhook delivery. Header format is
+ * Verify a Authab webhook delivery. Header format is
  * `t=<unix-seconds>,v1=<hex HMAC-SHA256 of "t.body">`.
  */
 export function verifyWebhook(options: VerifyWebhookOptions): boolean {

@@ -28,14 +28,14 @@ const principles = [
   {
     number: "04",
     title: "Proof over promises",
-    body: "A log you can edit is a story. Every Keel environment keeps a hash-chained trail, and the product shows you how to verify it yourself.",
+    body: "A log you can edit is a story. Every Authab environment keeps a hash-chained trail, and the product shows you how to verify it yourself.",
   },
 ];
 
 const timeline = [
-  { year: "2024", text: "Keel starts as an internal proxy for a support agent that had been given a production Slack token. The token was the incident." },
+  { year: "2024", text: "Authab starts as an internal proxy for a support agent that had been given a production Slack token. The token was the incident." },
   { year: "2025", text: "The proxy grows identity, a vault and grants. The first design partners run it in front of Stripe and GitHub agents." },
-  { year: "2026", text: "Environments, promotion and signed approvals ship. Keel becomes the control plane between agents and the systems they touch." },
+  { year: "2026", text: "Environments, promotion and signed approvals ship. Authab becomes the control plane between agents and the systems they touch." },
 ];
 
 export default function AboutPage() {
@@ -51,7 +51,7 @@ export default function AboutPage() {
             <span className="text-stroke">a place</span> to belong.
           </h1>
           <div className="mt-12 grid gap-8 border-t border-foreground/10 pt-8 lg:grid-cols-12">
-            <p className="lg:col-span-4 mono-label text-foreground/40">Keel Systems · Bengaluru</p>
+            <p className="lg:col-span-4 mono-label text-foreground/40">Authab Systems · Bengaluru</p>
             <div className="lg:col-span-8 max-w-2xl space-y-4 text-[16px] leading-relaxed text-foreground/70">
               <p>
                 Software is no longer just executed. It decides, drafts, sends and pays. The tools we built for
@@ -59,7 +59,7 @@ export default function AboutPage() {
                 on behalf of someone else, with access to money and communication.
               </p>
               <p>
-                Keel is the missing layer: a place where an agent has an identity, a scoped set of powers, a vault it
+                Authab is the missing layer: a place where an agent has an identity, a scoped set of powers, a vault it
                 can use but not read, and a record of everything it did. We think that layer should be infrastructure,
                 not a folder of environment variables.
               </p>

@@ -15,7 +15,7 @@ import { FooterSection } from "@/components/landing/footer-section";
 import { demoLoginEnabled } from "@/lib/demo";
 
 export const metadata: Metadata = {
-  title: "Keel — Identity, vault and governance for AI agents",
+  title: "Authab — Identity, vault and governance for AI agents",
   description:
     "Give every AI agent a short-lived cryptographic identity, a vault it can use but never read, and permissions a human approved.",
 };

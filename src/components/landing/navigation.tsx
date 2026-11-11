@@ -59,7 +59,7 @@ export function Navigation({ overlay = false }: { overlay?: boolean }) {
             scrolled ? "h-14" : "h-20"
           }`}
         >
-          <Link href="/" aria-label="Keel home" className="flex items-center">
+          <Link href="/" aria-label="Authab home" className="flex items-center">
             <Logo tone={tone} className={`transition-all ${scrolled ? "text-xl" : "text-2xl"}`} />
           </Link>
 

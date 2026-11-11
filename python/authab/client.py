@@ -1,4 +1,4 @@
-"""Keel clients: synchronous by default, with an asyncio wrapper."""
+"""Authab clients: synchronous by default, with an asyncio wrapper."""
 
 from __future__ import annotations
 
@@ -20,8 +20,8 @@ from .resources.webhooks import WebhooksResource
 from .types import ApiKeyContext
 
 
-class Keel:
-    """Server-side Keel client.
+class Authab:
+    """Server-side Authab client.
 
     The key's environment is the client's environment; there is no environment
     parameter to forget. The client is thread-safe: every request opens its own
@@ -50,11 +50,11 @@ class Keel:
         self.connectors = ConnectorsResource(http)
 
     @classmethod
-    def from_env(cls, **options: Any) -> "Keel":
-        """Build a client from ``KEEL_API_KEY`` and optional ``KEEL_BASE_URL``."""
+    def from_env(cls, **options: Any) -> "Authab":
+        """Build a client from ``AUTHAB_API_KEY`` and optional ``AUTHAB_BASE_URL``."""
 
-        api_key = os.environ.get("KEEL_API_KEY", "")
-        base_url = options.pop("base_url", None) or os.environ.get("KEEL_BASE_URL") or None
+        api_key = os.environ.get("AUTHAB_API_KEY", "")
+        base_url = options.pop("base_url", None) or os.environ.get("AUTHAB_BASE_URL") or None
         return cls(api_key, base_url=base_url, **options)
 
     def me(self) -> ApiKeyContext:
@@ -80,8 +80,8 @@ class _AsyncResource:
         return call
 
 
-class AsyncKeel:
-    """Async facade over :class:`Keel`.
+class AsyncAuthab:
+    """Async facade over :class:`Authab`.
 
     Calls are executed on a worker thread, so this works on every Python 3.9+
     runtime without third-party HTTP libraries. Use it when the rest of your
@@ -96,7 +96,7 @@ class AsyncKeel:
         max_retries: int = 2,
         timeout_ms: int = 15_000,
     ) -> None:
-        self._client = Keel(api_key, base_url=base_url, max_retries=max_retries, timeout_ms=timeout_ms)
+        self._client = Authab(api_key, base_url=base_url, max_retries=max_retries, timeout_ms=timeout_ms)
         self.agents = _AsyncResource(self._client.agents)
         self.tokens = _AsyncResource(self._client.tokens)
         self.vault = _AsyncResource(self._client.vault)
@@ -109,13 +109,13 @@ class AsyncKeel:
         self.connectors = _AsyncResource(self._client.connectors)
 
     @classmethod
-    def from_env(cls, **options: Any) -> "AsyncKeel":
-        api_key = os.environ.get("KEEL_API_KEY", "")
-        base_url = options.pop("base_url", None) or os.environ.get("KEEL_BASE_URL") or None
+    def from_env(cls, **options: Any) -> "AsyncAuthab":
+        api_key = os.environ.get("AUTHAB_API_KEY", "")
+        base_url = options.pop("base_url", None) or os.environ.get("AUTHAB_BASE_URL") or None
         return cls(api_key, base_url=base_url, **options)
 
     async def me(self) -> ApiKeyContext:
         return await asyncio.to_thread(self._client.me)
 
 
-__all__ = ["Keel", "AsyncKeel"]
+__all__ = ["Authab", "AsyncAuthab"]

@@ -10,41 +10,41 @@ function fail(message) {
   process.exit(1);
 }
 
-let Keel;
-let KeelError;
+let Authab;
+let AuthabError;
 try {
-  ({ Keel, KeelError } = require("../sdk/dist/index.js"));
+  ({ Authab, AuthabError } = require("../sdk/dist/index.js"));
 } catch {
   fail("Build the SDK first: npm run sdk:build");
 }
 
-const baseUrl = process.env.KEEL_BASE_URL ?? "http://localhost:3000/api/v1";
-const apiKey = process.env.KEEL_API_KEY;
-const agentId = process.env.KEEL_AGENT_ID;
-const connectorSlug = process.env.KEEL_CONNECTOR;
+const baseUrl = process.env.AUTHAB_BASE_URL ?? "http://localhost:3000/api/v1";
+const apiKey = process.env.AUTHAB_API_KEY;
+const agentId = process.env.AUTHAB_AGENT_ID;
+const connectorSlug = process.env.AUTHAB_CONNECTOR;
 
-if (!apiKey) fail("Set KEEL_API_KEY to a secret key for the credential's environment.");
-if (!agentId) fail("Set KEEL_AGENT_ID to the agent holding the grant.");
-if (!connectorSlug) fail("Set KEEL_CONNECTOR to a connector slug, for example slack.");
+if (!apiKey) fail("Set AUTHAB_API_KEY to a secret key for the credential's environment.");
+if (!agentId) fail("Set AUTHAB_AGENT_ID to the agent holding the grant.");
+if (!connectorSlug) fail("Set AUTHAB_CONNECTOR to a connector slug, for example slack.");
 
 let input = {};
-if (process.env.KEEL_INPUT) {
+if (process.env.AUTHAB_INPUT) {
   try {
-    input = JSON.parse(process.env.KEEL_INPUT);
+    input = JSON.parse(process.env.AUTHAB_INPUT);
   } catch {
-    fail("KEEL_INPUT must be a JSON object.");
+    fail("AUTHAB_INPUT must be a JSON object.");
   }
-  if (!input || typeof input !== "object" || Array.isArray(input)) fail("KEEL_INPUT must be a JSON object.");
+  if (!input || typeof input !== "object" || Array.isArray(input)) fail("AUTHAB_INPUT must be a JSON object.");
 }
 
-const keel = new Keel({ apiKey, baseUrl });
+const authab = new Authab({ apiKey, baseUrl });
 
 async function main() {
-  const catalogue = await keel.connectors.list();
+  const catalogue = await authab.connectors.list();
   const connector = catalogue.data.find((entry) => entry.slug === connectorSlug);
   if (!connector) fail(`Unknown connector "${connectorSlug}".`);
 
-  const requested = process.env.KEEL_ACTION;
+  const requested = process.env.AUTHAB_ACTION;
   const action = requested
     ? connector.actions.find((entry) => entry.name === requested)
     : connector.actions.find(
@@ -57,16 +57,16 @@ async function main() {
     fail(
       requested
         ? `Connector "${connectorSlug}" has no action "${requested}".`
-        : `No no-argument read action found for "${connectorSlug}". Set KEEL_ACTION and KEEL_INPUT.`,
+        : `No no-argument read action found for "${connectorSlug}". Set AUTHAB_ACTION and AUTHAB_INPUT.`,
     );
   }
 
-  const resource = process.env.KEEL_RESOURCE;
-  const credentialId = process.env.KEEL_CREDENTIAL_ID;
+  const resource = process.env.AUTHAB_RESOURCE;
+  const credentialId = process.env.AUTHAB_CREDENTIAL_ID;
 
   let result;
   try {
-    result = await keel.proxy.call({
+    result = await authab.proxy.call({
       connector: connectorSlug,
       action: action.name,
       ...(credentialId ? { credentialId } : {}),
@@ -75,7 +75,7 @@ async function main() {
       agentId,
     });
   } catch (error) {
-    if (error instanceof KeelError) {
+    if (error instanceof AuthabError) {
       console.error(`FAILED ${error.status} ${error.code}: ${error.message}`);
       if (error.requestId) console.error(`requestId: ${error.requestId}`);
       if (error.details?.decision) console.error(`decision: ${JSON.stringify(error.details.decision)}`);
@@ -107,7 +107,7 @@ async function main() {
         providerStatus,
         latencyMs: result.result.latencyMs,
         requestId: result.requestId,
-        ...(process.env.KEEL_PRINT_BODY === "1" ? { body: result.result.body } : {}),
+        ...(process.env.AUTHAB_PRINT_BODY === "1" ? { body: result.result.body } : {}),
       },
       null,
       2,
@@ -116,7 +116,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  if (error instanceof KeelError) {
+  if (error instanceof AuthabError) {
     console.error(`FAILED ${error.status} ${error.code}: ${error.message}`);
     if (error.requestId) console.error(`requestId: ${error.requestId}`);
     process.exit(1);

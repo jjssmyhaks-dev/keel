@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { createHmac, generateKeyPairSync, verify } from "node:crypto";
 import {
-  KeelError,
+  AuthabError,
   generateAgentKeypair,
-  isKeelError,
+  isAuthabError,
   signChallenge,
   verifyWebhook,
 } from "../dist/index.js";
@@ -74,8 +74,8 @@ test("verifyWebhook rejects malformed headers", () => {
   assert.equal(verifyWebhook({ secret, header: "v1=deadbeef", body: "{}" }), false);
 });
 
-test("KeelError carries status, code and request id", () => {
-  const error = new KeelError({
+test("AuthabError carries status, code and request id", () => {
+  const error = new AuthabError({
     status: 403,
     code: "policy_denied",
     message: "Denied by policy.",
@@ -86,8 +86,8 @@ test("KeelError carries status, code and request id", () => {
   assert.equal(error.code, "policy_denied");
   assert.equal(error.requestId, "req_123");
   assert.deepEqual(error.details, { reason: "deny" });
-  assert.equal(isKeelError(error), true);
-  assert.equal(isKeelError(new Error("nope")), false);
+  assert.equal(isAuthabError(error), true);
+  assert.equal(isAuthabError(new Error("nope")), false);
 });
 
 console.log(`\n${passed} checks passed`);

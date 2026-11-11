@@ -6,7 +6,7 @@ import json
 import re
 from typing import Any, Optional
 
-from ..errors import KeelError
+from ..errors import AuthabError
 from .common import ToolSpec, build_tool_specs, error_payload, invoke
 
 
@@ -15,8 +15,8 @@ def _require_crewai():
         from crewai.tools import BaseTool
         from pydantic import ConfigDict, Field, create_model
     except ImportError:
-        raise KeelError(
-            "The CrewAI adapter needs crewai. Install it with: pip install 'keel-sdk[crewai]'",
+        raise AuthabError(
+            "The CrewAI adapter needs crewai. Install it with: pip install 'authab-sdk[crewai]'",
             code="crewai_dependency_missing",
         ) from None
     return BaseTool, ConfigDict, Field, create_model
@@ -25,7 +25,7 @@ def _require_crewai():
 def _model_name(tool_name: str) -> str:
     parts = re.split(r"[^a-zA-Z0-9]+", tool_name)
     name = "".join(part[:1].upper() + part[1:] for part in parts if part) + "Args"
-    return name if name[0].isalpha() else f"Keel{name}"
+    return name if name[0].isalpha() else f"Authab{name}"
 
 
 def _args_model(spec: ToolSpec):
@@ -66,7 +66,7 @@ def _tool_from_spec(client: Any, spec: ToolSpec, agent_id: str):
     )()
 
 
-def keel_crewai_tools(
+def authab_crewai_tools(
     client: Any,
     agent_id: str,
     *,
@@ -77,4 +77,4 @@ def keel_crewai_tools(
     return [_tool_from_spec(client, spec, agent_id) for spec in build_tool_specs(client, agent_id, connector=connector)]
 
 
-__all__ = ["keel_crewai_tools"]
+__all__ = ["authab_crewai_tools"]

@@ -15,26 +15,26 @@ const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jet
 const appUrl = process.env.APP_URL || "http://localhost:3000";
 
 // Runs before first paint so a saved theme applies without a flash.
-const themeScript = `(function(){try{var m=document.cookie.match(/(?:^|; )keel_theme=([^;]+)/);var t=m?decodeURIComponent(m[1]):"";if(t&&/^(default|forest|bee|mint|parchment)$/.test(t)){document.documentElement.setAttribute("data-theme",t)}}catch(e){}})();`;
+const themeScript = `(function(){try{var m=document.cookie.match(/(?:^|; )authab_theme=([^;]+)/);var t=m?decodeURIComponent(m[1]):"";if(t&&/^(default|forest|bee|mint|parchment)$/.test(t)){document.documentElement.setAttribute("data-theme",t)}}catch(e){}})();`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
   title: {
-    default: "Keel — Identity for AI agents",
-    template: "%s · Keel",
+    default: "Authab — Identity for AI agents",
+    template: "%s · Authab",
   },
   description:
-    "Keel gives every AI agent an identity, a vault and a boundary. Short-lived tokens, proxy-injected credentials, approvals and a tamper-evident audit trail.",
+    "Authab gives every AI agent an identity, a vault and a boundary. Short-lived tokens, proxy-injected credentials, approvals and a tamper-evident audit trail.",
   keywords: ["AI agents", "agent identity", "credential vault", "agent authentication", "AI governance"],
   openGraph: {
-    title: "Keel — Identity for AI agents",
+    title: "Authab — Identity for AI agents",
     description:
       "Identity, vault and governance for AI agents. Go from sign-up to an authenticated agent call in under five minutes.",
     type: "website",
     url: appUrl,
-    siteName: "Keel",
+    siteName: "Authab",
   },
-  twitter: { card: "summary_large_image", title: "Keel — Identity for AI agents" },
+  twitter: { card: "summary_large_image", title: "Authab — Identity for AI agents" },
   icons: { icon: "/icon.svg" },
 };
 

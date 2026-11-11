@@ -47,7 +47,7 @@ export function handleApiError(error: unknown) {
   if (error instanceof SyntaxError) {
     return apiError(400, "invalid_json", "The request body is not valid JSON.");
   }
-  console.error("[keel:api]", error);
+  console.error("[authab:api]", error);
   return apiError(500, "internal_error", "An unexpected error occurred. Contact support with the request ID.");
 }
 

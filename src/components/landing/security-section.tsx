@@ -61,7 +61,7 @@ export function SecuritySection() {
             }`}
           >
             Agents are powerful when they can act and dangerous when they can act
-            anywhere. Keel makes the blast radius explicit, observable and small.
+            anywhere. Authab makes the blast radius explicit, observable and small.
           </p>
         </div>
 

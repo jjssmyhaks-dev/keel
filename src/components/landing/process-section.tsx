@@ -8,18 +8,18 @@ const steps = [
     title: "Register",
     subtitle: "the agent",
     description:
-      "Create an agent in the dashboard, CLI or SDK. Keel issues a key pair, stores the public half, and returns the private key exactly once.",
+      "Create an agent in the dashboard, CLI or SDK. Authab issues a key pair, stores the public half, and returns the private key exactly once.",
     fileName: "register.ts",
-    code: `import { Keel } from "@keel/sdk";
+    code: `import { Authab } from "@authab/sdk";
 
-const keel = new Keel({ apiKey: process.env.KEEL_KEY });
-const atlas = await keel.agents.create({
+const authab = new Authab({ apiKey: process.env.AUTHAB_KEY });
+const atlas = await authab.agents.create({
   name: "atlas",
   owner: "maya@northwind.dev",
   tags: ["research", "support"],
 });
 
-await atlas.saveIdentity("./.keel/atlas.json");`,
+await atlas.saveIdentity("./.authab/atlas.json");`,
   },
   {
     number: "02",
@@ -28,7 +28,7 @@ await atlas.saveIdentity("./.keel/atlas.json");`,
     description:
       "Attach a credential, then scope the agent to specific actions and resources. Read is instant. Writes can require a human, a window, or a spend cap.",
     fileName: "grants.ts",
-    code: `await keel.grants.create({
+    code: `await authab.grants.create({
   agentId: atlas.id,
   credentialId: slack.id,
   actions: ["slack.post_message", "slack.list_channels"],
@@ -44,9 +44,9 @@ await atlas.saveIdentity("./.keel/atlas.json");`,
     description:
       "The agent exchanges its identity for a 5-minute token, then calls the proxy. Policy runs. The credential is injected server-side. A hash-chained event is written.",
     fileName: "execute.ts",
-    code: `const token = await keel.auth.token(atlas.identity);
+    code: `const token = await authab.auth.token(atlas.identity);
 
-const result = await keel.proxy.call({
+const result = await authab.proxy.call({
   token,
   connector: "slack",
   action: "slack.post_message",

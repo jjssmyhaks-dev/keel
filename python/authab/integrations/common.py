@@ -14,7 +14,7 @@ import re
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from ..errors import KeelError
+from ..errors import AuthabError
 
 RISKS = ("read", "write", "destructive", "financial", "admin")
 MAX_TOOL_NAME = 64
@@ -39,7 +39,7 @@ def tool_name_for(action: str) -> str:
 
     name = re.sub(r"[^a-zA-Z0-9_-]+", "_", action).strip("_")
     if not name:
-        name = "keel_action"
+        name = "authab_action"
     if len(name) > MAX_TOOL_NAME:
         digest = hashlib.sha256(action.encode("utf-8")).hexdigest()[:8]
         name = f"{name[: MAX_TOOL_NAME - 9]}_{digest}"
@@ -100,7 +100,7 @@ def _input_schema(action: dict[str, Any], resource_pattern: str) -> tuple[dict[s
     restricted = resource_pattern.strip() not in ("", "*")
     resource_key: Optional[str] = None
     if restricted:
-        resource_key = "_keel_resource" if "resource" in properties else "resource"
+        resource_key = "_authab_resource" if "resource" in properties else "resource"
         properties[resource_key] = {
             "type": "string",
             "description": f'The resource this call applies to. This grant is limited to "{resource_pattern}".',
@@ -126,7 +126,7 @@ def _description(
     label = action.get("label") or action.get("name")
     detail = action.get("description") or ""
     text = f"{label} on {connector_name}. {detail}".strip()
-    text = f"{text} Risk: {risk}. Runs through Keel, which enforces grants, approvals and audit."
+    text = f"{text} Risk: {risk}. Runs through Authab, which enforces grants, approvals and audit."
     if resource_pattern.strip() not in ("", "*"):
         text = f'{text} Resource must match "{resource_pattern}".'
     return text[:1024]
@@ -199,7 +199,7 @@ def build_tool_specs(
 
 
 def invoke(client: Any, spec: ToolSpec, arguments: Optional[dict[str, Any]], agent_id: str) -> dict[str, Any]:
-    """Run one tool call through the Keel proxy, with the agent's identity."""
+    """Run one tool call through the Authab proxy, with the agent's identity."""
 
     args = dict(arguments or {})
     resource: Optional[str] = None
@@ -233,7 +233,7 @@ async def ainvoke(client: Any, spec: ToolSpec, arguments: Optional[dict[str, Any
 
 
 def error_payload(error: BaseException) -> dict[str, Any]:
-    if isinstance(error, KeelError):
+    if isinstance(error, AuthabError):
         return {"error": error.to_dict()}
     return {"error": {"code": "tool_error", "message": str(error)}}
 

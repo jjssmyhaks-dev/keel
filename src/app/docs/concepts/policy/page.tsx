@@ -4,7 +4,7 @@ import { Callout, DocsAside, DocsShell } from "@/components/docs/docs-shell";
 
 export const metadata: Metadata = {
   title: "Policy engine",
-  description: "How Keel decides allow, require_approval or deny on every proxied call.",
+  description: "How Authab decides allow, require_approval or deny on every proxied call.",
 };
 
 export default function PolicyPage() {

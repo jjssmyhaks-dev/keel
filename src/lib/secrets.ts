@@ -14,7 +14,7 @@ type LocalSecrets = {
   cookieSecret: string;
 };
 
-const globalForSecrets = globalThis as unknown as { keelSecrets?: LocalSecrets };
+const globalForSecrets = globalThis as unknown as { authabSecrets?: LocalSecrets };
 
 function generateLocalSecrets(): LocalSecrets {
   const pair = generateKeyPairSync("ed25519");
@@ -27,7 +27,7 @@ function generateLocalSecrets(): LocalSecrets {
 }
 
 function loadLocalSecrets(): LocalSecrets {
-  const file = path.join(process.cwd(), ".keel", "dev-secrets.json");
+  const file = path.join(process.cwd(), ".authab", "dev-secrets.json");
   try {
     const parsed = JSON.parse(fs.readFileSync(file, "utf8"));
     if (parsed?.masterKey && parsed?.jwtSigningPrivateKey && parsed?.cookieSecret) {
@@ -41,13 +41,13 @@ function loadLocalSecrets(): LocalSecrets {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, JSON.stringify(generated, null, 2), { mode: 0o600 });
   } catch (error) {
-    console.warn("[keel] could not persist local development keys", error);
+    console.warn("[authab] could not persist local development keys", error);
   }
   return generated;
 }
 
 export function getSecrets(): LocalSecrets {
-  if (globalForSecrets.keelSecrets) return globalForSecrets.keelSecrets;
+  if (globalForSecrets.authabSecrets) return globalForSecrets.authabSecrets;
 
   const fromEnv = {
     masterKey: process.env.MASTER_KEY,
@@ -58,21 +58,21 @@ export function getSecrets(): LocalSecrets {
   const complete = fromEnv.masterKey && fromEnv.jwtSigningPrivateKey && fromEnv.cookieSecret;
 
   if (!complete && process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== "phase-production-build") {
-    const explicitLocal = process.env.KEEL_DEV_KEY_FALLBACK === "1";
+    const explicitLocal = process.env.AUTHAB_DEV_KEY_FALLBACK === "1";
     if (!explicitLocal) {
       throw new Error(
-        "[keel] Refusing to start: set MASTER_KEY, JWT_SIGNING_PRIVATE_KEY and AUTH_COOKIE_SECRET. " +
-          "Local development files are only used when KEEL_DEV_KEY_FALLBACK=1 is explicitly set.",
+        "[authab] Refusing to start: set MASTER_KEY, JWT_SIGNING_PRIVATE_KEY and AUTH_COOKIE_SECRET. " +
+          "Local development files are only used when AUTHAB_DEV_KEY_FALLBACK=1 is explicitly set.",
       );
     }
-    console.warn("[keel] Using local development keys because KEEL_DEV_KEY_FALLBACK=1. Never do this on a shared deployment.");
+    console.warn("[authab] Using local development keys because AUTHAB_DEV_KEY_FALLBACK=1. Never do this on a shared deployment.");
   }
 
   const secrets = complete
     ? (fromEnv as LocalSecrets)
     : loadLocalSecrets();
 
-  globalForSecrets.keelSecrets = secrets;
+  globalForSecrets.authabSecrets = secrets;
   return secrets;
 }
 

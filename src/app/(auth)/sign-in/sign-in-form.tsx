@@ -38,7 +38,7 @@ export function SignInForm({
     <div>
       <div className="mb-8">
         <div className="mono-label text-muted-foreground mb-3">Welcome back</div>
-        <h1 className="text-4xl font-display tracking-tight leading-none">Sign in to Keel</h1>
+        <h1 className="text-4xl font-display tracking-tight leading-none">Sign in to Authab</h1>
         <p className="mt-3 text-sm text-muted-foreground">
           Continue to your agents, vault and approval queue.
         </p>
@@ -134,13 +134,13 @@ export function SignInForm({
             </button>
           </form>
           <p className="mt-2 text-center font-mono text-[10px] text-muted-foreground/70">
-            demo@keel.dev · KeelDemo!2026 · Northwind Labs
+            demo@authab.dev · AuthabDemo!2026 · Northwind Labs
           </p>
         </>
       ) : null}
 
       <p className="mt-8 text-center text-sm text-muted-foreground">
-        New to Keel?{" "}
+        New to Authab?{" "}
         <Link href="/sign-up" className="text-foreground underline underline-offset-4 decoration-foreground/20 hover:decoration-foreground">
           Create an account
         </Link>

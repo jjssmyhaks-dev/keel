@@ -53,7 +53,7 @@ export default async function ApprovePage({
           href="/sign-in"
           className="mt-8 inline-flex border border-black bg-black px-5 py-3 text-xs font-mono uppercase tracking-widest text-white"
         >
-          Sign in to Keel
+          Sign in to Authab
         </Link>
       </Shell>
     );
@@ -225,7 +225,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     <main className="min-h-screen bg-[var(--paper)] text-black">
       <header className="border-b border-black/10">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-5">
-          <Link href="/" aria-label="Keel home">
+          <Link href="/" aria-label="Authab home">
             <Logo tone="dark" />
           </Link>
           <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
@@ -235,7 +235,7 @@ function Shell({ children }: { children: React.ReactNode }) {
       </header>
       <div className="mx-auto max-w-4xl px-6 py-14 md:py-20">{children}</div>
       <footer className="mx-auto max-w-4xl px-6 pb-12 text-[11px] leading-relaxed text-muted-foreground">
-        This link is single-purpose and expires with the request. Keel never puts credentials in email.
+        This link is single-purpose and expires with the request. Authab never puts credentials in email.
       </footer>
     </main>
   );

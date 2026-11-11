@@ -4,10 +4,10 @@ import { redirect } from "next/navigation";
 import { db } from "./db";
 import { randomToken, sha256 } from "./crypto";
 
-export const SESSION_COOKIE = "keel_session";
-export const ORG_COOKIE = "keel_org";
-export const PROJECT_COOKIE = "keel_project";
-export const ENV_COOKIE = "keel_env";
+export const SESSION_COOKIE = "authab_session";
+export const ORG_COOKIE = "authab_org";
+export const PROJECT_COOKIE = "authab_project";
+export const ENV_COOKIE = "authab_env";
 
 const SESSION_TTL_DAYS = Number(process.env.SESSION_TTL_DAYS || 30);
 

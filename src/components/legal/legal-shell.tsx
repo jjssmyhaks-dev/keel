@@ -67,9 +67,9 @@ export function LegalShell({
                   <p className="mono-label text-foreground/35 mb-3">Questions</p>
                   <p className="text-[12px] leading-relaxed text-foreground/50">
                     Legal questions go to{" "}
-                    <a href="mailto:legal@keel.dev" className="underline underline-offset-4">legal@keel.dev</a>.
+                    <a href="mailto:legal@authab.dev" className="underline underline-offset-4">legal@authab.dev</a>.
                     Security and data questions go to{" "}
-                    <a href="mailto:security@keel.dev" className="underline underline-offset-4">security@keel.dev</a>.
+                    <a href="mailto:security@authab.dev" className="underline underline-offset-4">security@authab.dev</a>.
                   </p>
                 </div>
                 <div className="border border-foreground/10 p-4">

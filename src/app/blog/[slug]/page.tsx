@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const item = post(slug);
   if (!item) return { title: "Blog" };
-  return { title: `${item.title} — Keel`, description: item.description };
+  return { title: `${item.title} — Authab`, description: item.description };
 }
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -49,7 +49,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               </span>
               <div>
                 <p className="text-[12px]">{item.author}</p>
-                <p className="text-[10px] text-foreground/40">Keel Systems</p>
+                <p className="text-[10px] text-foreground/40">Authab Systems</p>
               </div>
             </div>
           </header>
@@ -71,7 +71,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           </div>
 
           <div className="mt-16 flex flex-wrap items-center justify-between gap-4 border-t border-foreground/10 pt-6">
-            <p className="text-[12px] text-foreground/40">Discuss this with us: hello@keel.dev</p>
+            <p className="text-[12px] text-foreground/40">Discuss this with us: hello@authab.dev</p>
             <Link href="/docs/quickstart" className="font-mono text-[9px] uppercase tracking-[0.16em] underline underline-offset-4">
               Start building
             </Link>

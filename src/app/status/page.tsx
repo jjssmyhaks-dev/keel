@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Status",
-  description: "Live status for the Keel control plane, proxy and audit pipeline.",
+  description: "Live status for the Authab control plane, proxy and audit pipeline.",
 };
 
 function timeAgo(date: Date) {
@@ -93,7 +93,7 @@ export default async function StatusPage() {
               <p className="mt-2 text-[13px] leading-relaxed text-foreground/55">
                 No open incidents. A written post-incident review is published for every customer-visible outage. If
                 something looks wrong, write to{" "}
-                <a href="mailto:support@keel.dev" className="underline underline-offset-4">support@keel.dev</a> and include
+                <a href="mailto:support@authab.dev" className="underline underline-offset-4">support@authab.dev</a> and include
                 the request id from the failing response.
               </p>
             </div>
@@ -106,7 +106,7 @@ export default async function StatusPage() {
           </div>
 
           <p className="mt-10 border-t border-foreground/10 pt-6 text-[11px] text-foreground/35">
-            This page is generated from the running control plane at request time. It reports Keel&apos;s own health, not
+            This page is generated from the running control plane at request time. It reports Authab&apos;s own health, not
             your providers&apos; — check the credential health in your vault for upstream status.
           </p>
         </div>

@@ -34,7 +34,7 @@ class ProxyResource:
 
         Pass an agent ``token`` directly, or an ``agent_id`` and the SDK mints a
         short-lived token first. A call that needs approval returns a value with
-        ``status="pending_approval"``; a policy denial raises :class:`KeelError`.
+        ``status="pending_approval"``; a policy denial raises :class:`AuthabError`.
         """
 
         slug = connector or action.split(".", 1)[0]

@@ -134,7 +134,7 @@ export function HeroSection() {
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             }`}
           >
-            Keel gives every agent a short-lived cryptographic identity, a vault it can use
+            Authab gives every agent a short-lived cryptographic identity, a vault it can use
             but never read, and permissions a human approved. Go live without handing
             agents your keys.
           </p>

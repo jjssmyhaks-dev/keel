@@ -56,7 +56,7 @@ function FlowDiagram() {
 
         <div className="border border-[#eca8d6]/40 bg-[#eca8d6]/[0.04] px-5 py-5">
           <div className="flex items-center justify-between mb-4">
-            <div className="text-white text-sm">Keel proxy</div>
+            <div className="text-white text-sm">Authab proxy</div>
             <div className="mono-label text-[#eca8d6] text-[9px]">policy · vault · audit</div>
           </div>
           <div className="grid grid-cols-3 gap-2 text-center">

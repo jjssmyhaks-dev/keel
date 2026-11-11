@@ -10,7 +10,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
-    "paths": { "@keel/sdk": ["../sdk/src/index.ts"] },
+    "paths": { "@authab/sdk": ["../sdk/src/index.ts"] },
     "types": ["node"]
   },
   "include": ["src/**/*.ts"]

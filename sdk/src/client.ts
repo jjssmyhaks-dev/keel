@@ -1,4 +1,4 @@
-import { KeelError } from "./errors";
+import { AuthabError } from "./errors";
 
 export type QueryValue = string | number | boolean | null | undefined;
 
@@ -25,7 +25,7 @@ export interface HttpClientOptions {
   fetch?: typeof globalThis.fetch;
 }
 
-const DEFAULT_BASE_URL = "https://api.keel.dev/v1";
+const DEFAULT_BASE_URL = "https://api.authab.dev/v1";
 const VERSION = "1.0.0";
 
 export class HttpClient {
@@ -37,24 +37,24 @@ export class HttpClient {
 
   constructor(options: HttpClientOptions) {
     if (!options || typeof options.apiKey !== "string" || !options.apiKey.trim()) {
-      throw new KeelError({
+      throw new AuthabError({
         status: 0,
         code: "missing_api_key",
-        message: "Keel requires an API key. Pass { apiKey } with a secret key for this environment.",
+        message: "Authab requires an API key. Pass { apiKey } with a secret key for this environment.",
       });
     }
     if (options.apiKey.startsWith("pk_")) {
-      throw new KeelError({
+      throw new AuthabError({
         status: 0,
         code: "publishable_key_not_allowed",
         message: "The SDK requires a secret key (sk_...). Publishable keys cannot be used from the server.",
       });
     }
     if (options.apiKey.startsWith("sk_") && /_dev_/.test(options.apiKey) && typeof window !== "undefined") {
-      throw new KeelError({
+      throw new AuthabError({
         status: 0,
         code: "browser_not_allowed",
-        message: "Never bundle a Keel secret key into a browser bundle.",
+        message: "Never bundle a Authab secret key into a browser bundle.",
       });
     }
 
@@ -64,7 +64,7 @@ export class HttpClient {
     this.timeoutMs = Math.max(1_000, options.timeoutMs ?? 15_000);
     this.fetchImpl = options.fetch ?? globalThis.fetch;
     if (typeof this.fetchImpl !== "function") {
-      throw new KeelError({
+      throw new AuthabError({
         status: 0,
         code: "fetch_unavailable",
         message: "This runtime has no global fetch. Use Node 20+ or pass a fetch implementation.",
@@ -88,10 +88,10 @@ export class HttpClient {
 
     if (!response.ok) throw errorFromResponse(response, data, text);
     if (data === null) {
-      throw new KeelError({
+      throw new AuthabError({
         status: response.status,
         code: "invalid_response",
-        message: "Keel returned an empty or non-JSON response.",
+        message: "Authab returned an empty or non-JSON response.",
         requestId: response.headers.get("x-request-id") ?? undefined,
       });
     }
@@ -129,11 +129,11 @@ export class HttpClient {
 
   private async fetchOnce(url: string, options: RequestOptions): Promise<Response> {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(new Error("keel_timeout")), this.timeoutMs);
+    const timer = setTimeout(() => controller.abort(new Error("authab_timeout")), this.timeoutMs);
 
     const headers: Record<string, string> = {
       accept: "application/json",
-      "user-agent": `@keel/sdk/${VERSION}`,
+      "user-agent": `@authab/sdk/${VERSION}`,
       ...(options.headers ?? {}),
     };
     if (options.body !== undefined) headers["content-type"] = "application/json";
@@ -168,21 +168,21 @@ function errorFromResponse(response: Response, data: unknown, text: string) {
     | { error?: { code?: string; message?: string; details?: unknown; requestId?: string } }
     | null;
   if (body && body.error) {
-    return new KeelError({
+    return new AuthabError({
       status: response.status,
       code: body.error.code ?? "api_error",
-      message: body.error.message ?? `Keel returned HTTP ${response.status}.`,
+      message: body.error.message ?? `Authab returned HTTP ${response.status}.`,
       details: body.error.details,
       requestId: body.error.requestId ?? fallbackId,
     });
   }
-  return new KeelError({
+  return new AuthabError({
     status: response.status,
     code: response.status === 401 ? "unauthorized" : "api_error",
     message:
       text && text.length < 300
         ? text
-        : `Keel returned HTTP ${response.status} ${response.statusText}`.trim(),
+        : `Authab returned HTTP ${response.status} ${response.statusText}`.trim(),
     requestId: fallbackId,
   });
 }
@@ -190,12 +190,12 @@ function errorFromResponse(response: Response, data: unknown, text: string) {
 function transportError(error: unknown, options: RequestOptions, timeoutMs: number) {
   const message = error instanceof Error ? error.message : String(error);
   const timedOut = /abort|timeout/i.test(message);
-  return new KeelError({
+  return new AuthabError({
     status: 0,
     code: timedOut ? "timeout" : "network_error",
     message: timedOut
-      ? `The request to Keel timed out after ${timeoutMs}ms (${options.method} ${options.path}).`
-      : `Could not reach Keel (${options.method} ${options.path}): ${message}`,
+      ? `The request to Authab timed out after ${timeoutMs}ms (${options.method} ${options.path}).`
+      : `Could not reach Authab (${options.method} ${options.path}): ${message}`,
   });
 }
 

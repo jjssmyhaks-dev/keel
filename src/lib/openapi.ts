@@ -101,11 +101,11 @@ export function buildOpenApiDocument() {
   return {
     openapi: "3.1.0",
     info: {
-      title: "Keel Platform API",
+      title: "Authab Platform API",
       version: "1.0.0",
       description:
         "Identity, vault, policy and proxy API for AI agents. Secret keys are environment-scoped. Agent tokens are short-lived EdDSA JWTs.",
-      contact: { name: "Keel", url: "https://keel.dev/docs" },
+      contact: { name: "Authab", url: "https://authab.dev/docs" },
       license: { name: "Proprietary" },
     },
     servers: [{ url: "/api/v1", description: "This deployment" }],

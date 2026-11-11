@@ -52,8 +52,8 @@ function safeNext(value: FormDataEntryValue | null) {
   if (!next.startsWith("/") || next.startsWith("//")) return "";
   if (/[\\\u0000-\u001f]/.test(next)) return "";
   try {
-    const url = new URL(next, "http://keel.local");
-    if (url.origin !== "http://keel.local") return "";
+    const url = new URL(next, "http://authab.local");
+    if (url.origin !== "http://authab.local") return "";
     return `${url.pathname}${url.search}${url.hash}`;
   } catch {
     return "";
@@ -106,14 +106,14 @@ export async function signUpAction(_prev: FormState, formData: FormData): Promis
   const token = await issueEmailToken({ type: "email_verify", email, userId: user.id, hours: 48 });
   await sendEmail({
     to: email,
-    subject: "Verify your Keel email",
+    subject: "Verify your Authab email",
     html: emailLayout(
       "Verify your email",
-      `<p>Welcome to Keel, ${name}. Confirm your email address to unlock production mode.</p>
+      `<p>Welcome to Authab, ${name}. Confirm your email address to unlock production mode.</p>
        <p style="margin:24px 0"><a href="${appUrl(`/verify-email?token=${token}`)}" style="background:#111;color:#fff;padding:12px 20px;text-decoration:none;display:inline-block">Verify email</a></p>
        <p style="color:#8b8b8b;font-size:12px">This link expires in 48 hours. If you didn't create this account, ignore this email.</p>`
     ),
-    text: `Verify your Keel email: ${appUrl(`/verify-email?token=${token}`)}`,
+    text: `Verify your Authab email: ${appUrl(`/verify-email?token=${token}`)}`,
   });
 
   await createSession(user.id, m);
@@ -152,7 +152,7 @@ export async function signInAction(_prev: FormState, formData: FormData): Promis
   if (!user || !user.passwordHash || !verifyPassword(password, user.passwordHash)) {
     return { error: "Email or password is incorrect." };
   }
-  if (email === "demo@keel.dev" && !demoLoginEnabled()) {
+  if (email === "demo@authab.dev" && !demoLoginEnabled()) {
     return { error: "Email or password is incorrect." };
   }
   if (user.deletedAt) {
@@ -189,7 +189,7 @@ export async function signInAction(_prev: FormState, formData: FormData): Promis
 
 export async function signInDemoAction(): Promise<void> {
   if (!demoLoginEnabled()) redirect("/sign-in?notice=demo-disabled");
-  const user = await db.user.findUnique({ where: { email: "demo@keel.dev" } });
+  const user = await db.user.findUnique({ where: { email: "demo@authab.dev" } });
   if (!user) redirect("/sign-in?notice=demo-unavailable");
   const m = await meta();
   await createSession(user.id, m);
@@ -205,18 +205,18 @@ export async function requestMagicLinkAction(_prev: FormState, formData: FormDat
   if (!limit.allowed) return { error: "Too many requests. Wait a few minutes and try again." };
 
   const user = await db.user.findUnique({ where: { email } });
-  if (user && (email !== "demo@keel.dev" || demoLoginEnabled())) {
+  if (user && (email !== "demo@authab.dev" || demoLoginEnabled())) {
     const token = await issueEmailToken({ type: "magic_link", email, userId: user.id, hours: 1 });
     await sendEmail({
       to: email,
-      subject: "Your Keel sign-in link",
+      subject: "Your Authab sign-in link",
       html: emailLayout(
-        "Sign in to Keel",
+        "Sign in to Authab",
         `<p>Use the link below to sign in. It expires in one hour and can only be used once.</p>
          <p style="margin:24px 0"><a href="${appUrl(`/auth/magic/${token}`)}" style="background:#111;color:#fff;padding:12px 20px;text-decoration:none;display:inline-block">Sign in</a></p>
          <p style="color:#8b8b8b;font-size:12px">If you didn't request this, you can ignore it.</p>`
       ),
-      text: `Sign in to Keel: ${appUrl(`/auth/magic/${token}`)}`,
+      text: `Sign in to Authab: ${appUrl(`/auth/magic/${token}`)}`,
     });
   }
 
@@ -234,18 +234,18 @@ export async function requestPasswordResetAction(_prev: FormState, formData: For
   if (!limit.allowed) return { error: "Too many requests. Wait a few minutes and try again." };
 
   const user = await db.user.findUnique({ where: { email } });
-  if (user && (email !== "demo@keel.dev" || demoLoginEnabled())) {
+  if (user && (email !== "demo@authab.dev" || demoLoginEnabled())) {
     const token = await issueEmailToken({ type: "password_reset", email, userId: user.id, hours: 1 });
     await sendEmail({
       to: email,
-      subject: "Reset your Keel password",
+      subject: "Reset your Authab password",
       html: emailLayout(
         "Reset your password",
         `<p>We received a request to reset the password for ${email}.</p>
          <p style="margin:24px 0"><a href="${appUrl(`/reset-password?token=${token}`)}" style="background:#111;color:#fff;padding:12px 20px;text-decoration:none;display:inline-block">Choose a new password</a></p>
          <p style="color:#8b8b8b;font-size:12px">This link expires in one hour and can be used once. If you didn't request it, no action is needed.</p>`
       ),
-      text: `Reset your Keel password: ${appUrl(`/reset-password?token=${token}`)}`,
+      text: `Reset your Authab password: ${appUrl(`/reset-password?token=${token}`)}`,
     });
   }
 
@@ -305,7 +305,7 @@ export async function resendVerificationAction(): Promise<FormState> {
   });
   const delivery = await sendEmail({
     to: session.user.email,
-    subject: "Verify your Keel email",
+    subject: "Verify your Authab email",
     html: emailLayout(
       "Verify your email",
       `<p><a href="${appUrl(`/verify-email?token=${token}`)}">Confirm your email address</a> to unlock production mode.</p>`
@@ -324,9 +324,9 @@ export async function resendVerificationAction(): Promise<FormState> {
 export async function signOutAction(): Promise<void> {
   await destroySession();
   const store = await cookies();
-  store.delete("keel_org");
-  store.delete("keel_project");
-  store.delete("keel_env");
+  store.delete("authab_org");
+  store.delete("authab_project");
+  store.delete("authab_env");
   redirect("/sign-in");
 }
 

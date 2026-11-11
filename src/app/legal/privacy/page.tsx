@@ -4,7 +4,7 @@ import { LegalShell } from "@/components/legal/legal-shell";
 
 export const metadata: Metadata = {
   title: "Privacy",
-  description: "What Keel collects, why, how long we keep it, and the choices you have.",
+  description: "What Authab collects, why, how long we keep it, and the choices you have.",
 };
 
 export default function PrivacyPage() {
@@ -13,7 +13,7 @@ export default function PrivacyPage() {
       slug="privacy"
       eyebrow="Privacy"
       title="What we hold, and why."
-      intro="Keel processes three kinds of data: your account, your workspace configuration, and operational records created when your agents make calls. This page explains each one in the order it enters the system."
+      intro="Authab processes three kinds of data: your account, your workspace configuration, and operational records created when your agents make calls. This page explains each one in the order it enters the system."
       updated="24 October 2026"
     >
       <h2 id="summary">The short version</h2>
@@ -21,16 +21,16 @@ export default function PrivacyPage() {
         We collect what is needed to run the service and nothing more. We do not sell data, we do not train models on
         your traffic, and we do not read decrypted credentials. You can export your audit log and remove agents,
         connections and API keys from the dashboard. Workspace and account deletion requests go to{" "}
-        <a href="mailto:legal@keel.dev">legal@keel.dev</a> and are completed within 30 days, including the associated
+        <a href="mailto:legal@authab.dev">legal@authab.dev</a> and are completed within 30 days, including the associated
         rows in live systems.
       </p>
 
       <h2 id="controller">Who is responsible</h2>
       <p>
-        Keel Systems (&ldquo;Keel&rdquo;, &ldquo;we&rdquo;) is the controller for account and billing data, and the processor for
+        Authab Systems (&ldquo;Authab&rdquo;, &ldquo;we&rdquo;) is the controller for account and billing data, and the processor for
         workspace data that customers upload. We are based in Bengaluru, India; registered office details are available
         on request. For EU data-protection enquiries, write to{" "}
-        <a href="mailto:legal@keel.dev">legal@keel.dev</a>.
+        <a href="mailto:legal@authab.dev">legal@authab.dev</a>.
       </p>
       <p>
         Where we act as a processor, the <Link href="/legal/dpa">data processing agreement</Link> governs the
@@ -88,7 +88,7 @@ export default function PrivacyPage() {
       </table>
       <p>
         We do not collect payment card numbers. Where card payment is enabled, card data is handled by our payment
-        processor and never reaches Keel servers. Product analytics are aggregate and do not include prompt content,
+        processor and never reaches Authab servers. Product analytics are aggregate and do not include prompt content,
         response bodies or credentials.
       </p>
 
@@ -136,7 +136,7 @@ export default function PrivacyPage() {
       <p>
         Subject to local law, you can access, correct, export, restrict or delete your personal data, object to
         processing based on legitimate interests, and withdraw consent. Account holders can export workspace data from
-        the dashboard or API. Other requests go to <a href="mailto:legal@keel.dev">legal@keel.dev</a> and are answered
+        the dashboard or API. Other requests go to <a href="mailto:legal@authab.dev">legal@authab.dev</a> and are answered
         within 30 days.
       </p>
       <p>

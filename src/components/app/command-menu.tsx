@@ -103,7 +103,7 @@ export function CommandMenu({ search }: { search: CommandSearch }) {
           className="app-theme-surface top-[12%] translate-y-0 gap-0 rounded-none border-black/15 bg-[#faf9f6] p-0 shadow-[0_24px_80px_rgba(0,0,0,0.18)] sm:top-[16%] sm:max-w-[560px] dark:border-border dark:bg-card"
         >
           <DialogHeader className="sr-only">
-            <DialogTitle>Search Keel</DialogTitle>
+            <DialogTitle>Search Authab</DialogTitle>
             <DialogDescription>Jump to a page, agent, connection or approval.</DialogDescription>
           </DialogHeader>
           <Command filter={filterItems} className="bg-transparent [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:text-[9px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.18em] [&_[cmdk-group-heading]]:text-black/40 dark:[&_[cmdk-group-heading]]:text-muted-foreground [&_[data-slot=command-input-wrapper]]:h-12 [&_[data-slot=command-input-wrapper]]:border-black/10 dark:[&_[data-slot=command-input-wrapper]]:border-border">

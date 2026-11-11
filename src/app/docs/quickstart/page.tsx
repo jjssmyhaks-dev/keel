@@ -32,7 +32,7 @@ export default function QuickstartPage() {
     >
       {demoLoginEnabled() ? (
         <Callout title="Using the demo workspace">
-          The hosted demo ships with <code>demo@keel.dev</code> and the development key{" "}
+          The hosted demo ships with <code>demo@authab.dev</code> and the development key{" "}
           <code>sk_dev_demo_northwind_2026</code>. The examples below work against it without registering anything. Do
           not use demo keys in production.
         </Callout>
@@ -43,12 +43,12 @@ export default function QuickstartPage() {
         The SDK talks to the same REST API the dashboard uses. Install it in the backend that will run your agents —
         never in a browser bundle.
       </p>
-      <pre>{`# not on npm yet: build the SDK from the Keel repository
-git clone https://github.com/jjssmyhaks-dev/keel.git
-cd keel && npm ci && npm run sdk:build
-npm install /path/to/keel/sdk
+      <pre>{`# not on npm yet: build the SDK from the Authab repository
+git clone https://github.com/jjssmyhaks-dev/keel.git authab
+cd authab && npm ci && npm run sdk:build
+npm install /path/to/authab/sdk
 
-export KEEL_API_KEY=sk_dev_...   # Settings → Developers → API keys`}</pre>
+export AUTHAB_API_KEY=sk_dev_...   # Settings → Developers → API keys`}</pre>
       <p>
         Secret keys can register agents, write credentials and change permissions. Publishable keys (<code>pk_…</code>)
         can read status and introspect tokens. Both must be sent as <code>Authorization: Bearer …</code>.
@@ -56,13 +56,13 @@ export KEEL_API_KEY=sk_dev_...   # Settings → Developers → API keys`}</pre>
 
       <h2 id="agent">2. Register an agent</h2>
       <p>
-        An agent is a cryptographic principal, not a service account. Keel generates an Ed25519 keypair and returns the
+        An agent is a cryptographic principal, not a service account. Authab generates an Ed25519 keypair and returns the
         public key, fingerprint and — once — the private key. Store that private key in your own secret manager, or use{" "}
-        <code>keyMode: "platform"</code> to have Keel custody it.
+        <code>keyMode: "platform"</code> to have Authab custody it.
       </p>
-      <pre>{`const keel = new Keel(process.env.KEEL_API_KEY!);
+      <pre>{`const authab = new Authab(process.env.AUTHAB_API_KEY!);
 
-const agent = await keel.agents.create({
+const agent = await authab.agents.create({
   name: "Atlas Research",
   description: "Summarises research threads and drafts launch briefs.",
   framework: "langgraph",
@@ -73,8 +73,8 @@ console.log(agent.id);          // agt_...
 console.log(agent.fingerprint); // SHA-256 of the public key
 console.log(agent.privateKey);  // shown exactly once`}</pre>
       <p>Or with curl:</p>
-      <pre>{`curl -X POST https://api.keel.dev/v1/agents \\
-  -H "Authorization: Bearer $KEEL_API_KEY" \\
+      <pre>{`curl -X POST https://api.authab.dev/v1/agents \\
+  -H "Authorization: Bearer $AUTHAB_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"name":"Atlas Research","framework":"langgraph"}'`}</pre>
 
@@ -84,7 +84,7 @@ console.log(agent.privateKey);  // shown exactly once`}</pre>
         secret with AES-256-GCM. The plaintext never leaves the request that created it and is never returned by the
         API — only a masked hint such as <code>••••8f2a</code>.
       </p>
-      <pre>{`const credential = await keel.vault.create({
+      <pre>{`const credential = await authab.vault.create({
   connector: "slack",
   name: "Northwind workspace",
   type: "oauth",
@@ -101,7 +101,7 @@ console.log(agent.privateKey);  // shown exactly once`}</pre>
         A grant is the only way an agent reaches a credential. Name the exact actions, scope the resource with a glob,
         and choose when a human must approve. Anything not listed is denied.
       </p>
-      <pre>{`await keel.grants.create({
+      <pre>{`await authab.grants.create({
   agentId: agent.id,
   credentialId: credential.id,
   actions: ["slack.post_message"],
@@ -118,9 +118,9 @@ console.log(agent.privateKey);  // shown exactly once`}</pre>
       <h2 id="token">5. Issue a token</h2>
       <p>
         Agents authenticate with a short-lived EdDSA JWT (five minutes by default, one hour maximum). Your backend
-        asks Keel for one; the agent never holds your API key.
+        asks Authab for one; the agent never holds your API key.
       </p>
-      <pre>{`const { accessToken, expiresAt } = await keel.agents.token(agent.id, { ttl: 300 });
+      <pre>{`const { accessToken, expiresAt } = await authab.agents.token(agent.id, { ttl: 300 });
 
 // The JWT carries: sub, agent id, environment, project, org,
 // scopes derived from active grants, and a unique jti.`}</pre>
@@ -132,10 +132,10 @@ console.log(agent.privateKey);  // shown exactly once`}</pre>
 
       <h2 id="call">6. Make the call</h2>
       <p>
-        Call the connector through Keel. The proxy injects the credential, evaluates policy, redacts the response, and
+        Call the connector through Authab. The proxy injects the credential, evaluates policy, redacts the response, and
         records the event. Idempotency keys make retries safe.
       </p>
-      <pre>{`const response = await fetch("https://api.keel.dev/v1/proxy/slack", {
+      <pre>{`const response = await fetch("https://api.authab.dev/v1/proxy/slack", {
   method: "POST",
   headers: {
     Authorization: \`Bearer \${accessToken}\`,
@@ -156,8 +156,8 @@ const body = await response.json();
 // 403 → { error: { code: "policy_denied", message, decision } }`}</pre>
 
       <Callout tone="warning" title="A 202 is not a failure">
-        When a human is required, Keel returns <code>202</code> with an approval id and URL. Retry the identical
-        request with the same <code>Idempotency-Key</code> after the decision; Keel replays the stored outcome instead
+        When a human is required, Authab returns <code>202</code> with an approval id and URL. Retry the identical
+        request with the same <code>Idempotency-Key</code> after the decision; Authab replays the stored outcome instead
         of calling the provider twice.
       </Callout>
 
@@ -166,8 +166,8 @@ const body = await response.json();
         Every token issuance, proxy call, policy denial and approval is appended to a per-environment hash chain. Each
         event stores <code>prevHash</code> and <code>hash</code>, so deleting or editing a row breaks verification.
       </p>
-      <pre>{`const { data } = await keel.audit.list({ agent: agent.id, limit: 10 });
-const verification = await keel.audit.verify();
+      <pre>{`const { data } = await authab.audit.list({ agent: agent.id, limit: 10 });
+const verification = await authab.audit.verify();
 // { valid: true, eventsChecked: 107, brokenAtSeq: null }`}</pre>
       <p>
         Export the raw chain as CSV or JSONL from <Link href="/app/activity">Activity</Link>, or subscribe to proxy,

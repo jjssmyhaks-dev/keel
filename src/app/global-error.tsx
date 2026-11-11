@@ -13,7 +13,7 @@ export default function GlobalError({
         <main style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
           <div style={{ maxWidth: 560 }}>
             <p style={{ fontFamily: "monospace", fontSize: 11, letterSpacing: 3, textTransform: "uppercase", color: "#777" }}>
-              500 · Keel failed to render
+              500 · Authab failed to render
             </p>
             <h1 style={{ fontSize: 44, lineHeight: 1, margin: "18px 0 0", letterSpacing: -1 }}>Something broke before the page loaded.</h1>
             <p style={{ color: "#555", lineHeight: 1.6, marginTop: 18 }}>

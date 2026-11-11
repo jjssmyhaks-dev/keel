@@ -27,21 +27,21 @@ test("APP_URL must be a public https origin", () => {
   assert.match(messages, /https/);
   assert.match(messages, /localhost/);
 
-  const withPath = runtimeConfigIssues(env({ APP_URL: "https://keel.dev/app", CRON_SECRET: CRON }));
+  const withPath = runtimeConfigIssues(env({ APP_URL: "https://authab.dev/app", CRON_SECRET: CRON }));
   assert.match(withPath[0]?.message ?? "", /origin only/);
 });
 
 test("CRON_SECRET must be at least 16 characters", () => {
-  const issues = runtimeConfigIssues(env({ APP_URL: "https://keel.dev", CRON_SECRET: "short" }));
+  const issues = runtimeConfigIssues(env({ APP_URL: "https://authab.dev", CRON_SECRET: "short" }));
   assert.equal(issues.length, 1);
   assert.equal(issues[0]?.key, "CRON_SECRET");
   assert.match(issues[0]?.message ?? "", /16 characters/);
 });
 
 test("valid production configuration passes", () => {
-  const issues = runtimeConfigIssues(env({ APP_URL: "https://keel.dev", CRON_SECRET: CRON }));
+  const issues = runtimeConfigIssues(env({ APP_URL: "https://authab.dev", CRON_SECRET: CRON }));
   assert.deepEqual(issues, []);
-  assert.doesNotThrow(() => assertRuntimeConfig(env({ APP_URL: "https://keel.dev", CRON_SECRET: CRON })));
+  assert.doesNotThrow(() => assertRuntimeConfig(env({ APP_URL: "https://authab.dev", CRON_SECRET: CRON })));
 });
 
 test("assertRuntimeConfig names every broken key", () => {

@@ -10,15 +10,15 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from keel import KeelError
-from keel.integrations import (
+from authab import AuthabError
+from authab.integrations import (
     build_tool_specs,
-    keel_crewai_tools,
-    keel_langchain_tools,
-    keel_langgraph_tool_node,
-    keel_openai_agents_tools,
+    authab_crewai_tools,
+    authab_langchain_tools,
+    authab_langgraph_tool_node,
+    authab_openai_agents_tools,
 )
-from keel.integrations.common import ToolSpec, invoke, tool_name_for
+from authab.integrations.common import ToolSpec, invoke, tool_name_for
 
 CATALOG = {
     "object": "list",
@@ -162,9 +162,9 @@ class SpecTests(unittest.TestCase):
         catalog["data"][0]["actions"][0]["fields"].append({"key": "resource", "label": "Resource"})
         client = FakeClient(catalog=catalog)
         post = next(spec for spec in build_tool_specs(client, "agt_1") if spec.action == "slack.post_message")
-        self.assertEqual(post.resource_key, "_keel_resource")
+        self.assertEqual(post.resource_key, "_authab_resource")
         self.assertIn("resource", post.input_schema["properties"])
-        self.assertIn("_keel_resource", post.input_schema["properties"])
+        self.assertIn("_authab_resource", post.input_schema["properties"])
 
 
 def fake_pydantic():
@@ -218,7 +218,7 @@ class LangChainStubTests(unittest.TestCase):
     def test_builds_structured_tools_and_runs_them(self):
         client = FakeClient()
         with patch.dict(sys.modules, self._modules()):
-            tools = keel_langchain_tools(client, "agt_1")
+            tools = authab_langchain_tools(client, "agt_1")
             self.assertEqual([tool.name for tool in tools], ["slack_list_channels", "slack_post_message"])
             post = next(tool for tool in tools if tool.name == "slack_post_message")
             self.assertEqual(set(post.args_schema.model_fields), {"channel", "text", "resource"})
@@ -227,13 +227,13 @@ class LangChainStubTests(unittest.TestCase):
             async_result = asyncio.run(post.coroutine(channel="#eng", text="hi", resource="#eng-1"))
             self.assertEqual(async_result["status"], "executed")
 
-            node = keel_langgraph_tool_node(client, "agt_1")
+            node = authab_langgraph_tool_node(client, "agt_1")
             self.assertEqual(len(node.tools), 2)
 
     def test_reports_missing_dependency(self):
         with patch.dict(sys.modules, {"langchain_core": None, "langchain_core.tools": None}):
-            with self.assertRaises(KeelError) as caught:
-                keel_langchain_tools(FakeClient(), "agt_1")
+            with self.assertRaises(AuthabError) as caught:
+                authab_langchain_tools(FakeClient(), "agt_1")
         self.assertEqual(caught.exception.code, "langchain_dependency_missing")
 
 
@@ -252,7 +252,7 @@ class CrewAIStubTests(unittest.TestCase):
     def test_builds_crewai_tools_and_returns_json(self):
         client = FakeClient()
         with patch.dict(sys.modules, self._modules()):
-            tools = keel_crewai_tools(client, "agt_1")
+            tools = authab_crewai_tools(client, "agt_1")
             post = next(tool for tool in tools if tool.name == "slack_post_message")
             self.assertEqual(set(post.args_schema.model_fields), {"channel", "text", "resource"})
             payload = json.loads(post._run(channel="#eng", text="hi", resource="#eng-1"))
@@ -262,7 +262,7 @@ class CrewAIStubTests(unittest.TestCase):
     def test_errors_become_json_for_the_model(self):
         client = FakeClient()
         with patch.dict(sys.modules, self._modules()):
-            tools = keel_crewai_tools(client, "agt_1")
+            tools = authab_crewai_tools(client, "agt_1")
             post = next(tool for tool in tools if tool.name == "slack_post_message")
             payload = json.loads(post._run(channel="#eng", text="hi"))
             self.assertEqual(payload["error"]["code"], "tool_error")
@@ -282,7 +282,7 @@ class OpenAIAgentsStubTests(unittest.TestCase):
     def test_builds_function_tools_with_json_schema(self):
         client = FakeClient()
         with patch.dict(sys.modules, self._modules()):
-            tools = keel_openai_agents_tools(client, "agt_1")
+            tools = authab_openai_agents_tools(client, "agt_1")
             post = next(tool for tool in tools if tool.name == "slack_post_message")
             self.assertEqual(post.params_json_schema["required"], ["channel", "resource", "text"])
             self.assertFalse(post.strict_json_schema)
@@ -295,7 +295,7 @@ class OpenAIAgentsStubTests(unittest.TestCase):
     def test_errors_are_returned_as_json(self):
         client = FakeClient()
         with patch.dict(sys.modules, self._modules()):
-            tools = keel_openai_agents_tools(client, "agt_1")
+            tools = authab_openai_agents_tools(client, "agt_1")
             post = next(tool for tool in tools if tool.name == "slack_post_message")
             result = json.loads(asyncio.run(post.on_invoke_tool(None, json.dumps({"channel": "#eng"}))))
             self.assertEqual(result["error"]["code"], "tool_error")

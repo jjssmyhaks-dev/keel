@@ -7,7 +7,7 @@ import { CONNECTORS } from "@/lib/connectors";
 
 export const metadata: Metadata = {
   title: "Connectors",
-  description: "The integrations Keel governs, with exact actions, risk levels and scopes.",
+  description: "The integrations Authab governs, with exact actions, risk levels and scopes.",
 };
 
 export default function ConnectorsPage() {
@@ -17,7 +17,7 @@ export default function ConnectorsPage() {
     <DocsShell
       eyebrow="Integrations"
       title="Connectors"
-      intro="A connector defines the provider endpoints Keel can call, the actions an agent may request, each action's risk level, and which fields are redacted. Grants reference these actions by name — there is no arbitrary URL proxying."
+      intro="A connector defines the provider endpoints Authab can call, the actions an agent may request, each action's risk level, and which fields are redacted. Grants reference these actions by name — there is no arbitrary URL proxying."
       updated="2 November 2026"
     >
       <p>

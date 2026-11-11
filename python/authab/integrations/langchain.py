@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any, Optional
 
-from ..errors import KeelError
+from ..errors import AuthabError
 from .common import ToolSpec, ainvoke, build_tool_specs, invoke
 
 
@@ -14,9 +14,9 @@ def _require_langchain():
         from langchain_core.tools import StructuredTool
         from pydantic import ConfigDict, Field, create_model
     except ImportError:
-        raise KeelError(
+        raise AuthabError(
             "The LangChain adapter needs langchain-core and pydantic. "
-            "Install them with: pip install 'keel-sdk[langchain]'",
+            "Install them with: pip install 'authab-sdk[langchain]'",
             code="langchain_dependency_missing",
         ) from None
     return StructuredTool, ConfigDict, Field, create_model
@@ -25,7 +25,7 @@ def _require_langchain():
 def _model_name(tool_name: str) -> str:
     parts = re.split(r"[^a-zA-Z0-9]+", tool_name)
     name = "".join(part[:1].upper() + part[1:] for part in parts if part) + "Args"
-    return name if name[0].isalpha() else f"Keel{name}"
+    return name if name[0].isalpha() else f"Authab{name}"
 
 
 def _args_model(spec: ToolSpec):
@@ -59,7 +59,7 @@ def _tool_from_spec(client: Any, spec: ToolSpec, agent_id: str):
     )
 
 
-def keel_langchain_tools(
+def authab_langchain_tools(
     client: Any,
     agent_id: str,
     *,
@@ -68,28 +68,28 @@ def keel_langchain_tools(
     """Build LangChain tools for every action the agent may call.
 
     Pass the result to an agent, a chain, or LangGraph's ``ToolNode``. Each
-    tool's execution is a Keel proxy call, so policy and approvals still apply.
+    tool's execution is a Authab proxy call, so policy and approvals still apply.
     """
 
     return [_tool_from_spec(client, spec, agent_id) for spec in build_tool_specs(client, agent_id, connector=connector)]
 
 
-def keel_langgraph_tool_node(
+def authab_langgraph_tool_node(
     client: Any,
     agent_id: str,
     *,
     connector: Optional[str] = None,
 ) -> Any:
-    """A ready-made LangGraph ``ToolNode`` backed by governed Keel tools."""
+    """A ready-made LangGraph ``ToolNode`` backed by governed Authab tools."""
 
     try:
         from langgraph.prebuilt import ToolNode
     except ImportError:
-        raise KeelError(
-            "The LangGraph helper needs langgraph. Install it with: pip install 'keel-sdk[langgraph]'",
+        raise AuthabError(
+            "The LangGraph helper needs langgraph. Install it with: pip install 'authab-sdk[langgraph]'",
             code="langgraph_dependency_missing",
         ) from None
-    return ToolNode(keel_langchain_tools(client, agent_id, connector=connector))
+    return ToolNode(authab_langchain_tools(client, agent_id, connector=connector))
 
 
-__all__ = ["keel_langchain_tools", "keel_langgraph_tool_node"]
+__all__ = ["authab_langchain_tools", "authab_langgraph_tool_node"]

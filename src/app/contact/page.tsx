@@ -5,32 +5,32 @@ import { FooterSection } from "@/components/landing/footer-section";
 
 export const metadata: Metadata = {
   title: "Contact",
-  description: "Talk to the Keel team about agents, security reviews, billing or support.",
+  description: "Talk to the Authab team about agents, security reviews, billing or support.",
 };
 
 const channels = [
   {
     label: "Sales and design partners",
     detail: "Production rollouts, Enterprise, regional deployments.",
-    email: "hello@keel.dev",
+    email: "hello@authab.dev",
     response: "One business day",
   },
   {
     label: "Support",
     detail: "A failing call, a stuck approval, an audit export.",
-    email: "support@keel.dev",
+    email: "support@authab.dev",
     response: "Within 4 business hours",
   },
   {
     label: "Security",
     detail: "Vulnerability reports, compliance packs, NDA reviews.",
-    email: "security@keel.dev",
+    email: "security@authab.dev",
     response: "Within 2 business days",
   },
   {
     label: "Billing",
     detail: "Invoices, GST details, plan changes, refunds.",
-    email: "billing@keel.dev",
+    email: "billing@authab.dev",
     response: "Two business days",
   },
 ];
@@ -87,13 +87,13 @@ export default function ContactPage() {
           <div className="lg:col-span-4">
             <p className="mono-label text-foreground/40 mb-4">Office</p>
             <p className="text-[14px] leading-relaxed text-foreground/65">
-              Keel Systems
+              Authab Systems
               <br />
               Bengaluru, India
             </p>
             <p className="mt-4 text-[12px] text-foreground/40">
               Registered office details are available on request at{" "}
-              <a href="mailto:legal@keel.dev" className="underline underline-offset-4">legal@keel.dev</a>.
+              <a href="mailto:legal@authab.dev" className="underline underline-offset-4">legal@authab.dev</a>.
             </p>
           </div>
           <div className="lg:col-span-8">
@@ -102,7 +102,7 @@ export default function ContactPage() {
               {[
                 { title: "Debug a denied call", body: "The response includes a decision source and reason. The Activity page explains it months later.", href: "/docs/concepts/policy", label: "Policy docs" },
                 { title: "Discuss Enterprise", body: "Custom volume, annual invoicing and security review. Ask for the current scope.", href: "/pricing", label: "Plans" },
-                { title: "Report a vulnerability", body: "Follow the responsible disclosure policy and use security@keel.dev.", href: "/security#disclosure", label: "Disclosure" },
+                { title: "Report a vulnerability", body: "Follow the responsible disclosure policy and use security@authab.dev.", href: "/security#disclosure", label: "Disclosure" },
                 { title: "Understand billing", body: "Usage meters, allowances and currency handling are documented on the billing page.", href: "/app/billing", label: "Billing" },
               ].map((item) => (
                 <Link key={item.title} href={item.href} className="group bg-background p-5 hover:bg-foreground/[0.03]">

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { Keel } from "./index";
+import type { Authab } from "./index";
 import type { Connector, ConnectorAction, Grant } from "./types";
 
 export interface AgentToolSpec {
@@ -17,7 +17,7 @@ export interface AgentToolSpec {
   risk: string;
 }
 
-type KeelLike = Pick<Keel, "grants" | "connectors" | "proxy">;
+type AuthabLike = Pick<Authab, "grants" | "connectors" | "proxy">;
 
 const RISKS = ["read", "write", "destructive", "financial", "admin"] as const;
 const MAX_TOOL_NAME = 64;
@@ -46,7 +46,7 @@ function expandActions(actions: ConnectorAction[], patterns: string[]): Connecto
 }
 
 export function agentToolName(action: string) {
-  const clean = action.replace(/[^a-zA-Z0-9_-]+/g, "_").replace(/^_+|_+$/g, "") || "keel_action";
+  const clean = action.replace(/[^a-zA-Z0-9_-]+/g, "_").replace(/^_+|_+$/g, "") || "authab_action";
   if (clean.length <= MAX_TOOL_NAME) return clean;
   const digest = createHash("sha256").update(action).digest("hex").slice(0, 8);
   return `${clean.slice(0, MAX_TOOL_NAME - 9)}_${digest}`;
@@ -71,7 +71,7 @@ function inputSchemaFor(action: ConnectorAction, resourcePattern: string) {
   const restricted = resourcePattern.trim() !== "" && resourcePattern.trim() !== "*";
   let resourceKey: string | null = null;
   if (restricted) {
-    resourceKey = "resource" in properties ? "_keel_resource" : "resource";
+    resourceKey = "resource" in properties ? "_authab_resource" : "resource";
     properties[resourceKey] = {
       type: "string",
       description: `The resource this call applies to. This grant is limited to "${resourcePattern}".`,
@@ -89,7 +89,7 @@ function inputSchemaFor(action: ConnectorAction, resourcePattern: string) {
 }
 
 function describe(connectorName: string, action: ConnectorAction, resourcePattern: string) {
-  let text = `${action.label} on ${connectorName}. ${action.description} Risk: ${action.risk}. Runs through Keel, which enforces grants, approvals and audit.`;
+  let text = `${action.label} on ${connectorName}. ${action.description} Risk: ${action.risk}. Runs through Authab, which enforces grants, approvals and audit.`;
   if (resourcePattern.trim() !== "" && resourcePattern.trim() !== "*") {
     text += ` Resource must match "${resourcePattern}".`;
   }
@@ -101,13 +101,13 @@ function describe(connectorName: string, action: ConnectorAction, resourcePatter
  * result is framework-neutral and safe to feed to any tool-calling runtime.
  */
 export async function buildAgentToolSpecs(
-  keel: KeelLike,
+  authab: AuthabLike,
   agentId: string,
   options: { connector?: string } = {},
 ): Promise<AgentToolSpec[]> {
   const [grants, catalog] = await Promise.all([
-    keel.grants.list({ agent: agentId }),
-    keel.connectors.list(),
+    authab.grants.list({ agent: agentId }),
+    authab.connectors.list(),
   ]);
   const bySlug = new Map(catalog.data.map((connector) => [connector.slug, connector]));
 
@@ -151,7 +151,7 @@ export async function buildAgentToolSpecs(
 }
 
 export async function invokeAgentTool(
-  keel: KeelLike,
+  authab: AuthabLike,
   spec: AgentToolSpec,
   agentId: string,
   input: Record<string, unknown>,
@@ -170,7 +170,7 @@ export async function invokeAgentTool(
     if (typeof value === "string" && value.trim()) resource = value.trim();
   }
 
-  return keel.proxy.call({
+  return authab.proxy.call({
     connector: spec.connector,
     action: spec.action,
     resource,

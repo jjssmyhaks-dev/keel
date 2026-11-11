@@ -33,7 +33,7 @@ const pillars = [
 const paths = [
   { name: "Quickstart", detail: "First agent to first governed call in ten minutes", href: "/docs/quickstart" },
   { name: "API reference", detail: "REST endpoints, errors, idempotency and pagination", href: "/docs/api" },
-  { name: "TypeScript SDK", detail: "keel.agents, keel.vault, keel.proxy", href: "/docs/sdk" },
+  { name: "TypeScript SDK", detail: "authab.agents, authab.vault, authab.proxy", href: "/docs/sdk" },
   { name: "Connectors", detail: `${CONNECTORS.length} integrations, with exact actions and scopes`, href: "/docs/connectors" },
 ];
 
@@ -42,7 +42,7 @@ export default function DocsOverviewPage() {
     <DocsShell
       eyebrow="Documentation"
       title="Identity, vault and governance. In one API."
-      intro="Keel sits between your agents and the services they call. It issues identity, holds the secrets, evaluates policy on every request, and writes an append-only record of what happened."
+      intro="Authab sits between your agents and the services they call. It issues identity, holds the secrets, evaluates policy on every request, and writes an append-only record of what happened."
       updated="31 October 2026"
       aside={
         <DocsAside
@@ -57,7 +57,7 @@ export default function DocsOverviewPage() {
     >
       <h2 id="pillars">The three layers</h2>
       <p>
-        Keel replaces three things teams usually build twice: an identity system for non-humans, a secrets store with
+        Authab replaces three things teams usually build twice: an identity system for non-humans, a secrets store with
         per-agent access, and an audit log that survives a bad deploy. They share one data model, so a revocation in
         identity immediately blocks the vault and the policy engine.
       </p>
@@ -81,7 +81,7 @@ export default function DocsOverviewPage() {
 
       <h2 id="request-path">The request path</h2>
       <p>
-        An agent never talks to Slack, Stripe or GitHub directly. It calls the Keel proxy with a five-minute JWT. Keel
+        An agent never talks to Slack, Stripe or GitHub directly. It calls the Authab proxy with a five-minute JWT. Authab
         verifies the token, evaluates the grant, decides whether a human is needed, decrypts the right secret, performs
         the call, redacts the response, and appends an audit event.
       </p>
@@ -122,11 +122,11 @@ export default function DocsOverviewPage() {
           </tr>
           <tr>
             <td><Link href="/docs/mcp">MCP server and gateway</Link></td>
-            <td>Expose Keel-governed tools over stdio or Streamable HTTP, with a public registry manifest.</td>
+            <td>Expose Authab-governed tools over stdio or Streamable HTTP, with a public registry manifest.</td>
           </tr>
           <tr>
             <td><Link href="/docs/connectors">Connectors</Link></td>
-            <td>The exact provider actions, scopes and redaction rules Keel enforces.</td>
+            <td>The exact provider actions, scopes and redaction rules Authab enforces.</td>
           </tr>
         </tbody>
       </table>

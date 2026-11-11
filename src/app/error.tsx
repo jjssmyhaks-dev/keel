@@ -11,7 +11,7 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("[keel] unhandled route error", error);
+    console.error("[authab] unhandled route error", error);
   }, [error]);
 
   return (
@@ -24,7 +24,7 @@ export default function Error({
           <span className="text-foreground/35">stopped here.</span>
         </h1>
         <p className="mt-6 text-[15px] leading-relaxed text-foreground/60">
-          Keel logged the failure and did not continue the operation. Retry, or check the status page before trying
+          Authab logged the failure and did not continue the operation. Retry, or check the status page before trying
           again.
         </p>
         {error.digest ? (

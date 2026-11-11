@@ -1,5 +1,5 @@
-import { Keel, KeelError } from "@keel/sdk";
-import type { Connector } from "@keel/sdk";
+import { Authab, AuthabError } from "@authab/sdk";
+import type { Connector } from "@authab/sdk";
 
 const MAX_RESULT_BYTES = 64 * 1024;
 const TOKEN_TTL_SECONDS = 600;
@@ -13,21 +13,21 @@ export interface ToolDefinition {
 
 export const TOOLS: ToolDefinition[] = [
   {
-    name: "keel_whoami",
+    name: "authab_whoami",
     description:
-      "Show the configured Keel agent, its environment, project, organisation and granted scopes. Use this first to confirm which identity the tools run as.",
+      "Show the configured Authab agent, its environment, project, organisation and granted scopes. Use this first to confirm which identity the tools run as.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: true, openWorldHint: false },
   },
   {
-    name: "keel_list_connections",
+    name: "authab_list_connections",
     description:
       "List the connections (credential + connector) this agent may reach, with masked hints, granted actions and approval mode. A connection not in this list cannot be called.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: true, openWorldHint: false },
   },
   {
-    name: "keel_list_actions",
+    name: "authab_list_actions",
     description:
       "List the actions this agent is granted, per connection, with risk levels. Optional connector filter (for example slack).",
     inputSchema: {
@@ -40,9 +40,9 @@ export const TOOLS: ToolDefinition[] = [
     annotations: { readOnlyHint: true, openWorldHint: false },
   },
   {
-    name: "keel_call",
+    name: "authab_call",
     description:
-      "Make a governed connector call through Keel. Policy, grants, rate limits, approvals and audit apply exactly as for any agent. Returns status executed or pending_approval. Policy denials are errors with a code.",
+      "Make a governed connector call through Authab. Policy, grants, rate limits, approvals and audit apply exactly as for any agent. Returns status executed or pending_approval. Policy denials are errors with a code.",
     inputSchema: {
       type: "object",
       properties: {
@@ -63,14 +63,14 @@ export const TOOLS: ToolDefinition[] = [
     annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
   },
   {
-    name: "keel_pending_approvals",
+    name: "authab_pending_approvals",
     description:
-      "List this agent's pending approval requests. Approvals are decided by a human in the Keel dashboard or approval link; no MCP tool can approve them.",
+      "List this agent's pending approval requests. Approvals are decided by a human in the Authab dashboard or approval link; no MCP tool can approve them.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: true, openWorldHint: false },
   },
   {
-    name: "keel_approval_status",
+    name: "authab_approval_status",
     description:
       "Read the current status and execution result of one approval request belonging to this agent.",
     inputSchema: {
@@ -82,7 +82,7 @@ export const TOOLS: ToolDefinition[] = [
     annotations: { readOnlyHint: true, openWorldHint: false },
   },
   {
-    name: "keel_search_audit",
+    name: "authab_search_audit",
     description:
       "Search recent audit events for this agent, newest first. Filter by action prefix (e.g. proxy.call) or outcome (executed, denied, recorded).",
     inputSchema: {
@@ -100,32 +100,32 @@ export const TOOLS: ToolDefinition[] = [
 
 export class ToolInputError extends Error {}
 
-export class KeelTools {
-  private readonly keel: Keel;
+export class AuthabTools {
+  private readonly authab: Authab;
   private readonly agentId: string;
   private cachedToken: { token: string; expiresAt: number } | null = null;
 
   constructor(options: { apiKey: string; agentId: string; baseUrl?: string }) {
-    this.keel = new Keel({ apiKey: options.apiKey, baseUrl: options.baseUrl });
+    this.authab = new Authab({ apiKey: options.apiKey, baseUrl: options.baseUrl });
     this.agentId = options.agentId;
   }
 
   async handle(name: string, rawArgs: Record<string, unknown> | undefined) {
     const args = rawArgs ?? {};
     switch (name) {
-      case "keel_whoami":
+      case "authab_whoami":
         return this.whoami();
-      case "keel_list_connections":
+      case "authab_list_connections":
         return this.listConnections();
-      case "keel_list_actions":
+      case "authab_list_actions":
         return this.listActions(args);
-      case "keel_call":
+      case "authab_call":
         return this.call(args);
-      case "keel_pending_approvals":
+      case "authab_pending_approvals":
         return this.pendingApprovals();
-      case "keel_approval_status":
+      case "authab_approval_status":
         return this.approvalStatus(args);
-      case "keel_search_audit":
+      case "authab_search_audit":
         return this.searchAudit(args);
       default:
         throw new ToolInputError(`Unknown tool “${name}”.`);
@@ -133,7 +133,7 @@ export class KeelTools {
   }
 
   private async whoami() {
-    const [me, agent] = await Promise.all([this.keel.me(), this.keel.agents.get(this.agentId)]);
+    const [me, agent] = await Promise.all([this.authab.me(), this.authab.agents.get(this.agentId)]);
     const scopes = [...new Set((agent.grants ?? []).flatMap((grant) => grant.actions))];
     return {
       agent: {
@@ -153,10 +153,10 @@ export class KeelTools {
   }
 
   private async listConnections() {
-    const grants = await this.keel.grants.list({ agent: this.agentId });
+    const grants = await this.authab.grants.list({ agent: this.agentId });
     const connections = await Promise.all(
       grants.data.map(async (grant) => {
-        const metadata = await this.keel.vault.get(grant.credentialId).catch(() => null);
+        const metadata = await this.authab.vault.get(grant.credentialId).catch(() => null);
         return {
           grantId: grant.id,
           credentialId: grant.credentialId,
@@ -177,8 +177,8 @@ export class KeelTools {
   private async listActions(args: Record<string, unknown>) {
     const filter = optionalString(args, "connector");
     const [grants, catalog] = await Promise.all([
-      this.keel.grants.list({ agent: this.agentId }),
-      this.keel.connectors.list(),
+      this.authab.grants.list({ agent: this.agentId }),
+      this.authab.connectors.list(),
     ]);
     const bySlug = new Map(catalog.data.map((connector) => [connector.slug, connector]));
 
@@ -209,7 +209,7 @@ export class KeelTools {
     }
 
     const token = await this.agentToken();
-    const result = await this.keel.proxy.call({
+    const result = await this.authab.proxy.call({
       token,
       connector,
       action,
@@ -222,14 +222,14 @@ export class KeelTools {
     if (result.status === "pending_approval") {
       return {
         ...result,
-        hint: "A human must approve this request in the Keel dashboard. Use keel_approval_status to check later.",
+        hint: "A human must approve this request in the Authab dashboard. Use authab_approval_status to check later.",
       };
     }
     return result;
   }
 
   private async pendingApprovals() {
-    const listed = await this.keel.approvals.list({ agentId: this.agentId, status: "pending" });
+    const listed = await this.authab.approvals.list({ agentId: this.agentId, status: "pending" });
     return {
       agentId: this.agentId,
       approvals: listed.data.map((approval) => ({
@@ -246,7 +246,7 @@ export class KeelTools {
 
   private async approvalStatus(args: Record<string, unknown>) {
     const approvalId = requiredString(args, "approvalId");
-    const approval = await this.keel.approvals.get(approvalId);
+    const approval = await this.authab.approvals.get(approvalId);
     if (approval.agentId !== this.agentId) {
       throw new ToolInputError("That approval belongs to a different agent. This server cannot read it.");
     }
@@ -266,7 +266,7 @@ export class KeelTools {
 
   private async searchAudit(args: Record<string, unknown>) {
     const limit = optionalNumber(args, "limit") ?? 20;
-    const page = await this.keel.audit.list({
+    const page = await this.authab.audit.list({
       agent: this.agentId,
       action: optionalString(args, "action"),
       outcome: optionalString(args, "outcome"),
@@ -294,7 +294,7 @@ export class KeelTools {
     if (this.cachedToken && Date.now() < this.cachedToken.expiresAt - 60_000) {
       return this.cachedToken.token;
     }
-    const issued = await this.keel.agents.token(this.agentId, { ttl: TOKEN_TTL_SECONDS });
+    const issued = await this.authab.agents.token(this.agentId, { ttl: TOKEN_TTL_SECONDS });
     this.cachedToken = { token: issued.accessToken, expiresAt: new Date(issued.expiresAt).getTime() };
     return issued.accessToken;
   }
@@ -320,7 +320,7 @@ export function toolResult(value: unknown, isError = false) {
 }
 
 export function errorResult(error: unknown) {
-  if (error instanceof KeelError) {
+  if (error instanceof AuthabError) {
     return toolResult(
       {
         error: {

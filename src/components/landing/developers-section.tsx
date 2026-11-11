@@ -6,15 +6,15 @@ import { Check, Copy } from "lucide-react";
 const languages = ["TypeScript", "cURL"] as const;
 
 const snippets: Record<(typeof languages)[number], string> = {
-  TypeScript: `import { Keel } from "@keel/sdk";
+  TypeScript: `import { Authab } from "@authab/sdk";
 
-const keel = new Keel({ apiKey: process.env.KEEL_SECRET_KEY });
+const authab = new Authab({ apiKey: process.env.AUTHAB_SECRET_KEY });
 
 // 1. register an agent (identity is generated locally)
-const agent = await keel.agents.create({ name: "atlas" });
+const agent = await authab.agents.create({ name: "atlas" });
 
 // 2. grant it a connector, scoped to one channel
-await keel.grants.create({
+await authab.grants.create({
   agentId: agent.id,
   credentialId: "cred_slack",
   actions: ["slack.post_message"],
@@ -23,20 +23,20 @@ await keel.grants.create({
 });
 
 // 3. act. the credential never enters this process.
-const token = await keel.auth.token(agent.identity);
-await keel.proxy.call({
+const token = await authab.auth.token(agent.identity);
+await authab.proxy.call({
   token,
   connector: "slack",
   action: "slack.post_message",
   input: { channel: "#support-eu", text: "Daily digest ready." },
 });`,
   cURL: `# exchange the agent identity for a 5-minute token
-curl -X POST https://api.keel.dev/v1/agents/atlas/token \\
-  -H "Authorization: Bearer $KEEL_SECRET_KEY" \\
+curl -X POST https://api.authab.dev/v1/agents/atlas/token \\
+  -H "Authorization: Bearer $AUTHAB_SECRET_KEY" \\
   -d '{"challenge":"$(date +%s)","signature":"…"}'
 
 # call an action through the proxy
-curl -X POST https://api.keel.dev/v1/proxy/slack \\
+curl -X POST https://api.authab.dev/v1/proxy/slack \\
   -H "Authorization: Bearer $AGENT_TOKEN" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -94,7 +94,7 @@ export function DevelopersSection() {
             </h2>
             <p className="mt-8 text-lg text-muted-foreground leading-relaxed max-w-md">
               A small, typed surface area. No new runtime, no sidecar, no proxy SDK to
-              deploy. If your agent can make an HTTP request, it can use Keel.
+              deploy. If your agent can make an HTTP request, it can use Authab.
             </p>
             <div className="mt-10 grid grid-cols-2 gap-6">
               {features.map((feature, index) => (
@@ -110,7 +110,7 @@ export function DevelopersSection() {
             </div>
             <div className="mt-10 border border-foreground/10 p-4 font-mono text-[11px] text-muted-foreground flex items-center gap-3">
               <span className="text-[#b0568f]">$</span>
-              npx @keel/cli init
+              npx @authab/cli init
             </div>
           </div>
 
@@ -147,7 +147,7 @@ export function DevelopersSection() {
               <code>{snippets[lang]}</code>
             </pre>
             <div className="border-t border-white/10 px-6 py-4 flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-[10px] text-white/30">
-              <span>npm i @keel/sdk</span>
+              <span>npm i @authab/sdk</span>
               <span>openapi 3.1</span>
               <span className="text-[#eca8d6]/70">typed errors · retries</span>
             </div>

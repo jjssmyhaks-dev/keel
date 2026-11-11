@@ -12,9 +12,9 @@ import urllib.parse
 import urllib.request
 from typing import Any, Mapping, Optional
 
-from .errors import KeelError
+from .errors import AuthabError
 
-DEFAULT_BASE_URL = "https://api.keel.dev/v1"
+DEFAULT_BASE_URL = "https://api.authab.dev/v1"
 VERSION = "1.0.0"
 
 
@@ -69,12 +69,12 @@ class HttpTransport:
         timeout_ms: int = 15_000,
     ) -> None:
         if not isinstance(api_key, str) or not api_key.strip():
-            raise KeelError(
-                "Keel requires an API key. Pass api_key with a secret key for this environment.",
+            raise AuthabError(
+                "Authab requires an API key. Pass api_key with a secret key for this environment.",
                 code="missing_api_key",
             )
         if api_key.strip().startswith("pk_"):
-            raise KeelError(
+            raise AuthabError(
                 "The SDK requires a secret key (sk_...). Publishable keys cannot be used from the server.",
                 code="publishable_key_not_allowed",
             )
@@ -108,7 +108,7 @@ class HttpTransport:
         while True:
             request_headers = {
                 "accept": "application/json",
-                "user-agent": f"keel-python/{VERSION}",
+                "user-agent": f"authab-python/{VERSION}",
                 **(headers or {}),
             }
             if payload is not None:
@@ -141,11 +141,11 @@ class HttpTransport:
                     continue
                 reason = getattr(error, "reason", error)
                 timed_out = _is_timeout(error) or _is_timeout(reason if isinstance(reason, BaseException) else error)
-                raise KeelError(
+                raise AuthabError(
                     (
-                        f"The request to Keel timed out after {self.timeout_ms}ms ({method} {path})."
+                        f"The request to Authab timed out after {self.timeout_ms}ms ({method} {path})."
                         if timed_out
-                        else f"Could not reach Keel ({method} {path}): {reason}"
+                        else f"Could not reach Authab ({method} {path}): {reason}"
                     ),
                     code="timeout" if timed_out else "network_error",
                 ) from None
@@ -164,8 +164,8 @@ class HttpTransport:
             if status >= 400:
                 raise _error_from_response(status, response_headers, text)
             if data is None:
-                raise KeelError(
-                    "Keel returned an empty or non-JSON response.",
+                raise AuthabError(
+                    "Authab returned an empty or non-JSON response.",
                     status=status,
                     code="invalid_response",
                     request_id=_header(response_headers, "x-request-id"),
@@ -181,7 +181,7 @@ def _header(headers: Any, name: str) -> Optional[str]:
     return value or None
 
 
-def _error_from_response(status: int, headers: Any, text: str) -> KeelError:
+def _error_from_response(status: int, headers: Any, text: str) -> AuthabError:
     fallback_id = _header(headers, "x-request-id")
     try:
         body = json.loads(text) if text else None
@@ -189,8 +189,8 @@ def _error_from_response(status: int, headers: Any, text: str) -> KeelError:
         body = None
     if isinstance(body, dict) and isinstance(body.get("error"), dict):
         detail = body["error"]
-        return KeelError(
-            str(detail.get("message") or f"Keel returned HTTP {status}."),
+        return AuthabError(
+            str(detail.get("message") or f"Authab returned HTTP {status}."),
             status=status,
             code=str(detail.get("code") or "api_error"),
             details=detail.get("details"),
@@ -198,9 +198,9 @@ def _error_from_response(status: int, headers: Any, text: str) -> KeelError:
         )
     message = text.strip()
     if len(message) >= 300:
-        message = f"Keel returned HTTP {status}."
-    return KeelError(
-        message or f"Keel returned HTTP {status}.",
+        message = f"Authab returned HTTP {status}."
+    return AuthabError(
+        message or f"Authab returned HTTP {status}.",
         status=status,
         code="unauthorized" if status == 401 else "api_error",
         request_id=fallback_id,

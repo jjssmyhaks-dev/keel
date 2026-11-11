@@ -11,13 +11,13 @@ import { VaultResource } from "./resources/vault";
 import { WebhooksResource } from "./resources/webhooks";
 import type { ApiKeyContext } from "./types";
 
-export type KeelOptions = HttpClientOptions;
+export type AuthabOptions = HttpClientOptions;
 
 /**
- * Server-side Keel client. The key's environment is the client's
+ * Server-side Authab client. The key's environment is the client's
  * environment; there is no environment parameter to forget.
  */
-export class Keel {
+export class Authab {
   readonly agents: AgentsResource;
   readonly tokens: TokensResource;
   readonly vault: VaultResource;
@@ -31,7 +31,7 @@ export class Keel {
 
   private readonly http: HttpClient;
 
-  constructor(options: KeelOptions) {
+  constructor(options: AuthabOptions) {
     this.http = new HttpClient(options);
     this.agents = new AgentsResource(this.http);
     this.tokens = new TokensResource(this.http);
@@ -51,7 +51,7 @@ export class Keel {
   }
 }
 
-export { KeelError, isKeelError } from "./errors";
+export { AuthabError, isAuthabError } from "./errors";
 export { signChallenge, generateAgentKeypair, type SignedChallenge } from "./signing";
 export { verifyWebhook, type VerifyWebhookOptions } from "./resources/webhooks";
 export {

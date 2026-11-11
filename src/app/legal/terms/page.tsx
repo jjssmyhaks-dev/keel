@@ -4,7 +4,7 @@ import { LegalShell } from "@/components/legal/legal-shell";
 
 export const metadata: Metadata = {
   title: "Terms",
-  description: "The agreement that governs your use of Keel.",
+  description: "The agreement that governs your use of Authab.",
 };
 
 export default function TermsPage() {
@@ -13,23 +13,23 @@ export default function TermsPage() {
       slug="terms"
       eyebrow="Terms"
       title="The terms of the deal."
-      intro="These terms govern your use of Keel. They are written to be read by engineers as well as lawyers, and they describe what we provide, what we expect from you, and what happens when something goes wrong."
+      intro="These terms govern your use of Authab. They are written to be read by engineers as well as lawyers, and they describe what we provide, what we expect from you, and what happens when something goes wrong."
       updated="24 October 2026"
     >
       <h2 id="agreement">1. The agreement</h2>
       <p>
-        This agreement is between Keel Systems (&ldquo;Keel&rdquo;, &ldquo;we&rdquo;) and the organisation or individual that creates a
+        This agreement is between Authab Systems (&ldquo;Authab&rdquo;, &ldquo;we&rdquo;) and the organisation or individual that creates a
         workspace (&ldquo;you&rdquo;). By creating a workspace, using the API, or deploying the software, you accept it. If you accept
         on behalf of an organisation, you confirm you are authorised to bind it.
       </p>
       <p>
-        If you have a signed enterprise agreement with Keel, that agreement prevails over these terms where they
+        If you have a signed enterprise agreement with Authab, that agreement prevails over these terms where they
         conflict. The <Link href="/legal/dpa">data processing agreement</Link> forms part of this agreement.
       </p>
 
       <h2 id="service">2. What we provide</h2>
       <p>
-        Keel is an identity, credential vault and governance layer for AI agents. The service includes the dashboard,
+        Authab is an identity, credential vault and governance layer for AI agents. The service includes the dashboard,
         API, agent proxy, approval workflow and audit trail.
       </p>
       <p>
@@ -41,13 +41,13 @@ export default function TermsPage() {
       <h2 id="accounts">3. Accounts and security</h2>
       <ul>
         <li>You are responsible for the accuracy of account information and for keeping credentials confidential.</li>
-        <li>You must notify us promptly at <a href="mailto:security@keel.dev">security@keel.dev</a> if you suspect unauthorised access.</li>
+        <li>You must notify us promptly at <a href="mailto:security@authab.dev">security@authab.dev</a> if you suspect unauthorised access.</li>
         <li>Workspace administrators control member access. You are responsible for the actions of members and agents you authorise.</li>
         <li>Production writes require a verified email and an owner or admin role. Do not attempt to bypass these controls.</li>
       </ul>
 
       <h2 id="acceptable-use">4. Acceptable use</h2>
-      <p>You may not use Keel to:</p>
+      <p>You may not use Authab to:</p>
       <ul>
         <li>Violate law, infringe rights, or facilitate fraud, harassment or the distribution of malware.</li>
         <li>Access systems you are not authorised to access, including by using the proxy to reach third-party services without permission.</li>
@@ -82,7 +82,7 @@ export default function TermsPage() {
 
       <h2 id="data">7. Your data</h2>
       <p>
-        You retain all rights to the data you put into Keel: configuration, credentials (in encrypted form), call
+        You retain all rights to the data you put into Authab: configuration, credentials (in encrypted form), call
         records and audit events. You grant us a licence to process that data solely to provide the service, as
         described in the <Link href="/legal/privacy">privacy policy</Link> and the{" "}
         <Link href="/legal/dpa">DPA</Link>.
@@ -95,7 +95,7 @@ export default function TermsPage() {
 
       <h2 id="ip">8. Intellectual property</h2>
       <p>
-        Keel and its licensors own the service, documentation and branding. You own your data and any applications you
+        Authab and its licensors own the service, documentation and branding. You own your data and any applications you
         build. Feedback you send us may be used to improve the product without obligation, but we will not publish it
         attributed to you without permission.
       </p>
@@ -116,7 +116,7 @@ export default function TermsPage() {
         intent — that is why approvals and audit exist.
       </p>
       <p>
-        Keel is a control plane, not an insurer. You remain responsible for the business consequences of calls your
+        Authab is a control plane, not an insurer. You remain responsible for the business consequences of calls your
         agents are authorised to make.
       </p>
 
@@ -167,8 +167,8 @@ export default function TermsPage() {
 
       <h2 id="contact">16. Contact</h2>
       <p>
-        Questions about these terms: <a href="mailto:legal@keel.dev">legal@keel.dev</a>. Security reports:{" "}
-        <a href="mailto:security@keel.dev">security@keel.dev</a>. Billing: <a href="mailto:billing@keel.dev">billing@keel.dev</a>.
+        Questions about these terms: <a href="mailto:legal@authab.dev">legal@authab.dev</a>. Security reports:{" "}
+        <a href="mailto:security@authab.dev">security@authab.dev</a>. Billing: <a href="mailto:billing@authab.dev">billing@authab.dev</a>.
       </p>
     </LegalShell>
   );

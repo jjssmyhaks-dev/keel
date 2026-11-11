@@ -1,27 +1,27 @@
-# @keel/sdk
+# @authab/sdk
 
-Server-side TypeScript client for [Keel](https://keel.dev/docs/sdk). Node 20+. Never bundle a secret key into a browser.
+Server-side TypeScript client for [Authab](https://authab.dev/docs/sdk). Node 20+. Never bundle a secret key into a browser.
 
-The package ships in the Keel repository; npm publication is pending the public launch. From a checkout:
+The package ships in the Authab repository; npm publication is pending the public launch. From a checkout:
 
 ```bash
 npm ci && npm run sdk:build
-npm install /path/to/keel/sdk
+npm install /path/to/authab/sdk
 ```
 
 ## Client
 
 ```ts
-import { Keel } from "@keel/sdk";
+import { Authab } from "@authab/sdk";
 
-const keel = new Keel({
-  apiKey: process.env.KEEL_API_KEY!,
-  baseUrl: "https://api.keel.dev/v1", // optional
+const authab = new Authab({
+  apiKey: process.env.AUTHAB_API_KEY!,
+  baseUrl: "https://api.authab.dev/v1", // optional
   maxRetries: 2,
   timeoutMs: 15_000,
 });
 
-const me = await keel.me();
+const me = await authab.me();
 // { organization, project, environment, key }
 ```
 
@@ -30,23 +30,23 @@ The key's environment is the client's environment. There is no environment param
 ## Agents and tokens
 
 ```ts
-const agent = await keel.agents.create({
+const agent = await authab.agents.create({
   name: "Atlas Research",
   description: "Summarises research threads.",
   tags: ["research"],
   framework: "langgraph",
   keyMode: "client", // or "platform"
 });
-// agent.privateKey is returned once, only when Keel generated it.
+// agent.privateKey is returned once, only when Authab generated it.
 
-const token = await keel.agents.token(agent.id, { ttl: 300 });
+const token = await authab.agents.token(agent.id, { ttl: 300 });
 // { accessToken, tokenId, expiresIn, expiresAt, scopes }
 ```
 
 For client-key-mode agents, pass `privateKey` and the SDK signs the challenge:
 
 ```ts
-await keel.agents.token(agent.id, { privateKey: agent.privateKey!, ttl: 300 });
+await authab.agents.token(agent.id, { privateKey: agent.privateKey!, ttl: 300 });
 // or sign yourself with signChallenge(agentId, privateKey)
 ```
 
@@ -55,23 +55,23 @@ Management: `list`, `get`, `update`, `pause`, `resume`, `suspend`, `kill`, `rota
 ## Vault
 
 ```ts
-const credential = await keel.vault.create({
+const credential = await authab.vault.create({
   connector: "slack",
   name: "Northwind workspace",
   type: "oauth",
   secret: { accessToken: process.env.SLACK_TOKEN },
 });
 
-await keel.vault.list({ connector: "slack" });
-await keel.vault.get(credential.id);              // metadata + maskedHint, never the secret
-await keel.vault.rotate(credential.id, { secret: { accessToken: nextToken } });
-await keel.vault.revoke(credential.id);
+await authab.vault.list({ connector: "slack" });
+await authab.vault.get(credential.id);              // metadata + maskedHint, never the secret
+await authab.vault.rotate(credential.id, { secret: { accessToken: nextToken } });
+await authab.vault.revoke(credential.id);
 ```
 
 ## Grants, policy and approvals
 
 ```ts
-const grant = await keel.grants.create({
+const grant = await authab.grants.create({
   agentId: agent.id,
   credentialId: credential.id,
   actions: ["slack.post_message"],
@@ -81,16 +81,16 @@ const grant = await keel.grants.create({
   purpose: "Launch briefs",
 });
 
-await keel.policies.create({ agentId: agent.id, actionPattern: "stripe.*", mode: "deny" });
+await authab.policies.create({ agentId: agent.id, actionPattern: "stripe.*", mode: "deny" });
 
-const pending = await keel.approvals.list({ status: "pending", risk: "financial" });
-await keel.approvals.approve("apr_123", { note: "Duplicate charge confirmed." });
+const pending = await authab.approvals.list({ status: "pending", risk: "financial" });
+await authab.approvals.approve("apr_123", { note: "Duplicate charge confirmed." });
 ```
 
 ## Proxy
 
 ```ts
-const result = await keel.proxy.call({
+const result = await authab.proxy.call({
   connector: "slack",
   agentId: agent.id,          // mint a token, or pass token directly
   action: "slack.post_message",
@@ -103,24 +103,24 @@ if (result.status === "executed") console.log(result.result.body);
 else console.log(result.approval.id, result.approvalUrl);
 ```
 
-A pending approval is a normal return value. A policy denial throws `KeelError` with `code: "policy_denied"` and `details.decision`.
+A pending approval is a normal return value. A policy denial throws `AuthabError` with `code: "policy_denied"` and `details.decision`.
 
 ## Vercel AI SDK
 
-`@keel/sdk/ai` builds a `ToolSet` from the agent's grants: one tool per granted action, with a JSON schema derived from the connector's fields. Every tool executes through the Keel proxy with the agent's identity; the model never sees a provider token. `ai` is an optional peer dependency (`>=5`).
+`@authab/sdk/ai` builds a `ToolSet` from the agent's grants: one tool per granted action, with a JSON schema derived from the connector's fields. Every tool executes through the Authab proxy with the agent's identity; the model never sees a provider token. `ai` is an optional peer dependency (`>=5`).
 
 ```bash
 npm install ai
-npm install /path/to/keel/sdk
+npm install /path/to/authab/sdk
 ```
 
 ```ts
 import { generateText, stepCountIs } from "ai";
-import { Keel } from "@keel/sdk";
-import { keelAiTools } from "@keel/sdk/ai";
+import { Authab } from "@authab/sdk";
+import { authabAiTools } from "@authab/sdk/ai";
 
-const keel = new Keel({ apiKey: process.env.KEEL_API_KEY! });
-const tools = await keelAiTools({ keel, agentId: "agt_atlas" });
+const authab = new Authab({ apiKey: process.env.AUTHAB_API_KEY! });
+const tools = await authabAiTools({ authab, agentId: "agt_atlas" });
 
 const result = await generateText({
   model: yourModel,
@@ -135,14 +135,14 @@ Pass `connector: "slack"` to narrow the tools to one provider. Restricted grants
 ## Audit and webhooks
 
 ```ts
-const page = await keel.audit.list({ agent: agent.id, limit: 50 });
-const check = await keel.audit.verify();            // { valid, eventsChecked, brokenAtSeq }
-const csv = await keel.audit.export({ format: "csv" });
+const page = await authab.audit.list({ agent: agent.id, limit: 50 });
+const check = await authab.audit.verify();            // { valid, eventsChecked, brokenAtSeq }
+const csv = await authab.audit.export({ format: "csv" });
 
-import { verifyWebhook } from "@keel/sdk";
+import { verifyWebhook } from "@authab/sdk";
 const valid = verifyWebhook({
-  secret: process.env.KEEL_WEBHOOK_SECRET!,
-  header: request.headers.get("Keel-Signature")!,
+  secret: process.env.AUTHAB_WEBHOOK_SECRET!,
+  header: request.headers.get("Authab-Signature")!,
   body: rawBody,
 });
 ```
@@ -150,15 +150,15 @@ const valid = verifyWebhook({
 ## Errors
 
 ```ts
-import { KeelError } from "@keel/sdk";
+import { AuthabError } from "@authab/sdk";
 
 try {
-  await keel.proxy.call({ ... });
+  await authab.proxy.call({ ... });
 } catch (error) {
-  if (error instanceof KeelError && error.code === "policy_denied") {
+  if (error instanceof AuthabError && error.code === "policy_denied") {
     console.warn(error.message, error.details);
   }
 }
 ```
 
-Every `KeelError` has `status`, `code`, `message`, `details?` and `requestId?`. Transport failures use `status: 0` with `network_error` or `timeout`. The client retries `429`, and retries `5xx`/transport failures for reads and idempotent proxy calls, with exponential backoff and jitter.
+Every `AuthabError` has `status`, `code`, `message`, `details?` and `requestId?`. Transport failures use `status: 0` with `network_error` or `timeout`. The client retries `429`, and retries `5xx`/transport failures for reads and idempotent proxy calls, with exponential backoff and jitter.

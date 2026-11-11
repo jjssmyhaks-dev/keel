@@ -28,7 +28,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ provider: strin
 
   try {
     const profile = await exchangeCode(provider as "google" | "github", code);
-    if (profile.email === "demo@keel.dev" && !demoLoginEnabled()) {
+    if (profile.email === "demo@authab.dev" && !demoLoginEnabled()) {
       return NextResponse.redirect(`${origin}/sign-in?notice=demo-disabled`);
     }
     let user = await db.user.findUnique({ where: { email: profile.email } });
@@ -82,7 +82,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ provider: strin
 
     return NextResponse.redirect(`${origin}${user.onboardedAt ? "/app" : "/onboarding"}`);
   } catch (err) {
-    console.error("[keel:oauth]", err);
+    console.error("[authab:oauth]", err);
     return NextResponse.redirect(`${origin}/sign-in?notice=oauth-failed`);
   }
 }

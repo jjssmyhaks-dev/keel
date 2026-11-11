@@ -24,10 +24,10 @@ function originFor(req: Request) {
 export async function GET(req: Request) {
   const origin = originFor(req);
   const manifest = {
-    name: "dev.keel/gateway",
+    name: "dev.authab/gateway",
     title: MCP_SERVER_INFO.title,
     description:
-      "Keel's hosted MCP gateway exposes exactly the connector actions an agent has been granted, executes them through Keel's policy, approval and audit pipeline, and never hands provider credentials to the client.",
+      "Authab's hosted MCP gateway exposes exactly the connector actions an agent has been granted, executes them through Authab's policy, approval and audit pipeline, and never hands provider credentials to the client.",
     version: MCP_SERVER_INFO.version,
     protocolVersion: MCP_PROTOCOL_VERSION,
     protocolVersions: [...MCP_PROTOCOL_VERSIONS],
@@ -58,7 +58,7 @@ export async function GET(req: Request) {
     capabilities: { tools: { listChanged: false } },
     serverInfo: MCP_SERVER_INFO,
     instructions:
-      "Call initialize, then tools/list. Every tools/call is evaluated by Keel policy and recorded in the audit log; destructive or financial actions may return a pending_approval result with an approvalUrl.",
+      "Call initialize, then tools/list. Every tools/call is evaluated by Authab policy and recorded in the audit log; destructive or financial actions may return a pending_approval result with an approvalUrl.",
     docs: {
       mcp: `${origin}/docs/mcp`,
       connectors: `${origin}/docs/connectors`,
@@ -85,7 +85,7 @@ export async function GET(req: Request) {
     headers: {
       ...CORS,
       "cache-control": "public, max-age=300, s-maxage=300",
-      "x-keel-mcp-protocol": MCP_PROTOCOL_VERSION,
+      "x-authab-mcp-protocol": MCP_PROTOCOL_VERSION,
     },
   });
 }

@@ -8,7 +8,7 @@ import time
 import uuid
 from typing import Optional
 
-from .errors import KeelError
+from .errors import AuthabError
 
 
 def _normalize_pem(value: str) -> str:
@@ -24,8 +24,8 @@ def _require_cryptography():
     try:
         from cryptography.hazmat.primitives import serialization
     except ImportError:
-        raise KeelError(
-            "Client-key signing needs the cryptography package. Install keel-sdk[signing], "
+        raise AuthabError(
+            "Client-key signing needs the cryptography package. Install authab-sdk[signing], "
             "or use a platform-key-mode agent.",
             code="signing_dependency_missing",
         ) from None
@@ -45,9 +45,9 @@ def sign_challenge(agent_id: str, private_key_pem: str, challenge: Optional[str]
     try:
         key = serialization.load_pem_private_key(_normalize_pem(private_key_pem).encode("utf-8"), password=None)
     except (ValueError, TypeError) as error:
-        raise KeelError(f"The agent private key is not a valid PEM key: {error}", code="invalid_private_key") from None
+        raise AuthabError(f"The agent private key is not a valid PEM key: {error}", code="invalid_private_key") from None
     if not hasattr(key, "sign"):
-        raise KeelError("The agent private key must be Ed25519.", code="invalid_private_key")
+        raise AuthabError("The agent private key must be Ed25519.", code="invalid_private_key")
     value = challenge or f"{int(time.time())}.{uuid.uuid4()}"
     signature = key.sign(f"{agent_id}.{value}".encode("utf-8"))
     return {"challenge": value, "signature": base64.b64encode(signature).decode("ascii")}

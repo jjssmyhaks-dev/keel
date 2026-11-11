@@ -1,8 +1,8 @@
 {
-  "name": "keel",
+  "name": "authab",
   "version": "1.0.0",
   "private": true,
-  "description": "Keel — identity, vault and governance for AI agents",
+  "description": "Authab — identity, vault and governance for AI agents",
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",

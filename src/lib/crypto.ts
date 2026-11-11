@@ -58,7 +58,7 @@ export function verifyPassword(password: string, stored: string | null) {
 /* Envelope encryption (AES-256-GCM)                                   */
 /* ------------------------------------------------------------------ */
 
-export function seal(key: Buffer, plaintext: string | Buffer, aad = "keel") {
+export function seal(key: Buffer, plaintext: string | Buffer, aad = "authab") {
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", key, iv);
   cipher.setAAD(Buffer.from(aad));
@@ -70,7 +70,7 @@ export function seal(key: Buffer, plaintext: string | Buffer, aad = "keel") {
   return [VERSION, iv.toString("base64"), tag.toString("base64"), encrypted.toString("base64")].join(".");
 }
 
-export function open(key: Buffer, payload: string, aad = "keel") {
+export function open(key: Buffer, payload: string, aad = "authab") {
   const [version, ivB64, tagB64, dataB64] = payload.split(".");
   if (version !== VERSION || !ivB64 || !tagB64 || !dataB64) throw new Error("Invalid ciphertext");
   const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(ivB64, "base64"));
@@ -83,11 +83,11 @@ export function open(key: Buffer, payload: string, aad = "keel") {
 }
 
 export function wrapKey(key: Buffer) {
-  return seal(masterKeyBytes(), key, "keel:key-wrap");
+  return seal(masterKeyBytes(), key, "authab:key-wrap");
 }
 
 export function unwrapKey(payload: string) {
-  return Buffer.from(open(masterKeyBytes(), payload, "keel:key-wrap"), "utf8");
+  return Buffer.from(open(masterKeyBytes(), payload, "authab:key-wrap"), "utf8");
 }
 
 async function projectKey(projectId: string) {
@@ -95,18 +95,18 @@ async function projectKey(projectId: string) {
   if (!project) throw new Error("Project not found");
   if (!project.keyEncrypted) {
     const key = randomBytes(32);
-    const wrapped = seal(masterKeyBytes(), key.toString("base64"), `keel:project:${projectId}`);
+    const wrapped = seal(masterKeyBytes(), key.toString("base64"), `authab:project:${projectId}`);
     await db.project.update({ where: { id: projectId }, data: { keyEncrypted: wrapped } });
     return key;
   }
-  return Buffer.from(open(masterKeyBytes(), project.keyEncrypted, `keel:project:${projectId}`), "base64");
+  return Buffer.from(open(masterKeyBytes(), project.keyEncrypted, `authab:project:${projectId}`), "base64");
 }
 
 export async function encryptSecret(projectId: string, secret: unknown) {
   const key = await projectKey(projectId);
   const dataKey = randomBytes(32);
-  const encryptedPayload = seal(dataKey, JSON.stringify(secret), `keel:credential:${projectId}`);
-  const dataKeyEncrypted = seal(key, dataKey.toString("base64"), `keel:dek:${projectId}`);
+  const encryptedPayload = seal(dataKey, JSON.stringify(secret), `authab:credential:${projectId}`);
+  const dataKeyEncrypted = seal(key, dataKey.toString("base64"), `authab:dek:${projectId}`);
   return { encryptedPayload, dataKeyEncrypted };
 }
 
@@ -117,10 +117,10 @@ export async function decryptSecret(
 ) {
   const key = await projectKey(projectId);
   const dataKey = Buffer.from(
-    open(key, dataKeyEncrypted, `keel:dek:${projectId}`),
+    open(key, dataKeyEncrypted, `authab:dek:${projectId}`),
     "base64",
   );
-  return JSON.parse(open(dataKey, encryptedPayload, `keel:credential:${projectId}`));
+  return JSON.parse(open(dataKey, encryptedPayload, `authab:credential:${projectId}`));
 }
 
 /* ------------------------------------------------------------------ */

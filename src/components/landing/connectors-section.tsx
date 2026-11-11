@@ -13,13 +13,13 @@ const modes = [
     tag: "Default",
     title: "Named action",
     body: "The agent calls an action from the catalog with structured input. Every call carries a known risk level and validated schema.",
-    code: "keel.actions.call(\"slack.post_message\", { … })",
+    code: "authab.actions.call(\"slack.post_message\", { … })",
   },
   {
     tag: "Escape hatch",
     title: "Raw proxied request",
     body: "For endpoints that aren't in the catalog yet. The proxy injects the credential but only to hosts the manifest allows.",
-    code: "keel.proxy.post(\"/chat.postMessage\", { … })",
+    code: "authab.proxy.post(\"/chat.postMessage\", { … })",
   },
   {
     tag: "Zero code",

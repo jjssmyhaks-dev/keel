@@ -1,14 +1,14 @@
-"""Keel error types."""
+"""Authab error types."""
 
 from __future__ import annotations
 
 from typing import Any, Optional
 
 
-class KeelError(Exception):
-    """An error returned by Keel, or a transport failure before one arrived.
+class AuthabError(Exception):
+    """An error returned by Authab, or a transport failure before one arrived.
 
-    ``status`` is the HTTP status, or 0 when the request never reached Keel.
+    ``status`` is the HTTP status, or 0 when the request never reached Authab.
     ``code`` is a stable machine-readable string such as ``policy_denied`` or
     ``timeout``. ``request_id`` matches the ``x-request-id`` header and can be
     quoted to support.
@@ -46,5 +46,5 @@ class KeelError(Exception):
         }
 
 
-def is_keel_error(value: object) -> bool:
-    return isinstance(value, KeelError)
+def is_authab_error(value: object) -> bool:
+    return isinstance(value, AuthabError)

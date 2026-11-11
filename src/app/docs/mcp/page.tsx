@@ -4,7 +4,7 @@ import { Callout, DocsAside, DocsShell } from "@/components/docs/docs-shell";
 
 export const metadata: Metadata = {
   title: "MCP server and gateway",
-  description: "Expose Keel-governed tools to Claude, Cursor and hosted MCP clients over stdio or Streamable HTTP.",
+  description: "Expose Authab-governed tools to Claude, Cursor and hosted MCP clients over stdio or Streamable HTTP.",
 };
 
 export default function McpPage() {
@@ -12,12 +12,12 @@ export default function McpPage() {
     <DocsShell
       eyebrow="Build"
       title="MCP server and gateway"
-      intro="Give an MCP host — Claude Desktop, Cursor, a hosted agent platform — a governed set of tools backed by Keel. Use the stdio server for local hosts or the hosted gateway for remote clients. Either way, every tool call becomes a proxy call with the agent's identity, policy and audit, not a raw provider token in the host's environment."
+      intro="Give an MCP host — Claude Desktop, Cursor, a hosted agent platform — a governed set of tools backed by Authab. Use the stdio server for local hosts or the hosted gateway for remote clients. Either way, every tool call becomes a proxy call with the agent's identity, policy and audit, not a raw provider token in the host's environment."
       updated="11 November 2026"
       aside={
         <DocsAside
           links={[
-            { href: "#why", name: "Why route through Keel" },
+            { href: "#why", name: "Why route through Authab" },
             { href: "#run", name: "Run the stdio server" },
             { href: "#clients", name: "Client configuration" },
             { href: "#tools", name: "Tools" },
@@ -29,25 +29,25 @@ export default function McpPage() {
         />
       }
     >
-      <h2 id="why">Why route through Keel</h2>
+      <h2 id="why">Why route through Authab</h2>
       <p>
-        Most MCP servers hand the host a provider API key and let it call anything the key can reach. Keel instead
+        Most MCP servers hand the host a provider API key and let it call anything the key can reach. Authab instead
         binds the session to one agent. The host sees only the tools the agent has grants for, and every call is
         evaluated and recorded. Revoking the agent turns every tool off at once.
       </p>
 
       <h2 id="run">Run the stdio server</h2>
-      <p>The npm package ships in the Keel repository; registry publication is pending the public launch.</p>
-      <pre>{`git clone https://github.com/jjssmyhaks-dev/keel.git
-cd keel && npm ci && npm run mcp:build
+      <p>The npm package ships in the Authab repository; registry publication is pending the public launch.</p>
+      <pre>{`git clone https://github.com/jjssmyhaks-dev/keel.git authab
+cd authab && npm ci && npm run mcp:build
 
 # environment
-KEEL_API_KEY=sk_dev_...          # server-side secret key
-KEEL_AGENT_ID=agt_atlas          # the agent whose grants shape the tool list
-KEEL_BASE_URL=https://api.keel.dev/v1   # optional
+AUTHAB_API_KEY=sk_dev_...          # server-side secret key
+AUTHAB_AGENT_ID=agt_atlas          # the agent whose grants shape the tool list
+AUTHAB_BASE_URL=https://api.authab.dev/v1   # optional
 node mcp/dist/server.js`}</pre>
       <p>
-        The server mints a short-lived token for <code>KEEL_AGENT_ID</code> on demand and refreshes it before expiry. If
+        The server mints a short-lived token for <code>AUTHAB_AGENT_ID</code> on demand and refreshes it before expiry. If
         the agent is paused or killed, tool calls fail with the same <code>agent_inactive</code> error the proxy
         returns.
       </p>
@@ -56,12 +56,12 @@ node mcp/dist/server.js`}</pre>
       <p>Claude Desktop (<code>claude_desktop_config.json</code>):</p>
       <pre>{`{
   "mcpServers": {
-    "keel": {
+    "authab": {
       "command": "node",
-      "args": ["/absolute/path/to/keel/mcp/dist/server.js"],
+      "args": ["/absolute/path/to/authab/mcp/dist/server.js"],
       "env": {
-        "KEEL_API_KEY": "sk_dev_...",
-        "KEEL_AGENT_ID": "agt_atlas"
+        "AUTHAB_API_KEY": "sk_dev_...",
+        "AUTHAB_AGENT_ID": "agt_atlas"
       }
     }
   }
@@ -69,12 +69,12 @@ node mcp/dist/server.js`}</pre>
       <p>Cursor (<code>.cursor/mcp.json</code>):</p>
       <pre>{`{
   "mcpServers": {
-    "keel": {
+    "authab": {
       "command": "node",
-      "args": ["/absolute/path/to/keel/mcp/dist/server.js"],
+      "args": ["/absolute/path/to/authab/mcp/dist/server.js"],
       "env": {
-        "KEEL_API_KEY": "sk_dev_...",
-        "KEEL_AGENT_ID": "agt_atlas"
+        "AUTHAB_API_KEY": "sk_dev_...",
+        "AUTHAB_AGENT_ID": "agt_atlas"
       }
     }
   }
@@ -86,21 +86,21 @@ node mcp/dist/server.js`}</pre>
           <tr><th>Tool</th><th>Type</th><th>What it does</th></tr>
         </thead>
         <tbody>
-          <tr><td><code>keel_whoami</code></td><td>read</td><td>Agent, environment and granted scopes.</td></tr>
-          <tr><td><code>keel_list_connections</code></td><td>read</td><td>Connections the agent can reach, with masked hints.</td></tr>
-          <tr><td><code>keel_list_actions</code></td><td>read</td><td>Actions available per connection, as granted.</td></tr>
-          <tr><td><code>keel_call</code></td><td>governed write</td><td>Proxied connector call: connector, action, resource, input.</td></tr>
-          <tr><td><code>keel_pending_approvals</code></td><td>read</td><td>The agent&apos;s pending requests and their ids.</td></tr>
-          <tr><td><code>keel_approval_status</code></td><td>read</td><td>Status and execution result for one approval.</td></tr>
-          <tr><td><code>keel_search_audit</code></td><td>read</td><td>Recent audit events for this agent, filterable by action.</td></tr>
+          <tr><td><code>authab_whoami</code></td><td>read</td><td>Agent, environment and granted scopes.</td></tr>
+          <tr><td><code>authab_list_connections</code></td><td>read</td><td>Connections the agent can reach, with masked hints.</td></tr>
+          <tr><td><code>authab_list_actions</code></td><td>read</td><td>Actions available per connection, as granted.</td></tr>
+          <tr><td><code>authab_call</code></td><td>governed write</td><td>Proxied connector call: connector, action, resource, input.</td></tr>
+          <tr><td><code>authab_pending_approvals</code></td><td>read</td><td>The agent&apos;s pending requests and their ids.</td></tr>
+          <tr><td><code>authab_approval_status</code></td><td>read</td><td>Status and execution result for one approval.</td></tr>
+          <tr><td><code>authab_search_audit</code></td><td>read</td><td>Recent audit events for this agent, filterable by action.</td></tr>
         </tbody>
       </table>
       <p>
-        <code>keel_call</code> is the only tool that changes external systems. Its input schema is generic on purpose:
+        <code>authab_call</code> is the only tool that changes external systems. Its input schema is generic on purpose:
         the allowed connector and action are enforced server-side by the grant, so a host cannot widen the surface by
         inventing arguments.
       </p>
-      <pre>{`// keel_call input
+      <pre>{`// authab_call input
 {
   "connector": "slack",
   "action": "slack.post_message",
@@ -110,7 +110,7 @@ node mcp/dist/server.js`}</pre>
 }`}</pre>
       <p>
         A <code>202</code> comes back as a tool result with <code>status: "pending_approval"</code> and the approval id.
-        The host can surface that to the user, or call <code>keel_approval_status</code> later.
+        The host can surface that to the user, or call <code>authab_approval_status</code> later.
       </p>
 
       <h2 id="gateway">Hosted gateway (Streamable HTTP)</h2>
@@ -122,13 +122,13 @@ node mcp/dist/server.js`}</pre>
         <code>slack_post_message</code>).
       </p>
       <pre>{`# 1. Mint an agent token with a secret key (server-side only)
-curl -s https://api.keel.dev/v1/agents/agt_atlas/token \\
+curl -s https://api.authab.dev/v1/agents/agt_atlas/token \\
   -H "Authorization: Bearer sk_live_..." \\
   -H "Content-Type: application/json" \\
   -d '{"ttl": 600}'
 
 # 2. Point an MCP client at the gateway
-POST https://app.keel.dev/api/mcp
+POST https://app.authab.dev/api/mcp
 Authorization: Bearer <agent-token>
 Content-Type: application/json
 
@@ -159,7 +159,7 @@ Content-Type: application/json
         a resource pattern adds a required <code>resource</code> argument with the pattern in its description. Token
         scopes are applied to the tool list as well, so the gateway never advertises an action the presented token
         cannot call. Results include <code>structuredContent</code> and are capped at 64 KB of text. A denied call comes
-        back as <code>isError: true</code> with Keel&apos;s error code, and a provider failure comes back the same way as{" "}
+        back as <code>isError: true</code> with Authab&apos;s error code, and a provider failure comes back the same way as{" "}
         <code>provider_error</code> or <code>provider_auth_failed</code>; an approval-gated call comes back as a normal
         result with <code>status: "pending_approval"</code> and the approval URL.
       </p>
@@ -171,14 +171,14 @@ Content-Type: application/json
         endpoint), capabilities, docs links and the full connector/action catalogue with risk levels. It contains no
         agent data — tools are always computed per token.
       </p>
-      <pre>{`curl -s https://app.keel.dev/api/mcp/registry
+      <pre>{`curl -s https://app.authab.dev/api/mcp/registry
 
 {
-  "name": "dev.keel/gateway",
-  "transport": { "type": "streamable-http", "url": "https://app.keel.dev/api/mcp" },
+  "name": "dev.authab/gateway",
+  "transport": { "type": "streamable-http", "url": "https://app.authab.dev/api/mcp" },
   "protocolVersion": "2025-06-18",
   "authentication": { "scheme": "Bearer", "tokenType": "agent_token",
-                      "tokenEndpoint": "https://app.keel.dev/api/v1/agents/{agentId}/token" },
+                      "tokenEndpoint": "https://app.authab.dev/api/v1/agents/{agentId}/token" },
   "connectors": [ { "slug": "slack", "actions": [ { "name": "slack.post_message",
                                                     "risk": "write" } ] } ]
 }`}</pre>

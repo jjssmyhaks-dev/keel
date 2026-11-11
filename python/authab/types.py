@@ -1,4 +1,4 @@
-"""Type aliases for the shapes the Keel API returns.
+"""Type aliases for the shapes the Authab API returns.
 
 These are TypedDicts, so they are plain dicts at runtime and cost nothing to
 import. They exist for editor autocomplete and static checkers.

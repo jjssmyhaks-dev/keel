@@ -34,7 +34,7 @@ interface RpcContext {
 }
 
 const INSTRUCTIONS = [
-  "Tools are the connector actions granted to your agent in Keel. Every call is",
+  "Tools are the connector actions granted to your agent in Authab. Every call is",
   "checked against grants, policies and token scopes, then written to the audit log.",
   "A call may return status \"pending_approval\" with an approvalUrl; a human must",
   "approve it before the provider action runs. Never retry a denied or pending call",
@@ -82,14 +82,14 @@ function authFailure(error: unknown, id: JsonRpcId = null) {
       error: {
         code: -32001,
         message: `Unauthorized: ${message}`,
-        data: { keelCode: code, status },
+        data: { authabCode: code, status },
       },
     },
     {
       status: status === 500 ? 500 : status,
       headers: {
         "cache-control": "no-store",
-        ...(status === 401 ? { "www-authenticate": "Bearer realm=\"keel\"" } : {}),
+        ...(status === 401 ? { "www-authenticate": "Bearer realm=\"authab\"" } : {}),
       },
     },
   );

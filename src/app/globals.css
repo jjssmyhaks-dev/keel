@@ -87,7 +87,7 @@
   --theme-accent: #eca8d6;
 }
 
-/* Workspace themes — set by the keel_theme cookie, applied to .app-theme. */
+/* Workspace themes — set by the authab_theme cookie, applied to .app-theme. */
 html[data-theme='forest']:not(.dark) {
   --theme-page: #edf3ea;
   --theme-surface: #f4f8ef;

@@ -136,7 +136,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error("[keel:stripe] webhook processing failed", error);
+    console.error("[authab:stripe] webhook processing failed", error);
     return NextResponse.json({ error: "webhook_processing_failed" }, { status: 500 });
   }
 }

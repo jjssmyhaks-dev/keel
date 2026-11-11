@@ -57,7 +57,7 @@ export const POSTS: BlogPost[] = [
       { type: "h2", text: "The key never leaves the vault" },
       {
         type: "p",
-        text: "A useful identity system also changes where secrets live. If the agent authenticates to Keel, the agent does not need the Slack token at all. It asks Keel to post a message, Keel evaluates the grant, decrypts the token in memory, calls Slack, and returns the result. The credential is now an implementation detail of the gateway rather than part of the agent's context window.",
+        text: "A useful identity system also changes where secrets live. If the agent authenticates to Authab, the agent does not need the Slack token at all. It asks Authab to post a message, Authab evaluates the grant, decrypts the token in memory, calls Slack, and returns the result. The credential is now an implementation detail of the gateway rather than part of the agent's context window.",
       },
       {
         type: "quote",
@@ -74,8 +74,8 @@ export const POSTS: BlogPost[] = [
       },
       {
         type: "code",
-        text: `const agent = await keel.agents.create({ name: "Support Triage" });
-await keel.grants.create({
+        text: `const agent = await authab.agents.create({ name: "Support Triage" });
+await authab.grants.create({
   agentId: agent.id,
   credentialId: slack.id,
   actions: ["slack.list_channels"],
@@ -145,7 +145,7 @@ await keel.grants.create({
         text: `202 {
   "status": "pending_approval",
   "approval": { "id": "apr_8f2", "status": "pending" },
-  "approvalUrl": "https://keel.dev/approve/eyJ..."
+  "approvalUrl": "https://authab.dev/approve/eyJ..."
 }`,
       },
       {
@@ -175,7 +175,7 @@ await keel.grants.create({
       { type: "h2", text: "The chain is not the whole story" },
       {
         type: "p",
-        text: "A chain proves internal consistency. It does not stop an operator with database access from rebuilding the entire chain from scratch. That is why verification has to leave Keel: export daily, store the last hash somewhere your application cannot write, or stream events into a write-once sink.",
+        text: "A chain proves internal consistency. It does not stop an operator with database access from rebuilding the entire chain from scratch. That is why verification has to leave Authab: export daily, store the last hash somewhere your application cannot write, or stream events into a write-once sink.",
       },
       {
         type: "quote",

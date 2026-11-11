@@ -80,5 +80,5 @@ export async function completeOnboarding(userId: string) {
 }
 
 export async function findDemoUser() {
-  return db.user.findUnique({ where: { email: "demo@keel.dev" } });
+  return db.user.findUnique({ where: { email: "demo@authab.dev" } });
 }

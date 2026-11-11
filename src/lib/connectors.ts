@@ -74,7 +74,7 @@ export type Connector = {
   redactedFields: string[];
 };
 
-const base = "https://keel.dev/docs/connectors";
+const base = "https://authab.dev/docs/connectors";
 
 export const CONNECTORS: Connector[] = [
   {

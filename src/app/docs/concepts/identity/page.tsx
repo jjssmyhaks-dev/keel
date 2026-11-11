@@ -12,7 +12,7 @@ export default function IdentityPage() {
     <DocsShell
       eyebrow="Concepts"
       title="Agent identity"
-      intro="A service account and an AI agent look similar until the agent starts making decisions. Keel treats the agent as a cryptographic principal: a keypair, a fingerprint, short-lived credentials, and a status a human can change in one click."
+      intro="A service account and an AI agent look similar until the agent starts making decisions. Authab treats the agent as a cryptographic principal: a keypair, a fingerprint, short-lived credentials, and a status a human can change in one click."
       updated="31 October 2026"
       aside={
         <DocsAside
@@ -53,24 +53,24 @@ export default function IdentityPage() {
           <tr>
             <td><code>client</code></td>
             <td>Your runtime or secret manager</td>
-            <td>The agent proves possession by signing a Keel challenge. Keel never sees the private key.</td>
+            <td>The agent proves possession by signing a Authab challenge. Authab never sees the private key.</td>
           </tr>
           <tr>
             <td><code>platform</code></td>
-            <td>Encrypted in Keel&apos;s vault</td>
-            <td>You want Keel to mint tokens on the agent&apos;s behalf. Simpler; still revocable instantly.</td>
+            <td>Encrypted in Authab&apos;s vault</td>
+            <td>You want Authab to mint tokens on the agent&apos;s behalf. Simpler; still revocable instantly.</td>
           </tr>
         </tbody>
       </table>
       <p>
-        When you register an agent without supplying a public key, Keel generates one and returns the private key{" "}
+        When you register an agent without supplying a public key, Authab generates one and returns the private key{" "}
         <strong>once</strong> in the creation response. If you lose it in client mode, rotate the key rather than
         recreating the agent — grants, audit history and approvals stay attached.
       </p>
 
       <h2 id="tokens">Tokens</h2>
       <p>
-        Agents authenticate to the proxy with an EdDSA JWT signed by Keel. Default TTL is 300 seconds; the API clamps
+        Agents authenticate to the proxy with an EdDSA JWT signed by Authab. Default TTL is 300 seconds; the API clamps
         requests to between 60 and 3600 seconds. The token is bound to the agent, environment, project and organisation,
         and carries the union of scopes from that agent&apos;s active grants.
       </p>
@@ -86,7 +86,7 @@ Authorization: Bearer sk_...
   "expiresAt": "2026-10-31T00:15:00.000Z"
 }`}</pre>
       <p>
-        Behind the scenes Keel records a <code>token.issued</code> audit event with the TTL, scopes and whether the
+        Behind the scenes Authab records a <code>token.issued</code> audit event with the TTL, scopes and whether the
         token was minted by signature or by the platform. Token issuance is rate-limited per agent.
       </p>
 
@@ -99,8 +99,8 @@ Authorization: Bearer sk_...
           </tr>
         </thead>
         <tbody>
-          <tr><td><code>iss</code></td><td><code>https://keel.dev</code> (configurable per deployment)</td></tr>
-          <tr><td><code>aud</code></td><td><code>keel-api</code></td></tr>
+          <tr><td><code>iss</code></td><td><code>https://authab.dev</code> (configurable per deployment)</td></tr>
+          <tr><td><code>aud</code></td><td><code>authab-api</code></td></tr>
           <tr><td><code>sub</code></td><td>Agent id</td></tr>
           <tr><td><code>jti</code></td><td>Token id, used for revocation and introspection</td></tr>
           <tr><td><code>env</code> / <code>project</code> / <code>org</code></td><td>Tenancy boundary for the token</td></tr>
@@ -109,7 +109,7 @@ Authorization: Bearer sk_...
         </tbody>
       </table>
       <p>
-        Keel re-evaluates policy on every request. The <code>scopes</code> claim is a fast pre-check; it never replaces
+        Authab re-evaluates policy on every request. The <code>scopes</code> claim is a fast pre-check; it never replaces
         the grant lookup, so a grant edited after issuance takes effect immediately.
       </p>
 
@@ -133,7 +133,7 @@ POST /api/v1/tokens/introspect    { "token": "eyJ..." }
       <h2 id="delegation">Delegation</h2>
       <p>
         Some agents act on behalf of another agent — a research agent hands a narrow Slack task to a summariser, which
-        posts the digest. Keel records that relationship as a delegation: parent, child, an explicit scope list, a
+        posts the digest. Authab records that relationship as a delegation: parent, child, an explicit scope list, a
         resource subset, an optional call cap, a depth limit and an expiry.
       </p>
       <p>
@@ -149,14 +149,14 @@ POST /api/v1/tokens/introspect    { "token": "eyJ..." }
 
       <h2 id="jwks">Verifying offline</h2>
       <p>
-        Keel publishes its public signing keys at <a href="/api/v1/jwks">/api/v1/jwks</a>. If you have services that
+        Authab publishes its public signing keys at <a href="/api/v1/jwks">/api/v1/jwks</a>. If you have services that
         accept agent tokens directly, verify them locally against that JWKS and check <code>aud</code>,{" "}
         <code>iss</code> and expiry. Do not cache keys indefinitely — refresh at least daily and on unknown <code>kid</code>.
       </p>
-      <pre>{`curl https://api.keel.dev/v1/jwks
+      <pre>{`curl https://api.authab.dev/v1/jwks
 # { "keys": [{ "kty": "OKP", "crv": "Ed25519", "x": "...", "kid": "...", "alg": "EdDSA", "use": "sig" }] }`}</pre>
       <p>
-        Offline verification proves the token was minted by Keel. It cannot tell you whether a grant was revoked seconds
+        Offline verification proves the token was minted by Authab. It cannot tell you whether a grant was revoked seconds
         ago — for that, call introspection or route the call through the proxy. See{" "}
         <Link href="/docs/api">the API reference</Link> for the exact endpoints.
       </p>

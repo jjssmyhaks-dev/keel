@@ -71,7 +71,7 @@ export default async function AgentDetailPage({
   return (
     <div>
       <PageHeader
-        eyebrow={`Agents · ${agent.keyMode === "client" ? "client-held key" : "Keel-managed key"}`}
+        eyebrow={`Agents · ${agent.keyMode === "client" ? "client-held key" : "Authab-managed key"}`}
         title={agent.name}
         description={agent.description ?? "No description yet. Add one so approvers know what this agent does."}
         actions={
@@ -126,7 +126,7 @@ export default async function AgentDetailPage({
           <Panel title="Identity" hint="Public key and fingerprint" bodyClassName="p-0">
             <dl className="divide-y divide-black/10 text-[12px] dark:divide-border">
               <Row label="Fingerprint" value={formatFingerprint(agent.fingerprint)} mono />
-              <Row label="Key mode" value={agent.keyMode === "client" ? "Client-held (BYOK)" : "Keel-managed"} />
+              <Row label="Key mode" value={agent.keyMode === "client" ? "Client-held (BYOK)" : "Authab-managed"} />
               <Row label="Owner" value={agent.owner ? `${agent.owner.name} · ${agent.owner.email}` : "Unassigned"} />
               <Row label="Framework" value={agent.framework ?? "—"} />
               <Row label="Created" value={formatDate(agent.createdAt)} />

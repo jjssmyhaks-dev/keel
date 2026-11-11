@@ -6,7 +6,7 @@ import { AppShell } from "@/components/app/app-shell";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: { default: "Dashboard", template: "%s · Keel" },
+  title: { default: "Dashboard", template: "%s · Authab" },
   robots: { index: false, follow: false },
 };
 

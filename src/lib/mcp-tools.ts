@@ -29,7 +29,7 @@ const MAX_TOOL_NAME = 64;
 const RISKS: GatewayRisk[] = ["read", "write", "destructive", "financial", "admin"];
 
 export function gatewayToolName(action: string) {
-  const clean = action.replace(/[^a-zA-Z0-9_-]+/g, "_").replace(/^_+|_+$/g, "") || "keel_action";
+  const clean = action.replace(/[^a-zA-Z0-9_-]+/g, "_").replace(/^_+|_+$/g, "") || "authab_action";
   if (clean.length <= MAX_TOOL_NAME) return clean;
   let hash = 0;
   for (let index = 0; index < action.length; index += 1) {
@@ -66,7 +66,7 @@ function schemaFor(action: Connector["actions"][number], resourcePattern: string
   const restricted = resourcePattern.trim() !== "" && resourcePattern.trim() !== "*";
   let resourceKey: string | null = null;
   if (restricted) {
-    resourceKey = "resource" in properties ? "_keel_resource" : "resource";
+    resourceKey = "resource" in properties ? "_authab_resource" : "resource";
     properties[resourceKey] = {
       type: "string",
       description: `The resource this call applies to. This grant is limited to "${resourcePattern}".`,
@@ -88,7 +88,7 @@ function descriptionFor(
   action: Connector["actions"][number],
   resourcePattern: string,
 ) {
-  let text = `${action.label} on ${connectorName}. ${action.description} Risk: ${action.risk}. Governed by Keel; approvals and audit apply.`;
+  let text = `${action.label} on ${connectorName}. ${action.description} Risk: ${action.risk}. Governed by Authab; approvals and audit apply.`;
   if (resourcePattern.trim() !== "" && resourcePattern.trim() !== "*") {
     text += ` Resource must match "${resourcePattern}".`;
   }

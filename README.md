@@ -1,6 +1,6 @@
-# Keel
+# Authab
 
-Identity, vault and governance for AI agents. Keel gives every agent a verifiable Ed25519 identity, keeps provider credentials out of agent code, evaluates every outbound call against grants and policy, routes risky calls to a human, and records the whole thing in a tamper-evident audit chain.
+Identity, vault and governance for AI agents. Authab gives every agent a verifiable Ed25519 identity, keeps provider credentials out of agent code, evaluates every outbound call against grants and policy, routes risky calls to a human, and records the whole thing in a tamper-evident audit chain.
 
 This repository contains the hosted product, the marketing site and documentation, plus TypeScript and Python SDKs, framework integrations, the CLI, the MCP stdio server and the hosted MCP gateway.
 
@@ -10,12 +10,12 @@ This repository contains the hosted product, the marketing site and documentatio
 | --- | --- |
 | `src/` | Next.js 16 app: landing site, docs, dashboard, and the `/api/v1` platform API |
 | `prisma/` | Postgres schema and demo seed (Northwind Labs) |
-| `sdk/` | `@keel/sdk` — server-side TypeScript client, AI SDK tools and framework-neutral tool specs |
-| `python/` | `keel-sdk` — zero-dependency Python client with LangChain/LangGraph, CrewAI and OpenAI Agents adapters |
-| `cli/` | `@keel/cli` — terminal client (`keel`) |
-| `mcp/` | `@keel/mcp` — MCP stdio server with governed tools |
+| `sdk/` | `@authab/sdk` — server-side TypeScript client, AI SDK tools and framework-neutral tool specs |
+| `python/` | `authab-sdk` — zero-dependency Python client with LangChain/LangGraph, CrewAI and OpenAI Agents adapters |
+| `cli/` | `@authab/cli` — terminal client (`authab`) |
+| `mcp/` | `@authab/mcp` — MCP stdio server with governed tools |
 | `src/app/api/mcp/` | Hosted MCP gateway (Streamable HTTP) and public registry manifest |
-| `.keel/` | Local runtime state (dev secrets, dev server log); never commit |
+| `.authab/` | Local runtime state (dev secrets, dev server log); never commit |
 
 The app and docs are at `/`, `/docs`, `/pricing`, `/security`, `/status`, `/blog`, `/legal/*`. The dashboard is at `/app`; the platform API is at `/api/v1`.
 
@@ -44,13 +44,13 @@ npx neon@latest deploy
 Open http://localhost:3000 and sign in with the seeded owner after running the seed step:
 
 ```
-demo@keel.dev
-KeelDemo!2026
+demo@authab.dev
+AuthabDemo!2026
 ```
 
 The seed also creates a development secret key for the demo workspace: `sk_dev_demo_northwind_2026`. Treat it as a local demo fixture, not a production key.
 
-On first boot the app writes development-only keys to `.keel/dev-secrets.json` (mode `0600`). Production must supply `MASTER_KEY`, `JWT_SIGNING_PRIVATE_KEY` and `AUTH_COOKIE_SECRET` through the environment.
+On first boot the app writes development-only keys to `.authab/dev-secrets.json` (mode `0600`). Production must supply `MASTER_KEY`, `JWT_SIGNING_PRIVATE_KEY` and `AUTH_COOKIE_SECRET` through the environment.
 
 ## How a call flows
 
@@ -61,7 +61,7 @@ agent runtime
 POST /api/v1/agents/:id/token        → short-lived EdDSA JWT (60–3600s)
   │
   ▼  2. POST /api/v1/proxy/:connector   Authorization: Bearer <agent JWT>
-Keel
+Authab
   ├─ verifies token, environment and revocation
   ├─ connector → action → agent status → credential → grant → resource → conditions
   ├─ allow             → decrypt credential, execute, audit
@@ -90,7 +90,7 @@ The app runs on Neon Postgres. `neon.ts` declares the branch policy and the serv
 
 ## Provider egress
 
-Every environment calls providers for real. Policy, approvals, rate limits and audit run first; then Keel decrypts the credential and performs the request. Responses return the provider's own status and body. Calls are capped at 2 MB, restricted to the connector's allowed hosts, and redirects may not leave the credential's origin.
+Every environment calls providers for real. Policy, approvals, rate limits and audit run first; then Authab decrypts the credential and performs the request. Responses return the provider's own status and body. Calls are capped at 2 MB, restricted to the connector's allowed hosts, and redirects may not leave the credential's origin.
 
 ## API at a glance
 
@@ -126,25 +126,25 @@ python -m unittest discover -s python/tests -v
 
 # CLI
 npm run cli:build
-./cli/dist/keel.js --help
-KEEL_API_KEY=sk_dev_... KEEL_BASE_URL=http://localhost:3000/api/v1 ./cli/dist/keel.js agents list
+./cli/dist/authab.js --help
+AUTHAB_API_KEY=sk_dev_... AUTHAB_BASE_URL=http://localhost:3000/api/v1 ./cli/dist/authab.js agents list
 
 # MCP stdio server
 npm run mcp:build
-KEEL_API_KEY=sk_dev_... KEEL_AGENT_ID=agt_atlas KEEL_BASE_URL=http://localhost:3000/api/v1 node mcp/dist/server.js
+AUTHAB_API_KEY=sk_dev_... AUTHAB_AGENT_ID=agt_atlas AUTHAB_BASE_URL=http://localhost:3000/api/v1 node mcp/dist/server.js
 
 # Hosted MCP gateway
 curl -s http://localhost:3000/api/mcp/registry
 curl -s http://localhost:3000/api/mcp \
-  -H "Authorization: Bearer $KEEL_AGENT_TOKEN" \
+  -H "Authorization: Bearer $AUTHAB_AGENT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 
 # Validate a live provider call once a real credential is in the vault and granted
-KEEL_API_KEY=sk_dev_... KEEL_AGENT_ID=agt_atlas KEEL_CONNECTOR=slack KEEL_RESOURCE=research-validation npm run provider:validate
+AUTHAB_API_KEY=sk_dev_... AUTHAB_AGENT_ID=agt_atlas AUTHAB_CONNECTOR=slack AUTHAB_RESOURCE=research-validation npm run provider:validate
 ```
 
-`provider:validate` picks a no-argument read action (override with `KEEL_ACTION`, `KEEL_INPUT`, `KEEL_RESOURCE` and `KEEL_CREDENTIAL_ID`) and fails unless the provider returns a 2xx result. It is the only check that needs a real third-party credential; the rest of the suite runs against stubs.
+`provider:validate` picks a no-argument read action (override with `AUTHAB_ACTION`, `AUTHAB_INPUT`, `AUTHAB_RESOURCE` and `AUTHAB_CREDENTIAL_ID`) and fails unless the provider returns a 2xx result. It is the only check that needs a real third-party credential; the rest of the suite runs against stubs.
 
 - [TypeScript SDK and AI SDK tools](sdk/README.md)
 - [Python SDK and framework integrations](python/README.md)

@@ -12,7 +12,7 @@ export default function VaultPage() {
     <DocsShell
       eyebrow="Concepts"
       title="Credential vault"
-      intro="Most agent incidents start with a secret in a prompt, a .env file or a tool argument. Keel removes the secret from the agent's reach: credentials are encrypted at rest, injected only inside the proxy, and never returned by any API."
+      intro="Most agent incidents start with a secret in a prompt, a .env file or a tool argument. Authab removes the secret from the agent's reach: credentials are encrypted at rest, injected only inside the proxy, and never returned by any API."
       updated="31 October 2026"
       aside={
         <DocsAside
@@ -29,7 +29,7 @@ export default function VaultPage() {
     >
       <h2 id="model">Encryption model</h2>
       <p>
-        Keel uses envelope encryption with three levels: a deployment master key, a per-project key, and a fresh
+        Authab uses envelope encryption with three levels: a deployment master key, a per-project key, and a fresh
         data-encryption key for every credential. Secrets are sealed with AES-256-GCM; the data key is wrapped by the
         project key, and only the wrapped key and ciphertext are stored.
       </p>

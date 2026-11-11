@@ -1,9 +1,9 @@
 {
-  "name": "@keel/sdk",
+  "name": "@authab/sdk",
   "version": "1.0.0",
-  "description": "Server-side TypeScript client for Keel — agent identity, vault, grants, approvals, proxy and audit.",
+  "description": "Server-side TypeScript client for Authab — agent identity, vault, grants, approvals, proxy and audit.",
   "license": "MIT",
-  "homepage": "https://keel.dev/docs/sdk",
+  "homepage": "https://authab.dev/docs/sdk",
   "repository": {
     "type": "git",
     "url": "https://github.com/jjssmyhaks-dev/keel"
@@ -24,7 +24,7 @@
     "test": "node test/smoke.mjs && node test/ai.mjs"
   },
   "keywords": [
-    "keel",
+    "authab",
     "agents",
     "identity",
     "ed25519",

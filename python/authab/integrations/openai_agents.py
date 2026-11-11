@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any, Optional
 
-from ..errors import KeelError
+from ..errors import AuthabError
 from .common import ToolSpec, ainvoke, build_tool_specs, error_payload
 
 
@@ -13,9 +13,9 @@ def _require_agents():
     try:
         from agents import FunctionTool
     except ImportError:
-        raise KeelError(
+        raise AuthabError(
             "The OpenAI Agents adapter needs openai-agents. "
-            "Install it with: pip install 'keel-sdk[openai-agents]'",
+            "Install it with: pip install 'authab-sdk[openai-agents]'",
             code="openai_agents_dependency_missing",
         ) from None
     return FunctionTool
@@ -54,7 +54,7 @@ def _tool_from_spec(client: Any, spec: ToolSpec, agent_id: str):
         )
 
 
-def keel_openai_agents_tools(
+def authab_openai_agents_tools(
     client: Any,
     agent_id: str,
     *,
@@ -69,4 +69,4 @@ def keel_openai_agents_tools(
     return [_tool_from_spec(client, spec, agent_id) for spec in build_tool_specs(client, agent_id, connector=connector)]
 
 
-__all__ = ["keel_openai_agents_tools"]
+__all__ = ["authab_openai_agents_tools"]

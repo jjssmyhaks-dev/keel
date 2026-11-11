@@ -41,8 +41,8 @@ export function configuredProviders(): Provider[] {
 }
 
 export const OAuthCookie = {
-  state: (provider: string) => `keel_oauth_state_${provider}`,
-  next: (provider: string) => `keel_oauth_next_${provider}`,
+  state: (provider: string) => `authab_oauth_state_${provider}`,
+  next: (provider: string) => `authab_oauth_next_${provider}`,
 };
 
 export type OAuthProfile = {
