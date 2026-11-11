@@ -269,6 +269,11 @@ class SigningTests(unittest.TestCase):
         )
 
     def test_signed_token_request(self):
+        try:
+            from cryptography.hazmat.primitives import serialization
+        except ImportError:
+            self.skipTest("cryptography is not installed")
+
         pair = generate_agent_keypair()
         app = FakeApp()
         server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
@@ -286,8 +291,6 @@ class SigningTests(unittest.TestCase):
             self.assertEqual(payload["ttl"], 120)
             self.assertIn("challenge", payload)
             self.assertIn("signature", payload)
-
-            from cryptography.hazmat.primitives import serialization
 
             serialization.load_pem_public_key(pair["public_key"].encode()).verify(
                 base64.b64decode(payload["signature"]),

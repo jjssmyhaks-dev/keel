@@ -167,6 +167,24 @@ class SpecTests(unittest.TestCase):
         self.assertIn("_keel_resource", post.input_schema["properties"])
 
 
+def fake_pydantic():
+    pydantic = ModuleType("pydantic")
+
+    def field(*, description=None, default=None, **kwargs):
+        return SimpleNamespace(description=description, default=default)
+
+    def config_dict(**kwargs):
+        return dict(kwargs)
+
+    def create_model(name, *, __config__=None, **fields):
+        return SimpleNamespace(__name__=name, model_fields=dict(fields))
+
+    pydantic.ConfigDict = config_dict
+    pydantic.Field = field
+    pydantic.create_model = create_model
+    return pydantic
+
+
 class LangChainStubTests(unittest.TestCase):
     def _modules(self):
         core = ModuleType("langchain_core")
@@ -194,6 +212,7 @@ class LangChainStubTests(unittest.TestCase):
             "langchain_core.tools": tools,
             "langgraph": langgraph,
             "langgraph.prebuilt": prebuilt,
+            "pydantic": fake_pydantic(),
         }
 
     def test_builds_structured_tools_and_runs_them(self):
@@ -228,7 +247,7 @@ class CrewAIStubTests(unittest.TestCase):
 
         tools.BaseTool = FakeBaseTool
         crewai.tools = tools
-        return {"crewai": crewai, "crewai.tools": tools}
+        return {"crewai": crewai, "crewai.tools": tools, "pydantic": fake_pydantic()}
 
     def test_builds_crewai_tools_and_returns_json(self):
         client = FakeClient()

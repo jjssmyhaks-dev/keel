@@ -37,7 +37,7 @@ jobs:
         run: npm run typecheck
 
       - name: SDK
-        run: npm run sdk:build && npm --prefix sdk ci && npm run sdk:test
+        run: npm --prefix sdk ci && npm run sdk:build && npm run sdk:test
 
       - name: CLI
         run: npm run cli:typecheck && npm run cli:build
