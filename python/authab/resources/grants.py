@@ -39,6 +39,33 @@ class GrantsResource:
             ),
         )
 
+    def request(
+        self,
+        *,
+        actions: list[str],
+        reason: str,
+        credential_id: Optional[str] = None,
+        connector: Optional[str] = None,
+        resource_pattern: Optional[str] = None,
+        duration_minutes: Optional[int] = None,
+        agent_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """Ask for just-in-time access as an agent; the grant stays inert until approved."""
+
+        return self._http.request(
+            "POST",
+            "/grants/request",
+            agent_token=agent_token,
+            body=body(
+                credentialId=credential_id,
+                connector=connector,
+                actions=actions,
+                resourcePattern=resource_pattern,
+                reason=reason,
+                durationMinutes=duration_minutes,
+            ),
+        )
+
     def list(
         self,
         *,

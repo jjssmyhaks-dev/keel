@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getContext } from "@/lib/session";
-import { CONNECTORS, connector } from "@/lib/connectors";
+import { loadConnectorMap } from "@/lib/custom-connectors";
+import { providerSupportsConnect } from "@/lib/oauth-providers";
+import { resolveOAuthClient } from "@/lib/oauth-connect";
 import { ConnectorLogo } from "@/components/connector-logo";
 import { createCredentialAction } from "@/app/app/actions";
 import { PageHeader, Notice } from "@/components/app/ui";
@@ -26,7 +28,11 @@ export default async function NewConnectionPage({
 }) {
   const ctx = await getContext();
   const query = await searchParams;
-  const def = query.connector ? connector(query.connector) : undefined;
+  const connectorMap = await loadConnectorMap(ctx.environment.id);
+  const allConnectors = [...connectorMap.values()];
+  const def = query.connector ? connectorMap.get(query.connector) : undefined;
+  const supportsOAuthConnect = def ? def.source !== "custom" && providerSupportsConnect(def.slug) : false;
+  const oauthClient = def && supportsOAuthConnect ? await resolveOAuthClient(def.slug, ctx.environment.id) : null;
 
   if (!def) {
     return (
@@ -45,7 +51,7 @@ export default async function NewConnectionPage({
         {query.error ? <Notice kind="error">{ERROR_COPY[query.error] ?? "That connection could not be created."}</Notice> : null}
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {CONNECTORS.map((item) => (
+          {allConnectors.map((item) => (
             <Link
               key={item.slug}
               href={`/app/vault/new?connector=${item.slug}`}
@@ -62,6 +68,7 @@ export default async function NewConnectionPage({
                   <p className="text-[13px] font-medium">{item.name}</p>
                   <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-black/35 dark:text-muted-foreground">
                     {item.category}
+                    {item.source === "custom" ? " · custom" : ""}
                   </p>
                 </div>
                 <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/30 group-hover:text-black dark:text-muted-foreground dark:group-hover:text-foreground">
@@ -86,9 +93,15 @@ export default async function NewConnectionPage({
             Need a service we do not ship?
           </p>
           <p className="mx-auto mt-1.5 max-w-lg text-[12px] leading-relaxed text-black/50 dark:text-muted-foreground">
-            Custom HTTP connectors are available on Scale and Enterprise. Your security team can register hosts, injection
-            rules and redacted fields without waiting on us.
+            Scale and Enterprise workspaces can import any OpenAPI 3 document as a connector — hosts, injection rules, actions and
+            version history included.
           </p>
+          <Link
+            href="/app/connectors"
+            className="mt-3 inline-block border border-black px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] hover:bg-black hover:text-white dark:border-border dark:hover:bg-white dark:hover:text-black"
+          >
+            Import OpenAPI
+          </Link>
         </div>
       </div>
     );
@@ -251,6 +264,42 @@ export default async function NewConnectionPage({
         </form>
 
         <aside className="space-y-4">
+          {supportsOAuthConnect ? (
+            <div className={`border p-4 ${oauthClient ? "border-[#2f7d5c]/40 bg-[#2f7d5c]/[0.05]" : "border-black/15 bg-white dark:border-border dark:bg-card"}`}>
+              <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                One-click OAuth
+              </p>
+              {oauthClient ? (
+                <>
+                  <p className="mt-1.5 text-[12px] font-medium">Authorize {def.name} instead of pasting a token.</p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-black/50 dark:text-muted-foreground">
+                    Tokens are exchanged server-side, sealed in the vault and refreshed before they expire.
+                  </p>
+                  <Link
+                    href={`/api/connect/${def.slug}/start`}
+                    className="mt-3 block border border-[#2f7d5c] bg-[#2f7d5c] px-3 py-2 text-center font-mono text-[10px] uppercase tracking-[0.16em] text-white hover:bg-[#245f47]"
+                  >
+                    Connect with {def.name}
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <p className="mt-1.5 text-[12px] font-medium">OAuth connect is not configured.</p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-black/50 dark:text-muted-foreground">
+                    Add the {def.name} client ID and secret under OAuth apps, or set CONNECT_* environment variables.
+                    Until then, paste a token manually.
+                  </p>
+                  <Link
+                    href={`/app/connect?connector=${def.slug}`}
+                    className="mt-3 block border border-black/20 px-3 py-2 text-center font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border"
+                  >
+                    Configure OAuth app
+                  </Link>
+                </>
+              )}
+            </div>
+          ) : null}
+
           <div className="border border-black/10 bg-black p-5 text-white dark:border-border">
             <div className="flex items-center gap-2">
               <span className="flex size-7 items-center justify-center" style={{ background: def.color }}>

@@ -3,11 +3,13 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { retryPendingWebhooks } from "@/lib/webhooks";
 import { pruneRateLimitCounters } from "@/lib/rate-limit";
-import { expireStaleApprovals } from "@/lib/approvals";
+import { expireStaleApprovals, escalateOverdueApprovals } from "@/lib/approvals";
 import { evaluateAlerts } from "@/lib/alerts";
+import { refreshExpiringOAuthTokens, runHealthChecks } from "@/lib/credential-health";
 import { planFor } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 function sameSecret(expected: string, provided: string) {
   const a = Buffer.from(expected);
@@ -31,11 +33,15 @@ async function run(req: Request) {
   const retried = await retryPendingWebhooks(25);
 
   await expireStaleApprovals();
+  const approvalsEscalated = await escalateOverdueApprovals();
+  const tokenRefreshes = await refreshExpiringOAuthTokens(25);
   const alerts = await evaluateAlerts();
+  const health = await runHealthChecks({ limit: 25 });
 
   const expiring = await db.credential.updateMany({
     where: {
       revokedAt: null,
+      NOT: { type: "oauth", refreshable: true },
       expiresAt: { gt: nowDate, lte: new Date(now + 7 * 86_400_000) },
       status: { notIn: ["expiring", "expired", "revoked"] },
     },
@@ -44,6 +50,7 @@ async function run(req: Request) {
   const expired = await db.credential.updateMany({
     where: {
       revokedAt: null,
+      NOT: { type: "oauth", refreshable: true },
       expiresAt: { lte: nowDate },
       status: { notIn: ["expired", "revoked"] },
     },
@@ -92,6 +99,9 @@ async function run(req: Request) {
   return NextResponse.json({
     ok: true,
     webhooks: retried,
+    tokenRefreshes,
+    approvalsEscalated,
+    health,
     alertsFired: alerts.length,
     credentialsExpiring: expiring.count,
     credentialsExpired: expired.count,

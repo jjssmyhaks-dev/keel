@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { ApiError, apiOk, authenticateApiKey, handleApiError, parseJson } from "@/lib/api";
 import { verifyAgentToken } from "@/lib/jwt";
+import { verifyDelegationClaims } from "@/lib/delegations";
 
 export async function POST(req: Request) {
   try {
@@ -25,6 +26,15 @@ export async function POST(req: Request) {
     if (!agent) return apiOk({ active: false, reason: "unknown_agent", tokenId });
     if (agent.status !== "active") return apiOk({ active: false, reason: `agent_${agent.status}`, tokenId });
 
+    const delegation = await verifyDelegationClaims(payload, String(payload.env ?? ""));
+    if (!delegation.ok) {
+      return apiOk({
+        active: false,
+        reason: delegation.code === "delegation_inactive" ? "delegation_inactive" : "revoked",
+        tokenId,
+      });
+    }
+
     return apiOk({
       active: true,
       tokenId,
@@ -35,7 +45,13 @@ export async function POST(req: Request) {
         project: payload.project,
         org: payload.org,
         scopes: payload.scopes,
+        scope_enforced: payload.scope_enforced === true,
         actor: payload.actor,
+        client_id: payload.client_id ?? null,
+        parent_jti: payload.parent_jti ?? null,
+        parent_chain: delegation.parentChain,
+        delegation_id: delegation.delegationId,
+        cnf: payload.cnf ?? null,
         iss: payload.iss,
         aud: payload.aud,
         iat: payload.iat,

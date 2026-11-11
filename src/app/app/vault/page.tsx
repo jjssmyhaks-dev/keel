@@ -2,21 +2,36 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
-import { CONNECTORS, connector } from "@/lib/connectors";
+import { loadConnectorMap } from "@/lib/custom-connectors";
 import { ConnectorLogo } from "@/components/connector-logo";
-import { PageHeader, Panel, Stat, StatusBadge, relativeTime, EmptyState, formatDate } from "@/components/app/ui";
+import { PageHeader, Panel, Stat, StatusBadge, Notice, relativeTime, EmptyState, formatDate } from "@/components/app/ui";
+import { runHealthChecksAction } from "@/app/app/oauth-actions";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "Vault" };
 
+const CONNECT_ERROR_COPY: Record<string, string> = {
+  not_configured: "No OAuth client is configured for that provider. Add one under OAuth apps or set CONNECT_* environment variables.",
+  state: "The OAuth state expired or did not match. Start the connection again.",
+  denied: "The provider denied the authorization request.",
+  missing_code: "The provider did not return an authorization code.",
+  exchange: "The provider rejected the token exchange.",
+  connector: "That connector does not support OAuth connect.",
+  environment: "That environment is no longer available.",
+  permission: "Your role cannot add connections in this environment.",
+  production: "Only owners and admins can add production connections.",
+};
+
 export default async function VaultPage({
   searchParams,
 }: {
-  searchParams: Promise<{ connector?: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const ctx = await getContext();
   const query = await searchParams;
+  const connectorMap = await loadConnectorMap(ctx.environment.id);
+  const connectors = [...connectorMap.values()];
 
   const credentials = await db.credential.findMany({
     where: {
@@ -44,11 +59,42 @@ export default async function VaultPage({
         title="The secret stays here."
         description="Credentials are sealed with envelope encryption. Agents never see them — the proxy injects them, one call at a time."
         actions={
-          <Link href="/app/vault/new" className="border border-black bg-black px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white hover:bg-[#eca8d6] hover:text-black">
-            Add connection
-          </Link>
+          <div className="flex items-center gap-2">
+            <form action={runHealthChecksAction}>
+              <button className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card">
+                Check connections
+              </button>
+            </form>
+            <Link href="/app/connect" className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card">
+              OAuth apps
+            </Link>
+            <Link href="/app/vault/new" className="border border-black bg-black px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white hover:bg-[#eca8d6] hover:text-black">
+              Add connection
+            </Link>
+          </div>
         }
       />
+
+      {query.error && query.connect ? (
+        <Notice kind="error">
+          {CONNECT_ERROR_COPY[query.error] ?? "The OAuth connection could not be completed."}
+          {query.detail ? <span className="mt-1 block font-mono text-[10px] opacity-80">{query.detail}</span> : null}
+        </Notice>
+      ) : null}
+      {query.error && !query.connect ? (
+        <Notice kind="error">
+          {query.error === "permission" ? "Your role cannot run health checks in this environment." : "That action could not be completed."}
+        </Notice>
+      ) : null}
+      {query.health !== undefined ? (
+        <Notice kind={query.broken && query.broken !== "0" ? "error" : "ok"}>
+          Health sweep finished: {query.health ?? "0"} healthy, {query.broken ?? "0"} broken, {query.warn ?? "0"} warnings,{" "}
+          {query.skipped ?? "0"} skipped because no safe probe exists.
+        </Notice>
+      ) : null}
+      {query.connect && !query.error ? (
+        <Notice kind="ok">OAuth connect started for {query.connect}. Finish the provider consent screen to store tokens.</Notice>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Connections" value={all.length} detail={`${usedConnectors.length} services`} accent />
@@ -66,7 +112,7 @@ export default async function VaultPage({
         >
           All
         </Link>
-        {CONNECTORS.map((def) => {
+        {connectors.map((def) => {
           const count = all.filter((c) => c.connectorSlug === def.slug).length;
           if (!count) return null;
           return (
@@ -89,7 +135,7 @@ export default async function VaultPage({
         {credentials.length ? (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {credentials.map((credential) => {
-              const def = connector(credential.connectorSlug);
+              const def = connectorMap.get(credential.connectorSlug);
               const agents = new Set(credential.grants.map((grant) => grant.agentId)).size;
               const expiry = credential.expiresAt;
               return (

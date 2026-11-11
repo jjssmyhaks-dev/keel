@@ -3,7 +3,8 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { Logo } from "@/components/logo";
 import { getSession, can } from "@/lib/session";
-import { connector, RISK_META } from "@/lib/connectors";
+import { RISK_META } from "@/lib/connectors";
+import { resolveConnector } from "@/lib/custom-connectors";
 import { verifyApprovalLink } from "@/lib/signed-links";
 import { decideApprovalAction } from "./actions";
 
@@ -67,7 +68,7 @@ export default async function ApprovePage({
     : null;
   const canDecide = Boolean(membership && can(membership.role, "approve"));
   const pending = approval.status === "pending" && approval.expiresAt > new Date();
-  const connectorDef = connector(approval.credential?.connectorSlug ?? "");
+  const connectorDef = await resolveConnector(approval.credential?.connectorSlug ?? "", approval.environmentId);
   const risk = RISK_META[(approval.risk as keyof typeof RISK_META) ?? "write"] ?? RISK_META.write;
   let payload: Record<string, unknown> = {};
   try {

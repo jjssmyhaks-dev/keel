@@ -41,6 +41,7 @@ export type ConnectorAction = {
   argHeader?: { name: string; bodyField?: string };
   extraHeaders?: ConnectorInjection["extraHeaders"];
   queryParams?: ConnectorInjection["queryParams"];
+  queryFields?: string[];
   fields?: { key: string; label: string; placeholder?: string; required?: boolean }[];
   sample?: unknown;
 };
@@ -57,6 +58,14 @@ export type Connector = {
   defaultAuth: AuthMethod;
   hosts: string[];
   injection: ConnectorInjection;
+  oauthInjection?: ConnectorInjection;
+  healthCheck?: {
+    method: "GET" | "POST";
+    path: string;
+    host?: string;
+    body?: Record<string, unknown>;
+    expect?: number[];
+  };
   credentialFields?: CredentialField[];
   requireAnyFields?: string[];
   baseUrlField?: string;
@@ -72,6 +81,7 @@ export type Connector = {
   status: "stable" | "beta";
   version: string;
   redactedFields: string[];
+  source?: "builtin" | "custom";
 };
 
 const base = "https://authab.dev/docs/connectors";

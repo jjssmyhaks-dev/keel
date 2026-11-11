@@ -1,4 +1,4 @@
-export type Risk = "read" | "write" | "destructive" | "financial";
+export type Risk = "read" | "write" | "destructive" | "financial" | "admin";
 export type ApprovalMode = "allow" | "require_approval" | "deny";
 export type AgentStatus = "active" | "paused" | "suspended" | "revoked";
 
@@ -352,6 +352,7 @@ export interface Connector {
   docsUrl: string;
   status: string;
   version: string;
+  source?: "builtin" | "custom";
   authMethods: { type: string; label: string }[];
   defaultAuth: string;
   hosts: string[];
@@ -361,6 +362,20 @@ export interface Connector {
   resourcePlaceholder: string;
   redactedFields: string[];
   actions: ConnectorAction[];
+}
+
+export interface ConnectorSummary {
+  slug: string;
+  name: string;
+  category: string;
+  version: string;
+  actions: number;
+  auth: string;
+}
+
+export interface ConnectorList extends List<Connector> {
+  builtin: ConnectorSummary[];
+  custom: CustomConnector[];
 }
 
 export interface ApiKeyContext {
@@ -376,4 +391,216 @@ export interface ApiKeyContext {
   organization: { id: string; name: string; slug: string; plan: string };
   project: { id: string; name: string };
   environment: { id: string; type: string };
+}
+
+export interface PolicyTraceStep {
+  check: string;
+  outcome: "pass" | "fail" | "skip";
+  detail: string;
+}
+
+export interface PolicySimulationInput {
+  agentId: string;
+  credentialId: string;
+  action: string;
+  resource?: string;
+  input?: Record<string, unknown>;
+  ip?: string;
+  now?: string;
+}
+
+export interface PolicySimulation {
+  object: "policy_simulation";
+  simulated: true;
+  evaluatedAt: string;
+  decision: {
+    effect: "allow" | "deny" | "require_approval";
+    reason: string;
+    risk: Risk;
+    source: string;
+    wouldExecute: boolean;
+    wouldRequestApproval: boolean;
+  };
+  action: { name: string; label: string; risk: Risk } | null;
+  grant: Grant | null;
+  trace: PolicyTraceStep[];
+  requestId: string;
+}
+
+export interface GrantRequestInput {
+  credentialId?: string;
+  connector?: string;
+  actions: string[];
+  resourcePattern?: string;
+  reason: string;
+  durationMinutes?: number;
+}
+
+export interface GrantRequest {
+  object: "grant_request";
+  status: "pending_approval";
+  approvalId: string;
+  grantId: string;
+  approvalUrl: string;
+  expiresAt: string;
+  note: string;
+  requestId: string;
+}
+
+export interface ClientSecret {
+  id: string;
+  object: "client_secret";
+  agentId: string;
+  label: string;
+  prefix: string;
+  scopes: string[];
+  lastUsedAt: string | null;
+  expiresAt: string | null;
+  revokedAt: string | null;
+  createdAt: string;
+}
+
+export interface ClientSecretCreated extends ClientSecret {
+  secret: string;
+  warning: string;
+}
+
+export interface CreateClientSecretInput {
+  label?: string;
+  scopes?: string[];
+  expiresInDays?: number;
+}
+
+export interface WorkloadIdentity {
+  id: string;
+  object: "workload_identity";
+  name: string;
+  type: string;
+  issuer: string;
+  audience: string;
+  jwksUrl: string | null;
+  jwks: Record<string, unknown> | null;
+  agentId: string;
+  agentName?: string | null;
+  subjectPattern: string | null;
+  requiredClaims: Record<string, unknown>;
+  tokenTtlSeconds: number;
+  enabled: boolean;
+  createdAt: string;
+}
+
+export interface CreateWorkloadIdentityInput {
+  name: string;
+  type?: "spiffe" | "kubernetes" | "oidc";
+  issuer: string;
+  audience: string;
+  agentId: string;
+  jwksUrl?: string;
+  jwks?: Record<string, unknown>;
+  subjectPattern?: string;
+  requiredClaims?: Record<string, unknown>;
+  tokenTtlSeconds?: number;
+  enabled?: boolean;
+}
+
+export interface ClientCredentialsInput {
+  clientId: string;
+  clientSecret: string;
+  scopes?: string[];
+  ttl?: number;
+  dpopProof?: string;
+}
+
+export interface TokenExchangeInput {
+  subjectToken: string;
+  agentId?: string;
+  scopes?: string[];
+  ttl?: number;
+  dpopProof?: string;
+}
+
+export interface WorkloadExchangeInput {
+  token: string;
+  scopes?: string[];
+  ttl?: number;
+  dpopProof?: string;
+}
+
+export interface TokenGrant {
+  access_token: string;
+  issued_token_type: string;
+  token_type: "Bearer" | "DPoP";
+  expires_in: number;
+  scope: string;
+  token_id: string;
+  agent: { id: string; name: string };
+  parent_token_id?: string;
+  act?: Record<string, unknown>;
+  workload_identity?: { id: string; name: string; issuer: string };
+}
+
+export interface CustomConnectorAction {
+  name: string;
+  label: string;
+  description: string;
+  method: string;
+  path: string;
+  risk: Risk;
+  resourceLabel: string | null;
+  queryFields: string[];
+  fields: { key: string; label: string; type?: string; required?: boolean; placeholder?: string }[];
+}
+
+export interface CustomConnector {
+  id: string;
+  object: "custom_connector";
+  slug: string;
+  name: string;
+  description: string | null;
+  category: string;
+  version: number;
+  specVersion: string;
+  status: string;
+  archivedAt: string | null;
+  hosts: string[];
+  auth: { type: string; methods: { type: string; label: string }[] };
+  credentialFields: { key: string; label: string; secret: boolean; required: boolean }[];
+  actions: CustomConnectorAction[];
+  healthCheck: { action: string; intervalMinutes?: number } | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CustomConnectorDetails extends CustomConnector {
+  versions: { version: number; specVersion: string; createdAt: string }[];
+}
+
+export interface CustomConnectorList extends List<CustomConnector> {
+  builtin: ConnectorSummary[];
+}
+
+export interface ImportConnectorInput {
+  spec: string;
+  slug?: string;
+  name?: string;
+  category?: string;
+  color?: string;
+  mark?: string;
+  baseUrl?: string;
+  authScheme?: string;
+}
+
+export interface ImportConnectorResult {
+  object: "custom_connector" | "custom_connector_unchanged";
+  unchanged: boolean;
+  version: number;
+  warnings: string[];
+  connector: CustomConnector;
+}
+
+export interface RollbackConnectorResult {
+  object: "custom_connector";
+  unchanged: boolean;
+  version: number;
+  connector: CustomConnector;
 }

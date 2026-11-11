@@ -182,13 +182,15 @@ export function TabLinks({
   );
 }
 
-export function Notice({ kind, children }: { kind: "ok" | "error"; children: React.ReactNode }) {
+export function Notice({ kind, children }: { kind: "ok" | "info" | "error"; children: React.ReactNode }) {
   return (
     <div
       className={`mb-6 border px-3 py-2 text-[12px] ${
         kind === "ok"
           ? "border-[#2f7d5c]/30 bg-[#2f7d5c]/[0.06] text-[#245f47]"
-          : "border-[#b3402f]/30 bg-[#b3402f]/[0.06] text-[#8c3225]"
+          : kind === "info"
+            ? "border-black/15 bg-[#faf9f6] text-black/60 dark:border-border dark:bg-card dark:text-muted-foreground"
+            : "border-[#b3402f]/30 bg-[#b3402f]/[0.06] text-[#8c3225]"
       }`}
     >
       {children}

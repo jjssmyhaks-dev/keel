@@ -8,6 +8,7 @@ export const ALERT_LABELS: Record<string, string> = {
   repeated_denials: "Repeated denials",
   new_host: "New host",
   credential_expiring: "Credential expiring",
+  credential_broken: "Credential broken",
 };
 
 export type FiredAlert = { ruleId: string; type: string; environmentId: string; message: string };
@@ -153,6 +154,20 @@ export async function evaluateAlerts(environmentId?: string): Promise<FiredAlert
       const fresh = hosts.filter((host) => !seen.has(host));
       if (fresh.length) {
         message = `New outbound host${fresh.length === 1 ? "" : "s"} contacted: ${fresh.join(", ")}.`;
+        dedupeMs = 24 * 60 * 60_000;
+      }
+    } else if (rule.type === "credential_broken") {
+      const credentials = await db.credential.findMany({
+        where: { environmentId: rule.environmentId, revokedAt: null, status: "broken" },
+        select: { name: true, connectorSlug: true },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      });
+      if (credentials.length) {
+        message = `${credentials.length} connection${credentials.length === 1 ? "" : "s"} failing provider checks: ${credentials
+          .slice(0, 5)
+          .map((credential) => `${credential.name} (${credential.connectorSlug})`)
+          .join(", ")}${credentials.length > 5 ? "…" : ""}.`;
         dedupeMs = 24 * 60 * 60_000;
       }
     } else if (rule.type === "credential_expiring") {

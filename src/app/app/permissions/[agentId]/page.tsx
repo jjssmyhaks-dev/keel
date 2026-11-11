@@ -3,9 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
-import { actionFor, connector } from "@/lib/connectors";
+import { loadConnectorMap } from "@/lib/custom-connectors";
 import { ConnectorLogo } from "@/components/connector-logo";
-import { saveGrantAction } from "@/app/app/actions";
+import { saveGrantAction, activateGrantAction } from "@/app/app/actions";
 import { ConfirmButton } from "@/components/app/confirm-button";
 import { PageHeader, Panel, StatusBadge, RiskBadge, Notice, relativeTime, formatDate } from "@/components/app/ui";
 
@@ -40,7 +40,7 @@ export default async function PermissionEditorPage({
   const agent = await db.agent.findFirst({ where: { id: agentId, environmentId: ctx.environment.id } });
   if (!agent) notFound();
 
-  const [credentials, grants, policies, changes] = await Promise.all([
+  const [credentials, grants, policies, changes, connectorMap] = await Promise.all([
     db.credential.findMany({
       where: { environmentId: ctx.environment.id, revokedAt: null },
       orderBy: { connectorSlug: "asc" },
@@ -51,6 +51,7 @@ export default async function PermissionEditorPage({
       orderBy: [{ agentId: "desc" }, { actionPattern: "asc" }],
     }),
     db.permissionChange.findMany({ where: { agentId: agent.id }, orderBy: { createdAt: "desc" }, take: 8 }),
+    loadConnectorMap(ctx.environment.id),
   ]);
 
   const grantFor = (credentialId: string) => grants.find((grant) => grant.credentialId === credentialId);
@@ -79,6 +80,7 @@ export default async function PermissionEditorPage({
       {query.error ? <Notice kind="error">{ERROR_COPY[query.error] ?? "That change could not be saved."}</Notice> : null}
       {query.saved ? <Notice kind="ok">Permissions saved. New tokens carry the updated scope list.</Notice> : null}
       {query.removed ? <Notice kind="ok">Grant removed. Calls to that connection are now denied.</Notice> : null}
+      {query.activated ? <Notice kind="ok">Just-in-time access activated for 60 minutes. It reverts to inactive when it expires.</Notice> : null}
 
       <div className="mb-6 flex flex-wrap items-center gap-3 border border-black/10 bg-white px-4 py-3 dark:border-border dark:bg-card">
         <StatusBadge status={agent.status} />
@@ -102,7 +104,7 @@ export default async function PermissionEditorPage({
         <div className="space-y-4">
           {credentials.length ? (
             credentials.map((credential) => {
-              const def = connector(credential.connectorSlug);
+              const def = connectorMap.get(credential.connectorSlug);
               if (!def) return null;
               const grant = grantFor(credential.id);
               const grantedActions = grant ? (JSON.parse(grant.actionsJson || "[]") as string[]) : [];
@@ -132,6 +134,17 @@ export default async function PermissionEditorPage({
                           no access
                         </span>
                       )}
+                      {grant?.justInTime ? (
+                        <span
+                          className={`border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] ${
+                            grant.activatedAt
+                              ? "border-[#2f7d5c]/30 bg-[#2f7d5c]/[0.06] text-[#245f47]"
+                              : "border-[#a56b18]/35 bg-[#a56b18]/[0.06] text-[#8c5a12]"
+                          }`}
+                        >
+                          {grant.activatedAt ? "JIT active" : "JIT inactive"}
+                        </span>
+                      ) : null}
                       <Link href={`/app/vault/${credential.id}`} className="font-mono text-[9px] uppercase tracking-[0.1em] underline-offset-2 hover:underline">
                         Connection
                       </Link>
@@ -244,6 +257,25 @@ export default async function PermissionEditorPage({
                       </div>
                     </div>
 
+                    <label className="flex items-start gap-2 border border-black/10 p-3 text-[11px] leading-relaxed text-black/55 dark:border-border dark:text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        name="justInTime"
+                        defaultChecked={grant?.justInTime ?? false}
+                        className="mt-0.5 size-3.5 accent-black"
+                      />
+                      <span>
+                        <span className="font-medium text-black dark:text-foreground">Just-in-time access.</span> The grant
+                        starts inactive. The agent must request activation and an approver must approve it before any call is
+                        allowed. Saving an existing standing grant as JIT deactivates it immediately.
+                        {grant?.justInTime && grant.activatedAt ? (
+                          <span className="mt-0.5 block font-mono text-[9px] uppercase tracking-[0.1em] text-[#245f47]">
+                            active until {formatDate(grant.expiresAt)}
+                          </span>
+                        ) : null}
+                      </span>
+                    </label>
+
                     <details className="border border-black/10 dark:border-border" open={Boolean(conditions)}>
                       <summary className="cursor-pointer px-3 py-2 font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
                         Conditions (JSON) {conditions ? "· configured" : ""}
@@ -253,12 +285,14 @@ export default async function PermissionEditorPage({
                           name="conditions"
                           rows={4}
                           defaultValue={conditions || ""}
-                          placeholder={'{"maxCallsPerPeriod": 50, "periodHours": 24}'}
+                          placeholder={'{"maxCallsPerPeriod": 50, "allowedDays": "mon,tue,wed,thu,fri", "timezone": "Europe/London", "maxAmount": 500}'}
                           spellCheck={false}
                           className="w-full resize-none border border-black/15 bg-[#0b0b0b] px-2.5 py-2 font-mono text-[10px] leading-relaxed text-[#e8e6e1] outline-none focus:border-black"
                         />
                         <p className="mt-1.5 font-mono text-[9px] leading-relaxed text-black/40 dark:text-muted-foreground">
-                          Supported keys: maxCallsPerPeriod, periodHours, timeWindowStart, timeWindowEnd, allowedIps
+                          Supported keys: maxCallsPerPeriod, periodHours, timeWindowStart, timeWindowEnd, timezone,
+                          allowedDays, allowedIps (CIDR), maxAmount, approvalAboveAmount, amountField. Missing or invalid
+                          condition data fails closed.
                         </p>
                       </div>
                     </details>
@@ -281,6 +315,21 @@ export default async function PermissionEditorPage({
                       </p>
                     )}
                   </form>
+                  {grant?.justInTime && !grant.activatedAt ? (
+                    <form action={activateGrantAction} className="flex flex-wrap items-center gap-3 border-t border-black/10 px-4 py-2.5 dark:border-border">
+                      <input type="hidden" name="agentId" value={agent.id} />
+                      <input type="hidden" name="grantId" value={grant.id} />
+                      <button
+                        disabled={!canManage}
+                        className="border border-black bg-black px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-white hover:bg-[#eca8d6] hover:text-black disabled:opacity-40"
+                      >
+                        Activate for 60 minutes
+                      </button>
+                      <span className="text-[10px] leading-relaxed text-black/40 dark:text-muted-foreground">
+                        Or let the agent request activation so the reason and approval are on the record.
+                      </span>
+                    </form>
+                  ) : null}
                   {grant ? (
                     <form action={saveGrantAction} className="border-t border-black/10 px-4 py-2.5 dark:border-border">
                       <input type="hidden" name="agentId" value={agent.id} />

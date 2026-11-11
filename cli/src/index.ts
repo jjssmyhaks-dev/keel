@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { Authab, AuthabError, type Approval, type GrantConditions } from "@authab/sdk";
 import {
   UsageError,
@@ -31,7 +31,15 @@ Agents
   authab agents pause|resume <id>
   authab agents kill <id> --yes
   authab agents rotate-key <id>
+  authab agents secrets list <id>
+  authab agents secrets create <id> [--label ...] [--scopes ...] [--expires-days 90]
+  authab agents secrets revoke <id> <secretId>
   authab promote <id> [--confirm --email owner@example.com]
+
+Tokens
+  authab tokens client-credentials --client-id <id> --client-secret <secret> [--scope ...]
+  authab tokens exchange --subject-token <jwt> [--agent <id>] [--scope ...]
+  authab tokens workload-exchange --token <jwt> [--scope ...]
 
 Vault
   authab vault list
@@ -44,6 +52,15 @@ Grants and policy
   authab grants create --agent <id> --credential <id> --actions slack.post_message [--resource ...] [--mode ...]
   authab grants update <id> [--actions ...] [--resource ...] [--mode ...]
   authab grants rm <id> --yes
+  authab grants request --agent-token <jwt> --credential <id> --actions ... --reason "..." [--duration 30]
+  authab policy simulate --agent <id> --credential <id> --action <name> [--resource ...] [--input '{"amount":10}'] [--ip ...] [--at ISO]
+
+Connectors
+  authab connectors list [--custom]
+  authab connectors import <openapi.json|yaml> [--slug ...] [--name ...] [--base-url ...] [--auth-scheme ...]
+  authab connectors show <slug>
+  authab connectors rollback <slug> --version <n>
+  authab connectors archive <slug> --yes
 
 Calls and approvals
   authab call <connector.action> --agent <id> [--credential <id>] [--resource ...] [--input '{"...":...}'] [--idempotency-key ...] [--watch]
@@ -92,6 +109,12 @@ async function main(argv: string[]): Promise<void> {
       return vault(args);
     case "grants":
       return grants(args);
+    case "policy":
+      return policy(args);
+    case "connectors":
+      return connectors(args);
+    case "tokens":
+      return tokens(args);
     case "call":
       return call(args);
     case "approvals":
@@ -262,6 +285,53 @@ async function agents(args: ParsedArgs) {
     process.stdout.write(`\nNew private key (shown once):\n${rotated.privateKey}\n`);
     process.stderr.write("The previous key remains valid for 7 days.\n");
     return;
+  }
+
+  if (sub === "secrets") {
+    const action = rest[0];
+    const id = requiredId(rest[1], "agent");
+    if (action === "list") {
+      const listed = await authab.agents.listClientSecrets(id);
+      if (json) return printJson(listed);
+      table(
+        ["id", "label", "prefix", "scopes", "expires", "revoked"],
+        listed.data.map((secret) => [
+          secret.id,
+          secret.label,
+          secret.prefix,
+          secret.scopes.join(",") || "grant scopes",
+          shortTime(secret.expiresAt),
+          secret.revokedAt ? "yes" : "no",
+        ]),
+      );
+      return;
+    }
+    if (action === "create") {
+      const created = await authab.agents.createClientSecret(id, {
+        label: flagString(args, "label"),
+        scopes: flagList(args, "scopes").length ? flagList(args, "scopes") : undefined,
+        expiresInDays: numberFlag(args, "expires-days"),
+      });
+      if (json) return printJson(created);
+      kv([
+        ["Secret", created.id],
+        ["Agent", created.agentId],
+        ["Label", created.label],
+        ["Prefix", created.prefix],
+        ["Scopes", created.scopes.join(", ") || "agent grants"],
+      ]);
+      process.stdout.write(`\nClient secret (shown once):\n${created.secret}\n`);
+      return;
+    }
+    if (action === "revoke") {
+      const secretId = requiredId(rest[2], "client secret");
+      await requireYes(args, `Revoke client secret ${secretId}?`);
+      const revoked = await authab.agents.revokeClientSecret(id, secretId);
+      if (json) return printJson(revoked);
+      process.stdout.write(`Client secret ${revoked.id} is revoked.\n`);
+      return;
+    }
+    throw new UsageError(`Unknown agents secrets command “${action ?? ""}”.`);
   }
 
   throw new UsageError(`Unknown agents command “${sub ?? ""}”. Run \`authab --help\`.`);
@@ -466,6 +536,43 @@ async function grants(args: ParsedArgs) {
     return;
   }
 
+  if (sub === "request") {
+    const token = requireFlag(
+      args,
+      "agent-token",
+      "Just-in-time requests run as an agent. Pass its JWT with --agent-token.",
+    );
+    const actions = flagList(args, "actions");
+    if (!actions.length) throw new UsageError("Pass at least one action with --actions.");
+    const reason = requireFlag(args, "reason", "Approvers need a reason (at least 5 characters).");
+    const credentialId = flagString(args, "credential");
+    const connector = flagString(args, "connector");
+    if (!credentialId && !connector) {
+      throw new UsageError("Pass --credential <id> or --connector <slug> to pick a connection.");
+    }
+    const requested = await authab.grants.request(
+      {
+        credentialId,
+        connector,
+        actions,
+        resourcePattern: flagString(args, "resource"),
+        reason,
+        durationMinutes: numberFlag(args, "duration"),
+      },
+      { agentToken: token },
+    );
+    if (json) return printJson(requested);
+    kv([
+      ["Request", requested.approvalId],
+      ["Grant", requested.grantId],
+      ["Status", requested.status],
+      ["Expires", shortTime(requested.expiresAt)],
+      ["Approval", requested.approvalUrl],
+    ]);
+    process.stderr.write("The grant stays inert until an approver activates it.\n");
+    return;
+  }
+
   throw new UsageError(`Unknown grants command “${sub ?? ""}”. Run \`authab --help\`.`);
 }
 
@@ -491,6 +598,220 @@ function conditionsFrom(args: ParsedArgs): GrantConditions | undefined {
   if (start) conditions.timeWindowStart = start;
   if (end) conditions.timeWindowEnd = end;
   return Object.keys(conditions).length ? conditions : undefined;
+}
+
+/* ------------------------------------------------------------------ */
+/* Policy lab                                                          */
+/* ------------------------------------------------------------------ */
+
+async function policy(args: ParsedArgs) {
+  const sub = args.positionals[0];
+  if (sub !== "simulate") {
+    throw new UsageError(`Unknown policy command “${sub ?? ""}”. Try \`authab policy simulate\`.`);
+  }
+  const { authab } = await resolveClient(args);
+  const json = flagBool(args, "json");
+
+  let input: Record<string, unknown> | undefined;
+  const rawInput = flagString(args, "input");
+  if (rawInput) {
+    try {
+      const parsed = JSON.parse(rawInput) as unknown;
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new Error("not an object");
+      }
+      input = parsed as Record<string, unknown>;
+    } catch {
+      throw new UsageError("--input must be a JSON object, for example '{\"amount\":250}'.");
+    }
+  }
+
+  const simulation = await authab.policies.simulate({
+    agentId: requireFlag(args, "agent", "Which agent is calling?"),
+    credentialId: requireFlag(args, "credential", "Which connection is it using?"),
+    action: requireFlag(args, "action", "Which action should be simulated?"),
+    resource: flagString(args, "resource"),
+    input,
+    ip: flagString(args, "ip"),
+    now: flagString(args, "at"),
+  });
+
+  if (json) return printJson(simulation);
+  heading(`Decision: ${simulation.decision.effect} · ${simulation.decision.risk} · via ${simulation.decision.source}`);
+  process.stdout.write(`${simulation.decision.reason}\n\n`);
+  table(
+    ["check", "outcome", "detail"],
+    simulation.trace.map((step) => [step.check, step.outcome, step.detail]),
+  );
+  process.stderr.write(
+    simulation.decision.wouldExecute
+      ? "\nThis call would execute immediately.\n"
+      : simulation.decision.wouldRequestApproval
+        ? "\nThis call would wait for human approval.\n"
+        : "\nThis call would be denied. Nothing would run.\n",
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Connectors                                                          */
+/* ------------------------------------------------------------------ */
+
+async function connectors(args: ParsedArgs) {
+  const sub = args.positionals[0];
+  const rest = args.positionals.slice(1);
+  const { authab } = await resolveClient(args);
+  const json = flagBool(args, "json");
+
+  if (sub === "list" || sub === undefined) {
+    const listed = await authab.connectors.listCustom();
+    if (json) return printJson(listed);
+    if (!flagBool(args, "custom")) {
+      process.stdout.write(`Built-in catalogue: ${listed.builtin.length} connectors\n`);
+    }
+    if (!listed.data.length) {
+      process.stderr.write(
+        "No custom connectors yet. Import one with `authab connectors import openapi.yaml`.\n",
+      );
+      return;
+    }
+    table(
+      ["slug", "name", "version", "status", "actions", "hosts"],
+      listed.data.map((item) => [
+        item.slug,
+        item.name,
+        String(item.version),
+        item.status,
+        String(item.actions.length),
+        item.hosts.join(","),
+      ]),
+    );
+    return;
+  }
+
+  if (sub === "import") {
+    const file = rest[0];
+    if (!file) throw new UsageError("Usage: authab connectors import <openapi.json|openapi.yaml>");
+    const spec = await readFile(file, "utf8");
+    const result = await authab.connectors.import({
+      spec,
+      slug: flagString(args, "slug"),
+      name: flagString(args, "name"),
+      category: flagString(args, "category"),
+      baseUrl: flagString(args, "base-url"),
+      authScheme: flagString(args, "auth-scheme"),
+    });
+    if (json) return printJson(result);
+    kv([
+      ["Connector", `${result.connector.name} (${result.connector.slug})`],
+      ["Version", String(result.version)],
+      ["Actions", String(result.connector.actions.length)],
+      ["Hosts", result.connector.hosts.join(", ")],
+      ["Unchanged", result.unchanged ? "yes" : "no"],
+    ]);
+    if (result.warnings.length) {
+      process.stderr.write(`\nWarnings\n${result.warnings.map((warning) => `  - ${warning}`).join("\n")}\n`);
+    }
+    return;
+  }
+
+  if (sub === "show") {
+    const slug = requiredId(rest[0], "connector");
+    const detail = await authab.connectors.get(slug);
+    if (json) return printJson(detail);
+    kv([
+      ["Connector", `${detail.name} (${detail.slug})`],
+      ["Version", String(detail.version)],
+      ["Status", detail.status],
+      ["Auth", detail.auth.type],
+      ["Hosts", detail.hosts.join(", ")],
+      ["Actions", String(detail.actions.length)],
+    ]);
+    table(
+      ["action", "method", "risk", "path"],
+      detail.actions.map((action) => [action.name, action.method, action.risk, action.path]),
+    );
+    if (detail.versions.length) {
+      process.stdout.write(`\nVersions: ${detail.versions.map((version) => `v${version.version}`).join(" ")}\n`);
+    }
+    return;
+  }
+
+  if (sub === "rollback") {
+    const slug = requiredId(rest[0], "connector");
+    const version = numberFlag(args, "version");
+    if (version === undefined) throw new UsageError("Pass --version <n> to choose the version to restore.");
+    const result = await authab.connectors.rollback(slug, version);
+    if (json) return printJson(result);
+    process.stdout.write(`Restored ${slug} v${version} as v${result.version}.\n`);
+    return;
+  }
+
+  if (sub === "archive") {
+    const slug = requiredId(rest[0], "connector");
+    await requireYes(args, `Archive ${slug}? Agents using it will fail closed.`);
+    await authab.connectors.archive(slug);
+    process.stdout.write(`Archived ${slug}. Its grants now fail closed.\n`);
+    return;
+  }
+
+  throw new UsageError(`Unknown connectors command “${sub}”. Run \`authab --help\`.`);
+}
+
+/* ------------------------------------------------------------------ */
+/* Tokens                                                              */
+/* ------------------------------------------------------------------ */
+
+async function tokens(args: ParsedArgs) {
+  const sub = args.positionals[0];
+  const { authab } = await resolveClient(args);
+  const json = flagBool(args, "json");
+  const scopes = flagList(args, "scope");
+  const ttl = numberFlag(args, "ttl");
+  const dpopProof = flagString(args, "dpop");
+  const options = { ...(scopes.length ? { scopes } : {}), ...(ttl !== undefined ? { ttl } : {}), dpopProof };
+
+  if (sub === "client-credentials") {
+    const grant = await authab.tokens.clientCredentials({
+      clientId: requireFlag(args, "client-id", "Pass --client-id <agent id>."),
+      clientSecret: requireFlag(args, "client-secret", "Pass --client-secret sk_..."),
+      ...options,
+    });
+    return printTokenGrant(grant, json);
+  }
+
+  if (sub === "exchange") {
+    const granted = await authab.tokens.exchange({
+      subjectToken: requireFlag(args, "subject-token", "Pass the caller's agent token with --subject-token."),
+      agentId: flagString(args, "agent"),
+      ...options,
+    });
+    return printTokenGrant(granted, json);
+  }
+
+  if (sub === "workload-exchange") {
+    const granted = await authab.tokens.workloadExchange({
+      token: requireFlag(
+        args,
+        "token",
+        "Pass the workload JWT with --token (SPIFFE, Kubernetes or OIDC).",
+      ),
+      ...options,
+    });
+    return printTokenGrant(granted, json);
+  }
+
+  throw new UsageError(`Unknown tokens command “${sub ?? ""}”. Run \`authab --help\`.`);
+}
+
+function printTokenGrant(
+  grant: { access_token: string; token_type: string; expires_in: number; scope: string; token_id: string },
+  json: boolean,
+) {
+  if (json) return printJson(grant);
+  process.stdout.write(`${grant.access_token}\n`);
+  process.stderr.write(
+    `${grant.token_type} · expires in ${grant.expires_in}s · ${grant.scope || "no scopes"} · ${grant.token_id}\n`,
+  );
 }
 
 /* ------------------------------------------------------------------ */

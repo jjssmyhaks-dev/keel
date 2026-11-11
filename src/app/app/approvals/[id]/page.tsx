@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
-import { connector, actionFor } from "@/lib/connectors";
+import { resolveConnector } from "@/lib/custom-connectors";
 import { ConnectorLogo } from "@/components/connector-logo";
 import { decideApprovalAction } from "@/app/app/actions";
 import { PageHeader, Panel, StatusBadge, RiskBadge, Notice, relativeTime, formatDate } from "@/components/app/ui";
@@ -41,8 +41,8 @@ export default async function ApprovalDetailPage({
   if (!approval) notFound();
 
   const decider = approval.decidedBy ? await db.user.findUnique({ where: { id: approval.decidedBy }, select: { name: true, email: true } }) : null;
-  const def = connector(approval.credential?.connectorSlug ?? "");
-  const action = actionFor(approval.credential?.connectorSlug ?? "", approval.action);
+  const def = await resolveConnector(approval.credential?.connectorSlug ?? "", ctx.environment.id);
+  const action = def?.actions.find((a) => a.name === approval.action);
   const redacted = (() => {
     try {
       return JSON.parse(approval.redactedJson || "{}") as Record<string, unknown>;
@@ -68,12 +68,25 @@ export default async function ApprovalDetailPage({
   const pending = approval.status === "pending" && approval.expiresAt > new Date();
   const canDecide = ctx.capabilities.approve && (!ctx.isProduction || ctx.capabilities.writeProduction);
   const grantActions = approval.grant ? (JSON.parse(approval.grant.actionsJson || "[]") as string[]) : [];
+  const isGrantRequest = approval.kind === "grant";
+  const grantSpec = (() => {
+    if (!isGrantRequest) return null;
+    try {
+      return JSON.parse(approval.grantSpecJson || "{}") as {
+        actions?: string[];
+        resourcePattern?: string;
+        durationMinutes?: number;
+      };
+    } catch {
+      return null;
+    }
+  })();
 
   return (
     <div>
       <PageHeader
-        eyebrow={`Approvals · ${approval.status}`}
-        title={action?.label ?? approval.action}
+        eyebrow={`Approvals · ${approval.status}${isGrantRequest ? " · just-in-time" : ""}`}
+        title={isGrantRequest ? "Just-in-time access request" : (action?.label ?? approval.action)}
         description={approval.summary}
         actions={
           <Link href="/app/approvals" className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card">
@@ -104,20 +117,45 @@ export default async function ApprovalDetailPage({
         <span className="font-mono text-[10px] text-black/40 dark:text-muted-foreground">
           requested {relativeTime(approval.createdAt)}
         </span>
-        <span className="ml-auto font-mono text-[9px] uppercase tracking-[0.12em] text-black/35 dark:text-muted-foreground">
-          {pending ? `expires ${relativeTime(approval.expiresAt)}` : `expires ${formatDate(approval.expiresAt)}`}
+        <span className="ml-auto flex flex-wrap items-center gap-2 font-mono text-[9px] uppercase tracking-[0.12em] text-black/35 dark:text-muted-foreground">
+          {isGrantRequest && grantSpec?.durationMinutes ? <span>activates for {grantSpec.durationMinutes}m</span> : null}
+          {pending && approval.slaDueAt ? (
+            <span className={approval.escalatedAt ? "text-[#8c3225]" : "text-[#8c5a12]"}>
+              {approval.escalatedAt ? "escalated" : `SLA ${relativeTime(approval.slaDueAt)}`}
+            </span>
+          ) : null}
+          <span>{pending ? `expires ${relativeTime(approval.expiresAt)}` : `expires ${formatDate(approval.expiresAt)}`}</span>
         </span>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
         <div className="space-y-6">
-          <Panel title="Requested payload" hint="Secrets are redacted before storage" bodyClassName="p-0">
+          <Panel
+            title={isGrantRequest ? "Requested access" : "Requested payload"}
+            hint={isGrantRequest ? "The grant that activates on approval" : "Secrets are redacted before storage"}
+            bodyClassName="p-0"
+          >
             <div className="border-b border-black/10 px-4 py-2.5 dark:border-border">
               <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/40 dark:text-muted-foreground">
-                {approval.action}
-                {payload.resource ? ` · ${payload.resource}` : ""}
+                {isGrantRequest ? "grant.request" : approval.action}
+                {isGrantRequest
+                  ? grantSpec?.resourcePattern
+                    ? ` · ${grantSpec.resourcePattern}`
+                    : ""
+                  : payload.resource
+                    ? ` · ${payload.resource}`
+                    : ""}
               </p>
             </div>
+            {isGrantRequest && grantSpec?.actions?.length ? (
+              <div className="flex flex-wrap gap-1 border-b border-black/10 px-4 py-2.5 dark:border-border">
+                {grantSpec.actions.map((name) => (
+                  <span key={name} className="border border-black/10 px-1.5 py-0.5 font-mono text-[9px] text-black/55 dark:border-border dark:text-muted-foreground">
+                    {name}
+                  </span>
+                ))}
+              </div>
+            ) : null}
             <pre className="max-h-72 overflow-auto bg-[#0b0b0b] p-4 font-mono text-[11px] leading-relaxed text-[#e8e6e1]">
               {JSON.stringify(redacted, null, 2)}
             </pre>
@@ -130,7 +168,11 @@ export default async function ApprovalDetailPage({
           </Panel>
 
           {execution ? (
-            <Panel title="Execution result" hint="What the service returned" bodyClassName="p-0">
+            <Panel
+              title={isGrantRequest ? "Activation result" : "Execution result"}
+              hint={isGrantRequest ? "Grant state after approval" : "What the service returned"}
+              bodyClassName="p-0"
+            >
               <pre className="max-h-72 overflow-auto bg-[#0b0b0b] p-4 font-mono text-[11px] leading-relaxed text-[#e8e6e1]">
                 {JSON.stringify(execution, null, 2)}
               </pre>
@@ -138,7 +180,11 @@ export default async function ApprovalDetailPage({
           ) : null}
 
           {pending ? (
-            <Panel title="Decide" hint="Approval executes the exact request" bodyClassName="p-4">
+            <Panel
+              title="Decide"
+              hint={isGrantRequest ? "Approval activates the grant for a fixed window" : "Approval executes the exact request"}
+              bodyClassName="p-4"
+            >
               {canDecide ? (
                 <form action={decideApprovalAction} className="space-y-3">
                   <input type="hidden" name="approvalId" value={approval.id} />
@@ -155,7 +201,7 @@ export default async function ApprovalDetailPage({
                       className="mt-1 w-full resize-none border border-black/15 bg-[#faf9f6] px-2.5 py-2 text-[12px] outline-none focus:border-black dark:border-border dark:bg-background"
                     />
                   </div>
-                  {approval.grant && approval.grant.approvalMode !== "allow" ? (
+                  {!isGrantRequest && approval.grant && approval.grant.approvalMode !== "allow" ? (
                     <label className="flex items-start gap-2 text-[11px] leading-relaxed text-black/55 dark:text-muted-foreground">
                       <input type="checkbox" name="approveAlways" className="mt-0.5 size-3.5 accent-black" />
                       Approve always — switch this grant to allow for future calls. Only do this for repeated, low-risk work.
@@ -167,7 +213,7 @@ export default async function ApprovalDetailPage({
                       value="approve"
                       className="border border-black bg-black px-4 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-white hover:bg-[#eca8d6] hover:text-black"
                     >
-                      Approve and run
+                      {isGrantRequest ? "Approve and activate" : "Approve and run"}
                     </button>
                     <button
                       name="decision"
@@ -178,8 +224,9 @@ export default async function ApprovalDetailPage({
                     </button>
                   </div>
                   <p className="text-[10px] leading-relaxed text-black/40 dark:text-muted-foreground">
-                    Approving runs the call immediately with the stored credential. Denying tells the agent why, if you leave a
-                    note.
+                    {isGrantRequest
+                      ? "Approving activates the grant immediately for its requested window. The agent can then call the listed actions until it expires."
+                      : "Approving runs the call immediately with the stored credential. Denying tells the agent why, if you leave a note."}
                   </p>
                 </form>
               ) : (
@@ -226,16 +273,26 @@ export default async function ApprovalDetailPage({
                   )}
                 </dd>
               </div>
-              <Row label="Action" value={approval.action} mono />
+              <Row label="Action" value={isGrantRequest ? "grant.request" : approval.action} mono />
               <Row label="Resource" value={payload.resource ?? "—"} mono />
               <Row label="Risk" value={approval.risk} />
+              {approval.slaDueAt ? (
+                <Row
+                  label="SLA"
+                  value={`${approval.escalatedAt ? "escalated" : "due"} ${formatDate(approval.slaDueAt)}`}
+                />
+              ) : null}
               <Row label="Request ID" value={payload.requestId ?? approval.requestId} mono />
               <Row label="Fingerprint" value={`${approval.agent.fingerprint.slice(0, 16)}…`} mono />
             </dl>
           </Panel>
 
           {approval.grant ? (
-            <Panel title="Grant behind this call" hint="Why policy let it reach a human" bodyClassName="p-4">
+            <Panel
+              title={isGrantRequest ? "Grant this activates" : "Grant behind this call"}
+              hint={isGrantRequest ? "Created inactive, activated on approval" : "Why policy let it reach a human"}
+              bodyClassName="p-4"
+            >
               <div className="flex flex-wrap gap-1">
                 {grantActions.map((granted) => (
                   <span key={granted} className="border border-black/10 px-1.5 py-0.5 font-mono text-[9px] text-black/55 dark:border-border dark:text-muted-foreground">

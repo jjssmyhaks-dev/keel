@@ -12,6 +12,33 @@ class PoliciesResource:
     def __init__(self, http: HttpTransport) -> None:
         self._http = http
 
+    def simulate(
+        self,
+        *,
+        agent_id: str,
+        credential_id: str,
+        action: str,
+        resource: Optional[str] = None,
+        input: Optional[dict[str, Any]] = None,
+        ip: Optional[str] = None,
+        now: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """Dry-run a decision without calling the provider or creating an approval."""
+
+        return self._http.request(
+            "POST",
+            "/policy/simulate",
+            body=payload(
+                agentId=agent_id,
+                credentialId=credential_id,
+                action=action,
+                resource=resource,
+                input=input,
+                ip=ip,
+                now=now,
+            ),
+        )
+
     def create(
         self,
         *,

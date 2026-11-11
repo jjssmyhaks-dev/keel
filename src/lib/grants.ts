@@ -1,7 +1,7 @@
-import { connector } from "./connectors";
+import { resolveConnector } from "./custom-connectors";
 
-export function validateActions(connectorSlug: string, actions: string[]) {
-  const connectorDef = connector(connectorSlug);
+export async function validateActions(connectorSlug: string, actions: string[], environmentId: string) {
+  const connectorDef = await resolveConnector(connectorSlug, environmentId);
   if (!connectorDef) return { ok: false as const, error: "Unknown connector." };
   if (!Array.isArray(actions) || !actions.length) {
     return { ok: false as const, error: "Provide at least one action for the grant." };

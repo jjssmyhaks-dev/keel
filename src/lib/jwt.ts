@@ -60,25 +60,51 @@ export type AgentTokenClaims = {
   requestId?: string;
 };
 
-export async function signAgentToken(claims: AgentTokenClaims, ttlSeconds = 300) {
+export type SignAgentTokenOptions = {
+  audience?: string;
+  cnf?: { jkt: string } | null;
+  actor?: Record<string, unknown> | null;
+  clientId?: string | null;
+  parentJti?: string | null;
+  parentChain?: string[];
+  delegationId?: string | null;
+  scopeEnforced?: boolean;
+};
+
+export async function signAgentToken(
+  claims: AgentTokenClaims,
+  ttlSeconds = 300,
+  options: SignAgentTokenOptions = {},
+) {
   const key = await signingKey();
   const { kid } = await jwks();
   const jti = newId("tok_");
   const now = Math.floor(Date.now() / 1000);
-  const token = await new SignJWT({
+  const payload: Record<string, unknown> = {
     env: claims.environmentId,
     project: claims.projectId,
     org: claims.organizationId,
     principal: claims.principalId ?? null,
     scopes: claims.scopes,
     chain: claims.chain ?? [],
-    actor: claims.principalId
-      ? { sub: claims.agentId, act: claims.principalId }
-      : { sub: claims.agentId },
-  })
+    token_use: "access",
+    actor:
+      options.actor ??
+      (claims.principalId
+        ? { sub: claims.agentId, act: claims.principalId }
+        : { sub: claims.agentId }),
+  };
+  if (options.cnf) payload.cnf = options.cnf;
+  if (options.clientId) payload.client_id = options.clientId;
+  if (options.parentJti) payload.parent_jti = options.parentJti;
+  if (options.parentChain?.length) payload.parent_chain = options.parentChain;
+  if (options.delegationId) payload.delegation_id = options.delegationId;
+  if (options.scopeEnforced) payload.scope_enforced = true;
+
+  const token = await new SignJWT(payload)
     .setProtectedHeader({ alg: "EdDSA", kid, typ: "JWT" })
     .setIssuer(ISSUER)
-    .setAudience(AUDIENCE)
+    .setAudience(options.audience ?? AUDIENCE)
     .setSubject(claims.agentId)
     .setJti(jti)
     .setIssuedAt(now)

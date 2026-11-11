@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "./db";
 import { sha256 } from "./crypto";
 import { verifyAgentToken } from "./jwt";
+import { verifyDelegationClaims } from "./delegations";
+import { DpopError, verifyDpopProof } from "./dpop";
 import type { Agent, Environment, Organization, Project } from "@prisma/client";
 
 export class ApiError extends Error {
@@ -68,14 +70,16 @@ export type AgentAuthContext = {
   tokenId: string;
 };
 
-function bearer(req: Request) {
+function authorization(req: Request) {
   const header = req.headers.get("authorization") ?? "";
-  if (!header.toLowerCase().startsWith("bearer ")) return null;
-  return header.slice(7).trim();
+  const match = /^(bearer|dpop)\s+(.+)$/i.exec(header.trim());
+  if (!match) return null;
+  return { scheme: match[1].toLowerCase() as "bearer" | "dpop", token: match[2].trim() };
 }
 
 export async function authenticateApiKey(req: Request): Promise<ApiKeyContext> {
-  const token = bearer(req);
+  const auth = authorization(req);
+  const token = auth?.token;
   if (!token) throw new ApiError(401, "missing_api_key", "Provide a secret key as a Bearer token.");
   const apiKey = await db.apiKey.findUnique({
     where: { keyHash: sha256(token) },
@@ -101,8 +105,9 @@ export async function authenticateApiKey(req: Request): Promise<ApiKeyContext> {
 }
 
 export async function authenticateAgent(req: Request): Promise<AgentAuthContext> {
-  const token = bearer(req);
-  if (!token) throw new ApiError(401, "missing_agent_token", "Provide an agent token as a Bearer token.");
+  const auth = authorization(req);
+  const token = auth?.token;
+  if (!token) throw new ApiError(401, "missing_agent_token", "Provide an agent token as a Bearer or DPoP token.");
   let payload: Record<string, unknown>;
   try {
     payload = (await verifyAgentToken(token)) as Record<string, unknown>;
@@ -127,10 +132,42 @@ export async function authenticateAgent(req: Request): Promise<AgentAuthContext>
   if (agent.environmentId !== String(payload.env)) {
     throw new ApiError(401, "environment_mismatch", "Token environment does not match the agent.");
   }
+  if (agent.environment.project.org.deletedAt) {
+    throw new ApiError(403, "organization_suspended", "This organization is suspended.");
+  }
+
+  const delegation = await verifyDelegationClaims(payload, agent.environmentId);
+  if (!delegation.ok) throw new ApiError(401, delegation.code, delegation.message);
 
   const tokenType = String(payload.token_use ?? "");
   if (tokenType && tokenType !== "access") {
     throw new ApiError(401, "wrong_token_type", "This endpoint requires an access token.");
+  }
+
+  const confirmation = payload.cnf as { jkt?: unknown } | undefined;
+  const boundJkt = typeof confirmation?.jkt === "string" ? confirmation.jkt : null;
+  if (boundJkt) {
+    if (auth?.scheme !== "dpop") {
+      throw new ApiError(401, "dpop_scheme_required", "This token is bound to a DPoP key. Send it with the DPoP scheme.");
+    }
+    const proof = req.headers.get("dpop");
+    if (!proof) {
+      throw new ApiError(401, "dpop_proof_required", "This token is bound to a DPoP key. Include a DPoP proof header.");
+    }
+    try {
+      await verifyDpopProof({
+        proof,
+        method: req.method,
+        url: req.url,
+        accessToken: token,
+        expectedJkt: boundJkt,
+      });
+    } catch (error) {
+      if (error instanceof DpopError) throw new ApiError(401, error.code, error.message);
+      throw error;
+    }
+  } else if (auth?.scheme === "dpop") {
+    throw new ApiError(401, "dpop_token_unbound", "This token is not bound to a DPoP key. Send it as a Bearer token.");
   }
 
   await db.agent.update({ where: { id: agent.id }, data: { lastActiveAt: new Date() } }).catch(() => null);
@@ -159,9 +196,14 @@ export async function parseJson<T = Record<string, unknown>>(req: Request): Prom
 }
 
 export function clientIp(req: Request) {
-  return (
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    null
-  );
+  for (const header of ["cf-connecting-ip", "x-vercel-forwarded-for", "x-real-ip"]) {
+    const value = req.headers.get(header)?.split(",")[0]?.trim();
+    if (value) return value;
+  }
+  const forwarded = req.headers.get("x-forwarded-for");
+  if (!forwarded) return null;
+  // The rightmost entry is the one appended by the nearest proxy; the
+  // leftmost value is client-supplied and can be spoofed.
+  const parts = forwarded.split(",").map((part) => part.trim()).filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : null;
 }

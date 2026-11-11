@@ -19,6 +19,7 @@ const figma: Connector = {
   defaultAuth: "oauth",
   hosts: ["api.figma.com"],
   injection: { type: "header", name: "X-Figma-Token", field: "token" },
+  oauthInjection: { type: "header", name: "Authorization", prefix: "Bearer ", field: "access_token" },
   credentialFields: [
     {
       key: "token",

@@ -2,6 +2,8 @@
 
 Identity, vault and governance for AI agents. Authab gives every agent a verifiable Ed25519 identity, keeps provider credentials out of agent code, evaluates every outbound call against grants and policy, routes risky calls to a human, and records the whole thing in a tamper-evident audit chain.
 
+Agents do not need long-lived API keys: OAuth-connected credentials refresh automatically, client secrets and RFC 8693 token exchange issue short-lived tokens (optionally DPoP-bound), and SPIFFE/Kubernetes/OIDC workload identities can exchange their own JWT for an agent token. Policies can be dry-run with a full trace, and connectors can be imported from OpenAPI 3 when the built-in catalogue does not cover a provider.
+
 This repository contains the hosted product, the marketing site and documentation, plus TypeScript and Python SDKs, framework integrations, the CLI, the MCP stdio server and the hosted MCP gateway.
 
 ## What is here
@@ -96,19 +98,21 @@ Every environment calls providers for real. Policy, approvals, rate limits and a
 
 | Group | Endpoints |
 | --- | --- |
-| Context | `GET /me`, `GET /connectors` |
-| Agents | `GET/POST /agents`, `GET/PATCH/DELETE /agents/:id`, `POST /agents/:id/{token,pause,resume,suspend,kill,rotate-key,transfer,promote}` |
-| Tokens | `POST /tokens/introspect`, `POST/GET /tokens/revoke` |
-| Vault | `GET/POST /credentials`, `GET/PATCH/DELETE /credentials/:id` |
-| Grants | `GET/POST /grants`, `GET/PATCH/DELETE /grants/:id` |
-| Policy | `GET/POST /approval-policies`, `GET/PATCH/DELETE /approval-policies/:id` |
+| Context | `GET /me`, `GET /connectors` (built-in and active custom connectors, plus custom metadata) |
+| Agents | `GET/POST /agents`, `GET/PATCH/DELETE /agents/:id`, `POST /agents/:id/{token,pause,resume,suspend,kill,rotate-key,transfer,promote}`, `GET/POST /agents/:id/client-secrets`, `DELETE /agents/:id/client-secrets/:secretId` |
+| Tokens | `POST /tokens/introspect`, `POST /tokens/revoke`, `POST /tokens/client-credentials`, `POST /tokens/exchange`, `POST /tokens/workload-exchange` |
+| Workload identity | `GET/POST /workload-identities`, `GET/PATCH/DELETE /workload-identities/:id` |
+| Vault | `GET/POST /credentials`, `GET/PATCH/DELETE /credentials/:id`, `POST /credentials/:id/refresh`, `POST /credentials/:id/check` |
+| Grants | `GET/POST /grants`, `GET/PATCH/DELETE /grants/:id`, `POST /grants/request` (agent JWT, just-in-time) |
+| Policy | `POST /policy/simulate`, `GET/POST /approval-policies`, `GET/PATCH/DELETE /approval-policies/:id` |
+| Connectors | `POST /connectors` (OpenAPI 3 import), `GET/DELETE /connectors/:slug`, `POST /connectors/:slug/rollback` |
 | Approvals | `GET /approvals`, `GET/POST /approvals/:id` |
 | Proxy | `POST /proxy/:connector` (agent JWT; `Idempotency-Key` supported) |
 | Audit | `GET /audit`, `GET /audit/verify`, `GET /audit/export` |
 | Webhooks | `GET/POST /webhooks`, `GET/PATCH/DELETE /webhooks/:id` |
 | Public | `GET /jwks`, `GET /openapi`, `GET /api/status`, `POST /api/mcp`, `GET /api/mcp/registry` |
 
-Secret keys are environment-scoped and required for management endpoints. Agent tokens are required for the proxy. Responses use `{ error: { code, message, details, requestId } }` on failure; `x-request-id` is always present.
+Secret keys are environment-scoped and required for management endpoints. Agent tokens are required for the proxy, MCP and just-in-time grant requests. Responses use `{ error: { code, message, details, requestId } }` on failure; `x-request-id` is always present.
 
 ## SDKs, CLI and MCP
 
@@ -154,9 +158,13 @@ AUTHAB_API_KEY=sk_dev_... AUTHAB_AGENT_ID=agt_atlas AUTHAB_CONNECTOR=slack AUTHA
 ## Security properties
 
 - Agent identity is Ed25519. Private keys are shown once; platform-managed keys are sealed with envelope encryption. Signed challenges are single-use — replays are rejected for the life of the challenge record.
+- Agent-native auth never relies on a long-lived provider key: client secrets are stored as SHA-256 hashes and capped at the agent's grant scopes, and token exchange can only narrow scopes (never widen). Cross-agent exchanges require an active, revocable delegation whose scopes are a subset of the parent's grants; the RFC 8693 `act` chain and ancestor-token claims record every hop, and revoking the delegation or an ancestor token invalidates descendants immediately. DPoP proofs accept only asymmetric algorithms, enforce `htm`/`htu`/`iat`/`ath`, and reject replayed `jti` values per environment. Workload identity rules are deny-by-default and require an exact issuer and audience match, plus an optional subject glob and required-claims check.
+- OAuth connect uses PKCE and a signed, single-use state cookie. Refresh tokens are rotated when the provider returns a new one; permanent failures mark the connection broken and notify owners, transient failures keep the current token usable until it expires.
+- Runtime-configured outbound URLs (OAuth token endpoints, JWKS, OpenAPI connector servers and webhooks) reject credentials in the URL, require HTTPS in production, and refuse hosts that are private, loopback or link-local. Connector and webhook hosts are resolved again at request and redirect time, so DNS rebinding and IPv4-mapped IPv6 literals cannot reach internal services. The localhost escape hatch is disabled whenever `NODE_ENV=production`.
 - Credentials are AES-256-GCM encrypted with a per-credential data key wrapped by a per-project key, rooted in the deployment master key. No API returns a plaintext secret.
-- Every policy decision is deny-by-default and evaluated server-side. A grant with a resource pattern requires the caller to supply a matching resource; omitting it is denied.
-- Approval payloads are redacted before storage. Approving executes the stored call; the requester cannot approve its own request.
+- Every policy decision is deny-by-default and evaluated server-side. Conditions on CIDR, time window, day, timezone, amount and call rate fail closed when malformed. `POST /policy/simulate` runs the same pipeline as the proxy without executing or consuming anything.
+- Custom connectors compile from OpenAPI 3.0/3.1 only, require HTTPS servers, reject private and link-local base URLs, refuse required header/cookie parameters the proxy cannot forward, cap imports at 100 actions, and stay behind the Scale/Enterprise plan gate.
+- Approval payloads are redacted before storage. Approving executes the stored call; the requester cannot approve its own request. Approval SLAs escalate to a configured role and the scheduler expires unanswered requests.
 - Audit events are chained per environment with `SHA-256(prevHash + ":" + canonicalJSON(event))`. Appends take a Postgres advisory lock so concurrent writes cannot fork the chain; `GET /audit/verify` walks the chain.
 - Dashboard sessions are httpOnly and database-backed; API keys are stored hashed with a prefix retained for display. Sign-in, sign-up, magic-link and reset requests are throttled in the database.
 - Webhook delivery blocks loopback, private, link-local and metadata addresses, refuses redirects, and retries failed deliveries with exponential backoff.
@@ -171,7 +179,7 @@ npm run dev             # Next dev server
 npm run build           # prisma generate + next build
 npm run start           # production server
 npm run typecheck       # next typegen + tsc --noEmit (npm run lint runs this)
-npm test                # unit tests for plan limits, policy, invites, approvals, connectors and the MCP gateway
+npm test                # server unit tests: policy/CIDR, OpenAPI import, DPoP, OAuth refresh, invites, plans, MCP gateway
 npm run connectors:check # validate connector manifests, action names, risks, hosts and samples
 npm run db:seed         # reseed demo workspace (blocked in production unless ALLOW_DEMO_SEED=1)
 npm run db:migrate      # apply pending Prisma migrations to Neon
@@ -192,7 +200,7 @@ npm run mcp:typecheck   # typecheck MCP server against SDK source
 3. Terminate TLS in front of the app; the dashboard session cookie is httpOnly and same-site.
 4. Point `DATABASE_URL` at the pooled Neon endpoint and `DATABASE_URL_UNPOOLED` at the direct endpoint. Run schema changes in a Neon branch first, then apply them to production.
 5. Set `CRON_SECRET` and schedule `POST /api/cron/webhooks` (for example every five minutes) so failed webhooks retry, approvals and credentials expire, alert rules evaluate, and old challenge/rate-limit rows are pruned. `vercel.json` already declares a five-minute cron for Vercel deployments.
-6. Add provider credentials through the vault with the secret key API or dashboard. Self-serve sign-up always starts on Free.
+6. Add provider credentials through the vault with the secret key API or dashboard. Self-serve sign-up always starts on Free. For one-click OAuth connect, either configure an OAuth app in the dashboard or set `CONNECT_<PROVIDER>_CLIENT_ID` / `_CLIENT_SECRET` / optional `_SCOPES` (for example `CONNECT_GOOGLE_CLIENT_ID`). The scheduler refreshes OAuth tokens before the five-minute expiry margin.
 7. To enable card checkout, set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and price IDs for each plan and currency (`STRIPE_PRICE_PRO`, `STRIPE_PRICE_PRO_INR`, `STRIPE_PRICE_SCALE`, `STRIPE_PRICE_SCALE_INR`), then register `${APP_URL}/api/stripe/webhook` for `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid` and `invoice.payment_failed`. Without Stripe, the billing page falls back to emailing a plan-change request.
 8. Leave `ALLOW_DEMO_LOGIN` and `ALLOW_DEMO_SEED` unset in production. Demo access is disabled there unless explicitly enabled.
 9. Put `/api/status` behind your uptime monitor, and run `GET /api/v1/audit/verify` as a scheduled check with a secret key.

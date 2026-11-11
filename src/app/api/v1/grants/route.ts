@@ -58,6 +58,7 @@ export async function POST(req: Request) {
       approvalMode?: string | null;
       purpose?: string;
       expiresAt?: string | null;
+      justInTime?: boolean;
     }>(req);
 
     if (!body.agentId || !body.credentialId) {
@@ -75,7 +76,7 @@ export async function POST(req: Request) {
     }
 
     const actions = (body.actions ?? []).map((action) => String(action).trim()).filter(Boolean);
-    const validation = validateActions(credential.connectorSlug, actions);
+    const validation = await validateActions(credential.connectorSlug, actions, auth.environment.id);
     if (!validation.ok) throw new ApiError(422, "invalid_actions", validation.error);
 
     const approvalMode = body.approvalMode ?? null;
@@ -90,6 +91,7 @@ export async function POST(req: Request) {
       throw new ApiError(409, "grant_exists", "A grant already links this agent to this connection. Update it instead.");
     }
 
+    const justInTime = body.justInTime === true;
     const grant = await db.grant.create({
       data: {
         environmentId: auth.environment.id,
@@ -101,6 +103,8 @@ export async function POST(req: Request) {
         approvalMode,
         purpose: body.purpose?.trim() || null,
         expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
+        justInTime,
+        activatedAt: justInTime ? null : new Date(),
         createdBy: auth.apiKeyId,
       },
     });
@@ -137,6 +141,7 @@ export async function POST(req: Request) {
         actions,
         resource: grant.resourcePattern,
         approvalMode,
+        justInTime,
       },
     });
 

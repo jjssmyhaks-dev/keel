@@ -13,6 +13,25 @@ import { auditEvent } from "@/lib/audit";
 import { serializePolicy } from "@/lib/serializers";
 
 const MODES = ["allow", "require_approval", "deny"];
+const ROLES = ["owner", "admin", "developer", "approver", "viewer"];
+
+function normalizeSla(value: unknown) {
+  if (value === undefined || value === null) return null;
+  const minutes = Number(value);
+  if (!Number.isInteger(minutes) || minutes < 1 || minutes > 10080) {
+    throw new ApiError(422, "invalid_sla", "slaMinutes must be an integer between 1 and 10080 (7 days).");
+  }
+  return minutes;
+}
+
+function normalizeEscalationRole(value: unknown) {
+  if (value === undefined || value === null || value === "") return null;
+  const role = String(value);
+  if (!ROLES.includes(role)) {
+    throw new ApiError(422, "invalid_escalation_role", `escalateToRole must be one of ${ROLES.join(", ")}.`);
+  }
+  return role;
+}
 
 export async function GET(req: Request) {
   try {
@@ -36,7 +55,13 @@ export async function POST(req: Request) {
   try {
     const auth = await authenticateApiKey(req);
     requireSecretKey(auth);
-    const body = await parseJson<{ agentId?: string | null; actionPattern?: string; mode?: string }>(req);
+    const body = await parseJson<{
+      agentId?: string | null;
+      actionPattern?: string;
+      mode?: string;
+      slaMinutes?: number | null;
+      escalateToRole?: string | null;
+    }>(req);
 
     const actionPattern = String(body.actionPattern || "").trim();
     if (!actionPattern) {
@@ -56,6 +81,8 @@ export async function POST(req: Request) {
         agentId: body.agentId || null,
         actionPattern,
         mode: body.mode,
+        slaMinutes: normalizeSla(body.slaMinutes),
+        escalateToRole: normalizeEscalationRole(body.escalateToRole),
       },
     });
 
@@ -72,7 +99,13 @@ export async function POST(req: Request) {
       outcome: "recorded",
       requestId: id,
       ip: clientIp(req),
-      payloadSummary: { actionPattern, mode: policy.mode, scope: body.agentId ? "agent" : "environment" },
+      payloadSummary: {
+        actionPattern,
+        mode: policy.mode,
+        scope: body.agentId ? "agent" : "environment",
+        slaMinutes: policy.slaMinutes,
+        escalateToRole: policy.escalateToRole,
+      },
     });
 
     return apiOk(serializePolicy(policy), { status: 201, requestId: id });

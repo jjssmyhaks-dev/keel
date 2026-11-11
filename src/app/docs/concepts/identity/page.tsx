@@ -13,7 +13,7 @@ export default function IdentityPage() {
       eyebrow="Concepts"
       title="Agent identity"
       intro="A service account and an AI agent look similar until the agent starts making decisions. Authab treats the agent as a cryptographic principal: a keypair, a fingerprint, short-lived credentials, and a status a human can change in one click."
-      updated="31 October 2026"
+      updated="11 November 2026"
       aside={
         <DocsAside
           links={[
@@ -21,6 +21,8 @@ export default function IdentityPage() {
             { href: "#keys", name: "Key custody" },
             { href: "#tokens", name: "Tokens" },
             { href: "#claims", name: "Claims" },
+            { href: "#credentials", name: "Client secrets and DPoP" },
+            { href: "#workload", name: "Workload identity" },
             { href: "#revocation", name: "Revocation" },
             { href: "#delegation", name: "Delegation" },
             { href: "#jwks", name: "Verifying offline" },
@@ -113,6 +115,57 @@ Authorization: Bearer sk_...
         the grant lookup, so a grant edited after issuance takes effect immediately.
       </p>
 
+      <h2 id="credentials">Client secrets and DPoP</h2>
+      <p>
+        Ed25519 keys are the strongest option, but some runtimes cannot sign with Ed25519. An agent can also hold client
+        secrets for the standard OAuth 2.1 client-credentials grant. The raw secret is shown once; only its SHA-256 hash
+        is stored, and its scopes are capped at the actions the agent&apos;s grants already allow.
+      </p>
+      <pre>{`POST /api/v1/agents/:agentId/client-secrets
+{ "label": "ci-runner", "scopes": ["slack.post_message"], "expiresInDays": 90 }
+
+POST /api/v1/tokens/client-credentials
+Content-Type: application/x-www-form-urlencoded
+Authorization: Basic <base64(client_id:client_secret)>
+
+grant_type=client_credentials&scope=slack.post_message`}</pre>
+      <p>
+        Add a <code>DPoP</code> header containing a compact JWT to receive a sender-constrained token. The proof must
+        use an asymmetric algorithm (ES256/ES384, RS256, PS256 or EdDSA), match the request method and URL, stay within
+        five minutes of server time, and carry a fresh <code>jti</code>; every proof is single-use. When an access token
+        is presented, the proof must also include its <code>ath</code> hash. Proofs for a different key than the token
+        is bound to are rejected.
+      </p>
+
+      <h2 id="workload">Workload identity</h2>
+      <p>
+        Workloads that already run under a platform identity do not need a long-lived agent key. Register a trust rule
+        for a SPIFFE ID, a Kubernetes service account or any OIDC issuer, then exchange the workload&apos;s own JWT for a
+        short-lived agent token. Rules are deny-by-default: the token&apos;s <code>iss</code> selects the rule, its
+        signature must verify against that rule&apos;s JWKS, <code>aud</code> must equal the registered audience, and an
+        optional subject glob or claim set must match. Every rule maps to exactly one agent.
+      </p>
+      <pre>{`POST /api/v1/workload-identities
+{ "name": "payments-worker", "type": "kubernetes",
+  "issuer": "https://kubernetes.default.svc", "audience": "authab",
+  "agentId": "agt_ledger", "jwksUrl": "https://kubernetes.default.svc/openid/v1/jwks",
+  "subjectPattern": "system:serviceaccount:prod:payments*",
+  "requiredClaims": { "kubernetes.io.namespace": "prod" },
+  "tokenTtlSeconds": 300 }
+
+POST /api/v1/tokens/workload-exchange
+Content-Type: application/x-www-form-urlencoded
+
+token=<projected service-account JWT>&subject_token_type=urn:ietf:params:oauth:token-type:jwt
+
+# 200 { access_token, issued_token_type, token_type: "Bearer", expires_in, token_id }`}</pre>
+      <p>
+        The exchange verifies the JWT against the issuer keys, rejects tokens outside the registered audience, expiry
+        window or subject/claim rule, and rate-limits per workload identity. The resulting agent token carries the
+        agent&apos;s grants and policy checks like any other token, so delegation still narrows rather than broadens
+        access. Private JWKS hosts are refused unless the deployment explicitly allows private provider hosts.
+      </p>
+
       <h2 id="revocation">Revocation</h2>
       <p>
         Token revocation is immediate and does not wait for expiry:
@@ -140,7 +193,12 @@ POST /api/v1/tokens/introspect    { "token": "eyJ..." }
         A delegation narrows access, never broadens it. The child still needs its own grant for the connection it calls;
         the delegation documents who authorised the work and shows up on both agents in the dashboard, so an operator
         can trace an action back through the chain. Expired delegations are kept for the record but no longer describe
-        an active relationship.
+        an active relationship. The same rule applies to runtime delegation: record the relationship with{" "}
+        <code>POST /api/v1/delegations</code> (scopes must be a subset of the parent&apos;s grants), then call{" "}
+        <code>POST /api/v1/tokens/exchange</code>. Cross-agent exchanges without an active delegation are refused, the
+        issued token carries the RFC 8693 <code>act</code> chain plus delegation and ancestor-token claims, and only
+        narrows the caller&apos;s scopes and the target agent&apos;s grants. Revoking the delegation or any ancestor token
+        invalidates descendants on their next call, and chains are capped at four exchanges.
       </p>
       <Callout title="Delegation is not shared credentials">
         The child never borrows the parent&apos;s token or secret. It receives its own identity and its own grant.

@@ -9,6 +9,7 @@ import { ProxyResource } from "./resources/proxy";
 import { TokensResource } from "./resources/tokens";
 import { VaultResource } from "./resources/vault";
 import { WebhooksResource } from "./resources/webhooks";
+import { WorkloadIdentitiesResource } from "./resources/workload-identities";
 import type { ApiKeyContext } from "./types";
 
 export type AuthabOptions = HttpClientOptions;
@@ -28,6 +29,7 @@ export class Authab {
   readonly audit: AuditResource;
   readonly webhooks: WebhooksResource;
   readonly connectors: ConnectorsResource;
+  readonly workloadIdentities: WorkloadIdentitiesResource;
 
   private readonly http: HttpClient;
 
@@ -43,6 +45,7 @@ export class Authab {
     this.audit = new AuditResource(this.http);
     this.webhooks = new WebhooksResource(this.http);
     this.connectors = new ConnectorsResource(this.http);
+    this.workloadIdentities = new WorkloadIdentitiesResource(this.http);
   }
 
   /** Organisation, project, environment and key metadata for this key. */

@@ -3,9 +3,12 @@ import { createHash, createPrivateKey, createPublicKey, sign } from "crypto";
 import { db } from "./db";
 import { auditEvent } from "./audit";
 import { actionFor, connector, type Connector, type ConnectorAction } from "./connectors";
+import { resolveConnector } from "./custom-connectors";
 import { decryptSecret } from "./crypto";
 import { gmailRawMessage } from "./gmail";
 import { providerAuthFailure } from "./provider-health";
+import { assertPublicHost, isPrivateHost, privateOutboundAllowed } from "./outbound";
+import { refreshCredentialIfNeeded } from "./oauth-connect";
 
 export type ExecutionResult = {
   status: number;
@@ -66,25 +69,8 @@ function tokenFrom(secret: Record<string, unknown>, credential: Credential) {
 }
 
 export function isBlockedHostname(hostname: string) {
-  const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
-  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal")) {
-    return true;
-  }
-  if (host === "::1" || host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe80")) {
-    return true;
-  }
-  if (host.startsWith("::ffff:")) return isBlockedHostname(host.slice(7));
-  const parts = host.split(".");
-  if (parts.length === 4 && parts.every((part) => /^\d{1,3}$/.test(part))) {
-    const [a, b] = parts.map(Number);
-    if (a === 0 || a === 10 || a === 127) return true;
-    if (a === 169 && b === 254) return true;
-    if (a === 172 && b >= 16 && b <= 31) return true;
-    if (a === 192 && b === 168) return true;
-    if (a === 100 && b >= 64 && b <= 127) return true;
-    if (a === 192 && b === 0) return true;
-  }
-  return false;
+  if (privateOutboundAllowed()) return false;
+  return isPrivateHost(hostname);
 }
 
 export function hostAllowed(connectorDef: Connector, hostname: string) {
@@ -110,7 +96,9 @@ function normalizeBaseUrl(raw: string) {
   if (!value) throw new Error("This action needs a connection URL.");
   const withScheme = /^https?:\/\//i.test(value) ? value : `https://${value}`;
   const parsed = new URL(withScheme);
-  if (parsed.protocol !== "https:") throw new Error("Only HTTPS endpoints are accepted.");
+  if (parsed.protocol !== "https:" && !(privateOutboundAllowed() && parsed.protocol === "http:")) {
+    throw new Error("Only HTTPS endpoints are accepted.");
+  }
   if (isBlockedHostname(parsed.hostname)) throw new Error("Private and link-local hosts are blocked.");
   return `${parsed.origin}${parsed.pathname.replace(/\/$/, "")}`;
 }
@@ -296,19 +284,30 @@ export async function recordUsage(orgId: string, metric: string, quantity = 1) {
 
 export async function executeAction(opts: {
   environment: Environment;
-  agent: Agent;
+  agent: Agent | null;
   credential: Credential;
+  connectorDef?: Connector;
   action: ConnectorAction;
   input: Record<string, unknown>;
   resource?: string;
   requestId: string;
   ip?: string | null;
   approvalId?: string;
+  healthCheck?: boolean;
+  skipHealthNote?: boolean;
+  countUsage?: boolean;
 }): Promise<ExecutionResult> {
-  const { environment, agent, credential, action } = opts;
-  const connectorDef = connector(credential.connectorSlug);
+  const { environment, agent, action } = opts;
+  let credential = opts.credential;
+  const connectorDef = opts.connectorDef ?? (await resolveConnector(credential.connectorSlug, environment.id));
   if (!connectorDef) throw new Error(`Unknown connector "${credential.connectorSlug}".`);
   const started = Date.now();
+  const auditAction = opts.healthCheck ? "credential.checked" : "proxy.call";
+  const actorName = agent?.name ?? "Credential health check";
+
+  if (credential.type === "oauth" && credential.refreshable) {
+    credential = await refreshCredentialIfNeeded(credential);
+  }
 
   const redacted = redact(opts.input, connectorDef.redactedFields);
   const secret = (await decryptSecret(
@@ -331,16 +330,19 @@ export async function executeAction(opts: {
     [...action.path.matchAll(/\{([a-z0-9_]+)\}/gi)].map((match) => match[1].toLowerCase()),
   );
 
+  const injection =
+    credential.type === "oauth" && connectorDef.oauthInjection
+      ? connectorDef.oauthInjection
+      : connectorDef.injection;
   let token = action.authField ? fieldValue(secret, action.authField) : tokenFrom(secret, credential);
   if (connectorDef.authStrategy === "snowflake-jwt") token = snowflakeJwt(secret);
-  const authKey = action.authField ?? connectorDef.injection.field;
+  const authKey = action.authField ?? injection.field;
   const authRequired = connectorDef.credentialFields?.find((field) => field.key === authKey)?.required;
-  if (!token && !connectorDef.injection.basic && (authRequired === true || !authKey)) {
+  if (!token && !injection.basic && (authRequired === true || !authKey)) {
     throw new Error("The stored credential has no usable secret. Rotate it in the vault.");
   }
 
   const headers: Record<string, string> = { Accept: "application/json" };
-  const injection = connectorDef.injection;
   if (injection.type === "header") {
     if (token) headers[injection.name] = `${injection.prefix ?? ""}${token}`;
   } else if (token) {
@@ -368,9 +370,17 @@ export async function executeAction(opts: {
     if (value) url.searchParams.set(param.name, value);
   }
 
+  const queryFields = action.queryFields ?? [];
+  for (const key of queryFields) {
+    const value = opts.input[key];
+    if (value === undefined || value === null) continue;
+    url.searchParams.set(key, typeof value === "object" ? JSON.stringify(value) : String(value));
+  }
+
   const query: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(opts.input)) {
     if (value === undefined || value === null || usedPathKeys.has(key.toLowerCase())) continue;
+    if (queryFields.includes(key)) continue;
     if (action.method === "GET") {
       if (typeof value === "object") {
         query[key] = JSON.stringify(value);
@@ -384,6 +394,7 @@ export async function executeAction(opts: {
   const init: RequestInit = { method, headers, signal: AbortSignal.timeout(15_000), redirect: "manual" };
   if (action.method !== "GET") {
     const body: Record<string, unknown> = { ...opts.input, ...query };
+    for (const key of queryFields) delete body[key];
     for (const param of connectorDef.bodyParams ?? []) {
       const value = fieldValue(secret, param.field);
       if (value) body[param.name] = value;
@@ -450,6 +461,7 @@ export async function executeAction(opts: {
   let result: ExecutionResult;
   try {
     let currentUrl = url;
+    await assertPublicHost(url.hostname, "Upstream host");
     let response = await fetch(currentUrl, init);
 
     for (let hop = 0; hop < MAX_REDIRECTS; hop += 1) {
@@ -467,6 +479,7 @@ export async function executeAction(opts: {
         delete headers["Content-Type"];
       }
       currentUrl = next;
+      await assertPublicHost(next.hostname, "Upstream host");
       response = await fetch(currentUrl, init);
     }
 
@@ -486,11 +499,11 @@ export async function executeAction(opts: {
   } catch (error) {
     await auditEvent({
       environmentId: environment.id,
-      actorType: "agent",
-      actorId: agent.id,
-      actorName: agent.name,
-      agentId: agent.id,
-      action: "proxy.call",
+      actorType: agent ? "agent" : "system",
+      actorId: agent?.id ?? null,
+      actorName,
+      agentId: agent?.id ?? null,
+      action: auditAction,
       resourceType: "connector",
       resourceId: connectorDef.slug,
       outcome: "error",
@@ -513,22 +526,26 @@ export async function executeAction(opts: {
   }
 
   await db.credential.update({ where: { id: credential.id }, data: { lastUsedAt: new Date() } }).catch(() => null);
-  await db.agent.update({ where: { id: agent.id }, data: { lastActiveAt: new Date() } }).catch(() => null);
+  if (agent) {
+    await db.agent.update({ where: { id: agent.id }, data: { lastActiveAt: new Date() } }).catch(() => null);
+  }
   const project = await db.project.findUnique({
     where: { id: environment.projectId },
     select: { orgId: true },
   });
-  await recordUsage(project?.orgId ?? "", "proxy_calls");
+  if (opts.countUsage !== false) await recordUsage(project?.orgId ?? "", "proxy_calls");
   const providerError = providerAuthFailure(connectorDef.slug, result.body);
-  await noteCredentialHealth(credential, action.name, result.status, project?.orgId ?? "", providerError);
+  if (!opts.skipHealthNote) {
+    await noteCredentialHealth(credential, action.name, result.status, project?.orgId ?? "", providerError);
+  }
 
   await auditEvent({
     environmentId: environment.id,
-    actorType: "agent",
-    actorId: agent.id,
-    actorName: agent.name,
-    agentId: agent.id,
-    action: "proxy.call",
+    actorType: agent ? "agent" : "system",
+    actorId: agent?.id ?? null,
+    actorName,
+    agentId: agent?.id ?? null,
+    action: auditAction,
     resourceType: "connector",
     resourceId: connectorDef.slug,
     outcome: result.status < 400 && !providerError ? "allowed" : "error",

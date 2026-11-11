@@ -17,6 +17,7 @@ from .resources.proxy import ProxyResource
 from .resources.tokens import TokensResource
 from .resources.vault import VaultResource
 from .resources.webhooks import WebhooksResource
+from .resources.workload_identities import WorkloadIdentitiesResource
 from .types import ApiKeyContext
 
 
@@ -48,6 +49,7 @@ class Authab:
         self.audit = AuditResource(http)
         self.webhooks = WebhooksResource(http)
         self.connectors = ConnectorsResource(http)
+        self.workload_identities = WorkloadIdentitiesResource(http)
 
     @classmethod
     def from_env(cls, **options: Any) -> "Authab":
@@ -107,6 +109,7 @@ class AsyncAuthab:
         self.audit = _AsyncResource(self._client.audit)
         self.webhooks = _AsyncResource(self._client.webhooks)
         self.connectors = _AsyncResource(self._client.connectors)
+        self.workload_identities = _AsyncResource(self._client.workload_identities)
 
     @classmethod
     def from_env(cls, **options: Any) -> "AsyncAuthab":

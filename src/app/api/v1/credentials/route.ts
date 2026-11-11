@@ -10,7 +10,7 @@ import {
   requireSecretKey,
 } from "@/lib/api";
 import { encryptSecret } from "@/lib/crypto";
-import { connector } from "@/lib/connectors";
+import { resolveConnector } from "@/lib/custom-connectors";
 import { auditEvent } from "@/lib/audit";
 import { serializeCredential } from "@/lib/serializers";
 import { checkPlanLimit, productionAccess } from "@/lib/limits";
@@ -57,7 +57,9 @@ export async function POST(req: Request) {
       expiresAt?: string;
     }>(req);
 
-    const connectorDef = body.connector ? connector(body.connector) : undefined;
+    const connectorDef = body.connector
+      ? await resolveConnector(body.connector, auth.environment.id)
+      : undefined;
     if (!connectorDef) throw new ApiError(422, "unknown_connector", "Provide a valid connector slug.");
     const name = String(body.name || connectorDef.name).trim().slice(0, 80);
     const allowedTypes = ["oauth", "api_key", "bearer", "basic"];

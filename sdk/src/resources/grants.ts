@@ -2,12 +2,27 @@ import type { HttpClient } from "../client";
 import type {
   CreateGrantInput,
   Grant,
+  GrantRequest,
+  GrantRequestInput,
   List,
   UpdateGrantInput,
 } from "../types";
 
 export class GrantsResource {
   constructor(private readonly http: HttpClient) {}
+
+  /**
+   * Ask for just-in-time access. The grant stays inert until an approver
+   * activates it; call this from an agent token, not a secret key.
+   */
+  request(input: GrantRequestInput, options: { agentToken?: string } = {}): Promise<GrantRequest> {
+    return this.http.request({
+      method: "POST",
+      path: "/grants/request",
+      agentToken: options.agentToken,
+      body: input,
+    });
+  }
 
   create(input: CreateGrantInput): Promise<Grant> {
     return this.http.request({ method: "POST", path: "/grants", body: input });

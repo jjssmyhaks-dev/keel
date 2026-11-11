@@ -134,6 +134,32 @@ class AgentsResource:
     def promote(self, agent_id: str, email: str) -> dict[str, Any]:
         return self._action(agent_id, "promote", email=email)
 
+    def list_client_secrets(self, agent_id: str) -> dict[str, Any]:
+        """Client secrets used for OAuth client_credentials token requests."""
+
+        return self._http.request("GET", f"/agents/{seg(agent_id)}/client-secrets")
+
+    def create_client_secret(
+        self,
+        agent_id: str,
+        *,
+        label: Optional[str] = None,
+        scopes: Optional[list[str]] = None,
+        expires_in_days: Optional[int] = None,
+    ) -> dict[str, Any]:
+        """The raw secret is returned once; only a hash is stored."""
+
+        return self._http.request(
+            "POST",
+            f"/agents/{seg(agent_id)}/client-secrets",
+            body=body(label=label, scopes=scopes, expiresInDays=expires_in_days),
+        )
+
+    def revoke_client_secret(self, agent_id: str, secret_id: str) -> dict[str, Any]:
+        return self._http.request(
+            "DELETE", f"/agents/{seg(agent_id)}/client-secrets/{seg(secret_id)}"
+        )
+
     def _action(self, agent_id: str, action: str, **body: Any) -> dict[str, Any]:
         return self._http.request("POST", f"/agents/{seg(agent_id)}/{action}", body=body or {})
 

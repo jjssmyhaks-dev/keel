@@ -13,6 +13,25 @@ import { auditEvent } from "@/lib/audit";
 import { serializePolicy } from "@/lib/serializers";
 
 const MODES = ["allow", "require_approval", "deny"];
+const ROLES = ["owner", "admin", "developer", "approver", "viewer"];
+
+function normalizeSla(value: unknown) {
+  if (value === null) return null;
+  const minutes = Number(value);
+  if (!Number.isInteger(minutes) || minutes < 1 || minutes > 10080) {
+    throw new ApiError(422, "invalid_sla", "slaMinutes must be an integer between 1 and 10080 (7 days).");
+  }
+  return minutes;
+}
+
+function normalizeEscalationRole(value: unknown) {
+  if (value === null || value === "") return null;
+  const role = String(value);
+  if (!ROLES.includes(role)) {
+    throw new ApiError(422, "invalid_escalation_role", `escalateToRole must be one of ${ROLES.join(", ")}.`);
+  }
+  return role;
+}
 
 async function loadPolicy(id: string, environmentId: string) {
   const policy = await db.approvalPolicy.findFirst({ where: { id, environmentId } });
@@ -36,13 +55,23 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     requireSecretKey(auth);
     const { id } = await ctx.params;
     const policy = await loadPolicy(id, auth.environment.id);
-    const body = await parseJson<{ actionPattern?: string; mode?: string }>(req);
+    const body = await parseJson<{
+      actionPattern?: string;
+      mode?: string;
+      slaMinutes?: number | null;
+      escalateToRole?: string | null;
+    }>(req);
 
     if (body.mode && !MODES.includes(body.mode)) {
       throw new ApiError(422, "invalid_mode", "mode must be allow, require_approval or deny.");
     }
-    if (!body.mode && !body.actionPattern) {
-      throw new ApiError(422, "no_changes", "Provide an action pattern or a mode.");
+    if (
+      !body.mode &&
+      !body.actionPattern &&
+      body.slaMinutes === undefined &&
+      body.escalateToRole === undefined
+    ) {
+      throw new ApiError(422, "no_changes", "Provide an action pattern, mode, SLA or escalation role.");
     }
 
     const updated = await db.approvalPolicy.update({
@@ -50,6 +79,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       data: {
         ...(body.actionPattern ? { actionPattern: body.actionPattern.trim() } : {}),
         ...(body.mode ? { mode: body.mode } : {}),
+        ...(body.slaMinutes !== undefined ? { slaMinutes: normalizeSla(body.slaMinutes) } : {}),
+        ...(body.escalateToRole !== undefined
+          ? { escalateToRole: normalizeEscalationRole(body.escalateToRole) }
+          : {}),
       },
     });
 
@@ -66,7 +99,20 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       outcome: "recorded",
       requestId: rid,
       ip: clientIp(req),
-      payloadSummary: { before: { pattern: policy.actionPattern, mode: policy.mode }, after: { pattern: updated.actionPattern, mode: updated.mode } },
+      payloadSummary: {
+        before: {
+          pattern: policy.actionPattern,
+          mode: policy.mode,
+          slaMinutes: policy.slaMinutes,
+          escalateToRole: policy.escalateToRole,
+        },
+        after: {
+          pattern: updated.actionPattern,
+          mode: updated.mode,
+          slaMinutes: updated.slaMinutes,
+          escalateToRole: updated.escalateToRole,
+        },
+      },
     });
 
     return apiOk(serializePolicy(updated), { requestId: rid });

@@ -3,9 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
-import { connector, actionFor } from "@/lib/connectors";
+import { resolveConnector } from "@/lib/custom-connectors";
 import { ConnectorLogo } from "@/components/connector-logo";
 import { rotateCredentialAction, revokeCredentialAction } from "@/app/app/actions";
+import { refreshCredentialAction, checkCredentialAction } from "@/app/app/oauth-actions";
 import { ConfirmButton } from "@/components/app/confirm-button";
 import { PageHeader, Panel, StatusBadge, RiskBadge, Notice, relativeTime, formatDate, EmptyState } from "@/components/app/ui";
 
@@ -19,7 +20,16 @@ const ERROR_COPY: Record<string, string> = {
   missing: "That connection no longer exists.",
   secret: "Paste a new secret before rotating.",
   revoked: "This connection was revoked. Create a new one instead of rotating it.",
+  refresh: "The token could not be refreshed.",
+  health: "The health check could not run.",
 };
+
+function healthBadge(result: string) {
+  if (result === "ok" || result === "connected" || result === "refreshed") return "healthy";
+  if (result === "warn") return "expiring";
+  if (result === "stored" || result === "skipped") return "unverified";
+  return "broken";
+}
 
 export default async function CredentialDetailPage({
   params,
@@ -41,7 +51,7 @@ export default async function CredentialDetailPage({
   });
   if (!credential) notFound();
 
-  const def = connector(credential.connectorSlug);
+  const def = await resolveConnector(credential.connectorSlug, ctx.environment.id);
   const metadata = (() => {
     try {
       return JSON.parse(credential.metadataJson || "{}") as Record<string, unknown>;
@@ -51,6 +61,14 @@ export default async function CredentialDetailPage({
   })();
   const canManage = ctx.capabilities.manageCredentials;
   const revoked = Boolean(credential.revokedAt);
+  const scopes = (() => {
+    try {
+      const parsed = JSON.parse(credential.oauthScopes || "[]") as unknown;
+      return Array.isArray(parsed) ? parsed.map(String) : [];
+    } catch {
+      return [];
+    }
+  })();
 
   const recentCalls = await db.auditEvent.findMany({
     where: {
@@ -86,9 +104,27 @@ export default async function CredentialDetailPage({
         }
       />
 
-      {query.error ? <Notice kind="error">{ERROR_COPY[query.error] ?? "That action could not be completed."}</Notice> : null}
+      {query.error ? (
+        <Notice kind="error">
+          {ERROR_COPY[query.error] ?? "That action could not be completed."}
+          {query.detail ? <span className="mt-1 block font-mono text-[10px] opacity-80">{query.detail}</span> : null}
+        </Notice>
+      ) : null}
       {query.created ? <Notice kind="ok">Connection sealed and stored. Grant it to an agent from the permission matrix.</Notice> : null}
       {query.rotated ? <Notice kind="ok">Secret rotated. Existing grants keep working with the new credential.</Notice> : null}
+      {query.connected ? <Notice kind="ok">OAuth connection authorized. The provider tokens are sealed in the vault.</Notice> : null}
+      {query.refreshed ? <Notice kind="ok">Access token refreshed from the provider. Rotated refresh tokens were saved.</Notice> : null}
+      {query.checked ? (
+        <Notice kind={query.checked === "ok" ? "ok" : query.checked === "broken" ? "error" : "info"}>
+          {query.checked === "ok"
+            ? "Health check passed. The provider accepted this credential."
+            : query.checked === "broken"
+              ? "Health check failed: the provider rejected this credential. Reconnect or rotate it."
+              : query.checked === "skipped"
+                ? "No safe read-only probe exists for this connector. Use a real action to verify it."
+                : "Health check reached the provider but got a non-auth error. The credential was not marked broken."}
+        </Notice>
+      ) : null}
 
       <div className="mb-6 flex flex-wrap items-center gap-3 border border-black/10 bg-white px-4 py-3 dark:border-border dark:bg-card">
         <span
@@ -120,6 +156,7 @@ export default async function CredentialDetailPage({
               <Row label="Expires" value={credential.expiresAt ? formatDate(credential.expiresAt) : "No expiry"} />
               <Row label="Created" value={formatDate(credential.createdAt)} />
               <Row label="Last used" value={credential.lastUsedAt ? formatDate(credential.lastUsedAt) : "Never"} />
+              <Row label="Last health check" value={credential.lastHealthCheckAt ? formatDate(credential.lastHealthCheckAt) : "Never"} />
             </dl>
             <div className="border-t border-black/10 px-4 py-3 dark:border-border">
               <details>
@@ -167,7 +204,7 @@ export default async function CredentialDetailPage({
                       </div>
                       <div className="mt-1.5 flex flex-wrap gap-1">
                         {actions.map((action) => {
-                          const actionDef = actionFor(credential.connectorSlug, action);
+                          const actionDef = def?.actions.find((entry) => entry.name === action);
                           return (
                             <span key={action} className="inline-flex items-center gap-1 border border-black/10 px-1.5 py-0.5 font-mono text-[9px] text-black/55 dark:border-border dark:text-muted-foreground">
                               {action}
@@ -220,6 +257,65 @@ export default async function CredentialDetailPage({
         </div>
 
         <div className="space-y-6">
+          {credential.type === "oauth" ? (
+            <Panel title="Token lifecycle" hint="OAuth tokens refresh automatically" bodyClassName="p-4">
+              <dl className="space-y-2 text-[11px]">
+                <div className="flex items-start justify-between gap-3">
+                  <dt className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/40 dark:text-muted-foreground">Token endpoint</dt>
+                  <dd className="max-w-[220px] break-all text-right font-mono text-[10px]">{credential.tokenEndpoint ?? "—"}</dd>
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <dt className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/40 dark:text-muted-foreground">Access token expires</dt>
+                  <dd className="text-right font-mono text-[10px]">{credential.tokenExpiresAt ? formatDate(credential.tokenExpiresAt) : "No expiry reported"}</dd>
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <dt className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/40 dark:text-muted-foreground">Refresh token</dt>
+                  <dd className="text-right font-mono text-[10px]">{credential.refreshable ? "Stored · auto-refresh before expiry" : "Not issued"}</dd>
+                </div>
+              </dl>
+              {scopes.length ? (
+                <div className="mt-3 border-t border-black/10 pt-3 dark:border-border">
+                  <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/40 dark:text-muted-foreground">Granted scopes</p>
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {scopes.map((scope) => (
+                      <span key={scope} className="border border-black/10 px-1.5 py-0.5 font-mono text-[9px] text-black/55 dark:border-border dark:text-muted-foreground">
+                        {scope}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              <div className="mt-3 flex flex-wrap gap-2 border-t border-black/10 pt-3 dark:border-border">
+                {credential.refreshable && !revoked ? (
+                  <form action={refreshCredentialAction}>
+                    <input type="hidden" name="credentialId" value={credential.id} />
+                    <button
+                      disabled={!canManage}
+                      className="border border-black bg-black px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.14em] text-white hover:bg-[#eca8d6] hover:text-black disabled:opacity-40"
+                    >
+                      Refresh token
+                    </button>
+                  </form>
+                ) : null}
+                {!revoked ? (
+                  <form action={checkCredentialAction}>
+                    <input type="hidden" name="credentialId" value={credential.id} />
+                    <button
+                      disabled={!canManage}
+                      className="border border-black/20 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.14em] hover:border-black disabled:opacity-40 dark:border-border"
+                    >
+                      Check now
+                    </button>
+                  </form>
+                ) : null}
+              </div>
+              <p className="mt-2 text-[10px] leading-relaxed text-black/45 dark:text-muted-foreground">
+                The proxy refreshes this token five minutes before expiry. If the provider rejects the refresh token, the
+                connection is marked broken and owners are notified. Reconnect from the vault to issue new tokens.
+              </p>
+            </Panel>
+          ) : null}
+
           <Panel title="Rotate secret" hint="Replace without breaking grants" bodyClassName="p-4">
             <form action={rotateCredentialAction} className="space-y-3">
               <input type="hidden" name="credentialId" value={credential.id} />
@@ -284,7 +380,7 @@ export default async function CredentialDetailPage({
                 {credential.healthEvents.map((event) => (
                   <div key={event.id} className="px-4 py-2.5">
                     <div className="flex items-center justify-between gap-3">
-                      <StatusBadge status={event.result === "ok" ? "healthy" : event.result === "warn" ? "expiring" : event.result === "stored" ? "unverified" : "broken"} />
+                      <StatusBadge status={healthBadge(event.result)} />
                       <span className="font-mono text-[9px] text-black/35 dark:text-muted-foreground">{relativeTime(event.checkedAt)}</span>
                     </div>
                     {event.detail ? <p className="mt-1 text-[11px] leading-relaxed text-black/55 dark:text-muted-foreground">{event.detail}</p> : null}

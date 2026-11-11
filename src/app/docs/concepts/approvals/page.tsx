@@ -13,15 +13,17 @@ export default function ApprovalsPage() {
       eyebrow="Concepts"
       title="Approvals"
       intro="Approvals are how an agent escalates instead of failing. The request is stored with a redacted payload, sent to the people who can decide, and executed by Authab once a human approves — never by the agent."
-      updated="31 October 2026"
+      updated="11 November 2026"
       aside={
         <DocsAside
           links={[
             { href: "#lifecycle", name: "Lifecycle" },
             { href: "#request", name: "What is stored" },
             { href: "#deciding", name: "Deciding" },
+            { href: "#sla", name: "SLAs and escalation" },
             { href: "#execution", name: "Execution" },
             { href: "#polling", name: "Polling safely" },
+            { href: "#jit", name: "Just-in-time access" },
             { href: "#links", name: "Approval links" },
             { href: "#expiry", name: "Expiry" },
             { href: "#api", name: "API" },
@@ -64,6 +66,29 @@ export default function ApprovalsPage() {
         change is recorded in the permission log as well as the audit trail.
       </p>
 
+      <h2 id="sla">SLAs and escalation</h2>
+      <p>
+        Waiting forever is a failure mode. An approval policy can carry <code>slaMinutes</code> and{" "}
+        <code>escalateToRole</code>; the request then stores <code>slaDueAt</code> alongside its expiry. The scheduler
+        checks overdue requests every few minutes and escalates each one once — it does not re-page on a loop.
+      </p>
+      <pre>{`POST /api/v1/approval-policies
+{
+  "actionPattern": "stripe.*",
+  "mode": "require_approval",
+  "slaMinutes": 30,
+  "escalateToRole": "admin"
+}`}</pre>
+      <p>
+        A matching policy sets the SLA. Without one, the environment&apos;s <code>escalateAfterMinutes</code> setting
+        applies — new environments default to 30 minutes — so requests get a due time out of the box.
+        Escalation notifies the configured role (defaulting to <code>admin</code>, and falling back to
+        owners/admins/approvers when that role has no members), marks <code>escalatedAt</code>, writes an{" "}
+        <code>approval.escalated</code> audit event and emits the same-named webhook. The due time is clamped to one
+        minute before expiry, so an escalation always fires while the request can still be decided. Escalation does not
+        approve anything; a human still decides, and the request can still expire.
+      </p>
+
       <h2 id="execution">Execution</h2>
       <p>
         Approving executes the call immediately, server-side, with the credential injected by the proxy. The agent does
@@ -95,6 +120,32 @@ POST /v1/proxy/slack        Idempotency-Key: slack-post-launch-v3
         A trusted backend can also read the approval directly with a secret key —{" "}
         <code>GET /v1/approvals/:id</code> returns <code>status</code> and <code>executionResult</code>. That is the
         simpler path if your orchestrator already holds an API key.
+      </p>
+
+      <h2 id="jit">Just-in-time access</h2>
+      <p>
+        An approval can also grant access rather than execute a call. The agent posts to{" "}
+        <code>/v1/grants/request</code> with the actions it needs, a resource pattern, a reason and a duration. Authab
+        creates an inactive just-in-time grant plus a <code>kind: "grant"</code> approval; approving activates the
+        grant for 5–1,440 minutes (default 60) and records <code>grant.activated</code>. Denying, or letting the
+        approval expire, leaves the grant inactive.
+      </p>
+      <pre>{`POST /v1/grants/request        Authorization: Bearer <agent token>
+{
+  "connector": "stripe",
+  "actions": ["stripe.create_refund"],
+  "resourcePattern": "charge/ch_123",
+  "reason": "Refund requested by support ticket 4412",
+  "durationMinutes": 30
+}
+
+← 202 { "status": "pending_approval", "approvalId": "apr_...",
+        "grantId": "grt_...", "expiresAt": "..." }`}</pre>
+      <p>
+        Activation fails cleanly if the connection was revoked, expired or marked broken while the request waited; the
+        approval then ends as <code>failed</code> with the reason in <code>executionResult</code>. A trusted backend can
+        poll <code>GET /v1/approvals/:id</code> with a secret key. Repeating the grant request while one is pending
+        returns <code>409 request_pending</code>; an agent that already holds standing access is told to use it instead.
       </p>
 
       <h2 id="links">Approval links</h2>

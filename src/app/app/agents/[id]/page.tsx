@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
 import { actionLabel } from "@/lib/audit";
-import { connector } from "@/lib/connectors";
+import { loadConnectorMap } from "@/lib/custom-connectors";
 import { formatFingerprint } from "@/lib/crypto";
 import {
   setAgentStatusAction,
@@ -12,6 +12,12 @@ import {
   rotateAgentKeyAction,
   updateAgentAction,
 } from "@/app/app/actions";
+import {
+  createWorkloadIdentityAction,
+  deleteWorkloadIdentityAction,
+  toggleWorkloadIdentityAction,
+} from "@/app/app/agents/workload-actions";
+import { AgentClientSecrets } from "@/components/app/agent-client-secrets";
 import { TokenIssuer } from "@/components/app/token-issuer";
 import { ConfirmButton } from "@/components/app/confirm-button";
 import { PageHeader, Panel, StatusBadge, RiskBadge, Notice, relativeTime, formatDate, EmptyState } from "@/components/app/ui";
@@ -26,6 +32,17 @@ const STATUS_ERROR: Record<string, string> = {
   missing: "That agent no longer exists.",
   revoked: "Revocation is permanent. Create a new agent instead.",
   client_key: "This agent holds its own key. Rotate it from your own key management.",
+};
+
+const WI_ERROR: Record<string, string> = {
+  permission: "Your role cannot manage workload identities in this environment.",
+  missing: "That workload identity no longer exists.",
+  invalid: "Check the workload identity fields and try again.",
+  invalid_issuer: "The issuer must be an https:// URL or a spiffe:// ID.",
+  invalid_jwks_url: "The JWKS URL must be a publicly reachable HTTPS endpoint.",
+  jwks_required: "Provide a JWKS URL for the identity provider.",
+  invalid_ttl: "Token TTL must be between 60 and 3600 seconds.",
+  invalid_agent: "That agent cannot hold a workload identity.",
 };
 
 export default async function AgentDetailPage({
@@ -45,6 +62,7 @@ export default async function AgentDetailPage({
       keys: { orderBy: { createdAt: "desc" } },
       grants: { include: { credential: true } },
       approvalPolicies: true,
+      clientSecrets: { orderBy: { createdAt: "desc" } },
       owner: { select: { name: true, email: true } },
       delegationsParent: { include: { child: { select: { id: true, name: true, status: true } } } },
       delegationsChild: { include: { parent: { select: { id: true, name: true } } } },
@@ -52,7 +70,7 @@ export default async function AgentDetailPage({
   });
   if (!agent) notFound();
 
-  const [activity, pendingApprovals, policies] = await Promise.all([
+  const [activity, pendingApprovals, policies, workloadIdentities, connectorMap] = await Promise.all([
     db.auditEvent.findMany({
       where: { environmentId: ctx.environment.id, agentId: agent.id },
       orderBy: { seq: "desc" },
@@ -63,6 +81,11 @@ export default async function AgentDetailPage({
       where: { environmentId: ctx.environment.id, OR: [{ agentId: agent.id }, { agentId: null }] },
       orderBy: { agentId: "desc" },
     }),
+    db.workloadIdentity.findMany({
+      where: { environmentId: ctx.environment.id, agentId: agent.id },
+      orderBy: { createdAt: "desc" },
+    }),
+    loadConnectorMap(ctx.environment.id),
   ]);
 
   const tags: string[] = JSON.parse(agent.tagsJson || "[]");
@@ -93,6 +116,10 @@ export default async function AgentDetailPage({
       {query.saved ? <Notice kind="ok">Agent updated.</Notice> : null}
       {query.rotated ? <Notice kind="ok">A new key pair is active. The previous key stays valid for 7 days.</Notice> : null}
       {query.promoted ? <Notice kind="ok">Promoted to production with safe launch enabled for 7 days.</Notice> : null}
+      {query.wi === "created" ? <Notice kind="ok">Workload identity added. The agent can now exchange cluster-issued JWTs for scoped tokens.</Notice> : null}
+      {query.wi === "updated" ? <Notice kind="ok">Workload identity updated.</Notice> : null}
+      {query.wi === "deleted" ? <Notice kind="ok">Workload identity removed. New exchanges from that issuer are rejected.</Notice> : null}
+      {query.wi_error ? <Notice kind="error">{WI_ERROR[query.wi_error] ?? "That workload identity change could not be completed."}</Notice> : null}
 
       <div className="mb-6 flex flex-wrap items-center gap-3 border border-black/10 bg-white px-4 py-3 dark:border-border dark:bg-card">
         <StatusBadge status={agent.status} />
@@ -159,6 +186,142 @@ export default async function AgentDetailPage({
             </p>
           </Panel>
 
+          <Panel title="Agent credentials" hint="Short-lived tokens without long-lived API keys" bodyClassName="p-4">
+            <div className="space-y-6">
+              <div>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">Client secrets</p>
+                  <span className="font-mono text-[9px] text-black/30 dark:text-muted-foreground">POST /api/v1/tokens/client-credentials</span>
+                </div>
+                <p className="mb-3 mt-1 text-[11px] leading-relaxed text-black/45 dark:text-muted-foreground">
+                  Issue a secret the agent can exchange for a short-lived token. Only a hash is stored, the raw value is shown once,
+                  and revocation is immediate.
+                </p>
+                <AgentClientSecrets
+                  agentId={agent.id}
+                  canManage={canManage}
+                  initialSecrets={agent.clientSecrets.map((secret) => ({
+                    id: secret.id,
+                    label: secret.label,
+                    prefix: secret.prefix,
+                    scopes: JSON.parse(secret.scopesJson || "[]") as string[],
+                    lastUsedAt: secret.lastUsedAt?.toISOString() ?? null,
+                    expiresAt: secret.expiresAt?.toISOString() ?? null,
+                    revokedAt: secret.revokedAt?.toISOString() ?? null,
+                    createdAt: secret.createdAt.toISOString(),
+                  }))}
+                />
+              </div>
+
+              <div className="border-t border-black/10 pt-4 dark:border-border">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">Workload identity</p>
+                  <span className="font-mono text-[9px] text-black/30 dark:text-muted-foreground">POST /api/v1/tokens/workload-exchange</span>
+                </div>
+                <p className="mt-1 text-[11px] leading-relaxed text-black/45 dark:text-muted-foreground">
+                  Trust a Kubernetes or SPIFFE issuer, then exchange the workload&apos;s signed JWT for an Authab token. The workload never
+                  stores a static secret.
+                </p>
+
+                {workloadIdentities.length ? (
+                  <div className="mt-3 space-y-2">
+                    {workloadIdentities.map((identity) => (
+                      <div key={identity.id} className="border border-black/10 px-3 py-2 dark:border-border">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[11px] font-medium">{identity.name}</span>
+                          <span className="font-mono text-[8px] uppercase tracking-[0.1em] text-black/40 dark:text-muted-foreground">{identity.type}</span>
+                          <span
+                            className={`border px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-[0.1em] ${
+                              identity.enabled
+                                ? "border-[#2f6b3d]/35 text-[#2f6b3d]"
+                                : "border-black/15 text-black/40 dark:border-border dark:text-muted-foreground"
+                            }`}
+                          >
+                            {identity.enabled ? "enabled" : "disabled"}
+                          </span>
+                          {canManage ? (
+                            <div className="ml-auto flex items-center gap-2">
+                              <form action={toggleWorkloadIdentityAction}>
+                                <input type="hidden" name="agentId" value={agent.id} />
+                                <input type="hidden" name="identityId" value={identity.id} />
+                                <input type="hidden" name="enabled" value={identity.enabled ? "0" : "1"} />
+                                <button className="font-mono text-[8px] uppercase tracking-[0.1em] underline">
+                                  {identity.enabled ? "Disable" : "Enable"}
+                                </button>
+                              </form>
+                              <form action={deleteWorkloadIdentityAction}>
+                                <input type="hidden" name="agentId" value={agent.id} />
+                                <input type="hidden" name="identityId" value={identity.id} />
+                                <ConfirmButton
+                                  message={`Remove the ${identity.name} workload identity? New exchanges from this issuer stop immediately.`}
+                                  className="font-mono text-[8px] uppercase tracking-[0.1em] text-[#8c3225] underline"
+                                >
+                                  Remove
+                                </ConfirmButton>
+                              </form>
+                            </div>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 break-all font-mono text-[9px] text-black/40 dark:text-muted-foreground">
+                          iss {identity.issuer} · aud {identity.audience} · sub {identity.subjectPattern ?? "*"} · ttl{" "}
+                          {identity.tokenTtlSeconds}s
+                        </p>
+                        <p className="mt-0.5 break-all font-mono text-[9px] text-black/30 dark:text-muted-foreground">
+                          {identity.jwksUrl ?? "inline JWKS"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-2 text-[11px] text-black/45 dark:text-muted-foreground">
+                    No workload identity is mapped to this agent.
+                  </p>
+                )}
+
+                {canManage ? (
+                  <details className="mt-3 border border-black/10 px-3 py-2 dark:border-border">
+                    <summary className="cursor-pointer font-mono text-[9px] uppercase tracking-[0.14em] text-black/45 dark:text-muted-foreground">
+                      Add workload identity
+                    </summary>
+                    <form action={createWorkloadIdentityAction} className="mt-3 space-y-2.5">
+                      <input type="hidden" name="agentId" value={agent.id} />
+                      <div className="grid gap-2.5 sm:grid-cols-2">
+                        <Field label="Name" name="name" placeholder="GKE agent" required />
+                        <div>
+                          <label htmlFor="wi_type" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                            Type
+                          </label>
+                          <select
+                            id="wi_type"
+                            name="type"
+                            className="mt-1 w-full border border-black/15 bg-white px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-card"
+                          >
+                            <option value="spiffe">SPIFFE</option>
+                            <option value="kubernetes">Kubernetes</option>
+                            <option value="custom">Custom OIDC</option>
+                          </select>
+                        </div>
+                      </div>
+                      <Field label="Issuer" name="issuer" placeholder="https://kubernetes.default.svc" required />
+                      <div className="grid gap-2.5 sm:grid-cols-2">
+                        <Field label="Audience" name="audience" placeholder="authab" required />
+                        <Field label="Token TTL (seconds)" name="tokenTtlSeconds" placeholder="300" />
+                      </div>
+                      <Field label="Subject pattern" name="subjectPattern" placeholder="system:serviceaccount:prod:agent-*" />
+                      <Field label="JWKS URL" name="jwksUrl" placeholder="https://issuer.example.com/.well-known/jwks.json" required />
+                      <button className="w-full border border-black bg-black px-2 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-white hover:bg-[#eca8d6] hover:text-black">
+                        Add workload identity
+                      </button>
+                      <p className="text-[10px] leading-relaxed text-black/40 dark:text-muted-foreground">
+                        The JWKS URL is fetched over HTTPS. Invalid issuer, audience or subject patterns fail closed before any token is issued.
+                      </p>
+                    </form>
+                  </details>
+                ) : null}
+              </div>
+            </div>
+          </Panel>
+
           <Panel
             title="Grants"
             hint="What this agent may do"
@@ -172,7 +335,7 @@ export default async function AgentDetailPage({
             {agent.grants.length ? (
               <div className="divide-y divide-black/10 dark:divide-border">
                 {agent.grants.map((grant) => {
-                  const def = connector(grant.credential.connectorSlug);
+                  const def = connectorMap.get(grant.credential.connectorSlug);
                   const actions: string[] = JSON.parse(grant.actionsJson || "[]");
                   return (
                     <div key={grant.id} className="px-4 py-3">
@@ -423,6 +586,36 @@ function Row({ label, value, mono }: { label: string; value: string; mono?: bool
     <div className="flex items-start justify-between gap-6 px-4 py-2.5">
       <dt className="text-black/45 dark:text-muted-foreground">{label}</dt>
       <dd className={`text-right ${mono ? "font-mono text-[11px]" : ""}`}>{value}</dd>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  name,
+  placeholder,
+  required,
+}: {
+  label: string;
+  name: string;
+  placeholder?: string;
+  required?: boolean;
+}) {
+  return (
+    <div>
+      <label htmlFor={`wi_${name}`} className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+        {label}
+        {required ? " *" : ""}
+      </label>
+      <input
+        id={`wi_${name}`}
+        name={name}
+        placeholder={placeholder}
+        required={required}
+        spellCheck={false}
+        autoComplete="off"
+        className="mt-1 w-full border border-black/15 bg-white px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-card"
+      />
     </div>
   );
 }

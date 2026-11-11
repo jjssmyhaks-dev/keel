@@ -3,7 +3,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
 import { actionLabel } from "@/lib/audit";
-import { connector } from "@/lib/connectors";
+import { loadConnectorMap } from "@/lib/custom-connectors";
 import { planFor } from "@/lib/plans";
 import { PageHeader, Stat, Panel, StatusBadge, RiskBadge, relativeTime, EmptyState } from "@/components/app/ui";
 
@@ -15,7 +15,7 @@ export default async function OverviewPage() {
   const ctx = await getContext();
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-  const [agents, totalAgents, activeAgents, credentials, pending, pendingCount, recent, monthUsage, dayEvents] = await Promise.all([
+  const [agents, totalAgents, activeAgents, credentials, pending, pendingCount, recent, monthUsage, dayEvents, connectorMap] = await Promise.all([
     db.agent.findMany({
       where: { environmentId: ctx.environment.id },
       include: { grants: true },
@@ -46,6 +46,7 @@ export default async function OverviewPage() {
       where: { environmentId: ctx.environment.id, action: "proxy.call", timestamp: { gte: since } },
       select: { timestamp: true },
     }),
+    loadConnectorMap(ctx.environment.id),
   ]);
 
   const plan = planFor(ctx.org.plan);
@@ -255,7 +256,7 @@ export default async function OverviewPage() {
           >
             <div className="divide-y divide-black/10 dark:divide-border">
               {credentials.slice(0, 5).map((credential) => {
-                const def = connector(credential.connectorSlug);
+                const def = connectorMap.get(credential.connectorSlug);
                 const expiringSoon = credential.expiresAt && credential.expiresAt < new Date(Date.now() + 7 * 86400_000);
                 return (
                   <Link

@@ -21,6 +21,7 @@ const ALERT_TYPES = [
   { value: "repeated_denials", label: "Repeated denials", detail: "An agent keeps hitting policy walls." },
   { value: "new_host", label: "New host", detail: "A connection reaches a host it has not used before." },
   { value: "credential_expiring", label: "Credential expiring", detail: "A token or key is nearing expiry." },
+  { value: "credential_broken", label: "Credential broken", detail: "A scheduled health check found a dead credential." },
 ];
 
 export default async function SecurityPage({

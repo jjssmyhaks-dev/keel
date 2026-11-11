@@ -13,12 +13,13 @@ export default function VaultPage() {
       eyebrow="Concepts"
       title="Credential vault"
       intro="Most agent incidents start with a secret in a prompt, a .env file or a tool argument. Authab removes the secret from the agent's reach: credentials are encrypted at rest, injected only inside the proxy, and never returned by any API."
-      updated="31 October 2026"
+      updated="11 November 2026"
       aside={
         <DocsAside
           links={[
             { href: "#model", name: "Encryption model" },
             { href: "#lifecycle", name: "Credential lifecycle" },
+            { href: "#connect", name: "OAuth connect" },
             { href: "#rotation", name: "Rotation" },
             { href: "#redaction", name: "Redaction" },
             { href: "#health", name: "Health checks" },
@@ -70,6 +71,29 @@ export default function VaultPage() {
         secret any human or API sees after creation.
       </p>
 
+      <h2 id="connect">OAuth connect</h2>
+      <p>
+        For the eleven providers with a built-in OAuth app, the vault can open the provider&apos;s consent screen and store
+        the resulting tokens without anyone pasting a secret. Connect uses PKCE and a signed, single-use state cookie;
+        the access token, refresh token, scopes and expiry are sealed with the same envelope encryption as any other
+        credential.
+      </p>
+      <pre>{`GET  /api/connect/google/start       → 302 to the provider
+GET  /api/connect/google/callback    → stores the sealed token set
+POST /api/v1/credentials/:id/refresh → rotates tokens now`}</pre>
+      <p>
+        The scheduler refreshes OAuth credentials ten minutes before expiry, and the proxy refreshes again on demand
+        when a token is inside its five-minute safety margin. A rotated refresh token is written back before the call
+        proceeds. Transient provider failures defer the refresh and keep the current token usable; a permanent failure
+        such as <code>invalid_grant</code> marks the connection <code>broken</code> and notifies the environment owners.
+      </p>
+      <p>
+        OAuth apps can be configured per environment in the dashboard or supplied through{" "}
+        <code>CONNECT_&lt;PROVIDER&gt;_CLIENT_ID</code> and <code>CONNECT_&lt;PROVIDER&gt;_CLIENT_SECRET</code>. Token
+        endpoints are validated against SSRF: HTTPS only in production, no credentials in the URL, and no private or
+        loopback resolution.
+      </p>
+
       <h2 id="rotation">Rotation</h2>
       <p>
         Rotation replaces the ciphertext and data key in place. The credential id, grants and audit history stay the
@@ -101,10 +125,17 @@ export default function VaultPage() {
 
       <h2 id="health">Health checks</h2>
       <p>
-        Health comes from real traffic. A 401 or 403 from the provider marks the credential <code>broken</code>, records
-        a health event and notifies the environment owners; any 2xx marks it <code>healthy</code>. Every call refreshes{" "}
-        <code>lastUsedAt</code>. There is no synthetic health check: a connection is only verified when a real provider
-        call succeeds.
+        Health combines scheduled probes with real traffic. The five-minute scheduler runs a real, read-only provider
+        probe for due connections (24 hours by default; connectors without a safe read action are skipped), and{" "}
+        <code>POST /api/v1/credentials/:id/check</code> runs the same probe on demand. A successful probe marks the
+        connection <code>healthy</code> and clears a previous break; a 401/403 or provider auth error marks it{" "}
+        <code>broken</code>, records a health event and notifies the environment owners; network errors and 5xx
+        responses are recorded as a warning and do not by themselves condemn the credential.
+      </p>
+      <p>
+        Normal proxy traffic feeds the same state: a provider rejection marks the credential broken, a 2xx marks it
+        healthy, and every call refreshes <code>lastUsedAt</code>. Refreshing an OAuth connection also records a{" "}
+        <code>refreshed</code> health event.
       </p>
 
       <h2 id="boundaries">Trust boundaries</h2>

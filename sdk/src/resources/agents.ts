@@ -5,7 +5,10 @@ import type {
   AgentCreated,
   AgentDetails,
   AgentToken,
+  ClientSecret,
+  ClientSecretCreated,
   CreateAgentInput,
+  CreateClientSecretInput,
   List,
   TokenOptions,
   UpdateAgentInput,
@@ -144,6 +147,27 @@ export class AgentsResource {
       diff: unknown;
       safeLaunchUntil: string;
     }>(id, "promote", input);
+  }
+
+  /** Client secrets used for OAuth client_credentials token requests. */
+  listClientSecrets(id: string): Promise<List<ClientSecret>> {
+    return this.http.request({ method: "GET", path: `/agents/${encodeURIComponent(id)}/client-secrets` });
+  }
+
+  /** The raw secret is returned once; only a hash is stored. */
+  createClientSecret(id: string, input: CreateClientSecretInput = {}): Promise<ClientSecretCreated> {
+    return this.http.request({
+      method: "POST",
+      path: `/agents/${encodeURIComponent(id)}/client-secrets`,
+      body: input,
+    });
+  }
+
+  revokeClientSecret(id: string, secretId: string): Promise<ClientSecret> {
+    return this.http.request({
+      method: "DELETE",
+      path: `/agents/${encodeURIComponent(id)}/client-secrets/${encodeURIComponent(secretId)}`,
+    });
   }
 
   private action<T>(id: string, action: string, body: unknown = {}): Promise<T> {

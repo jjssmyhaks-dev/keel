@@ -54,12 +54,14 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       approvalMode?: string | null;
       purpose?: string | null;
       expiresAt?: string | null;
+      justInTime?: boolean;
+      activate?: boolean;
     }>(req);
 
     const data: Record<string, unknown> = {};
     if (body.actions) {
       const actions = body.actions.map((action) => String(action).trim()).filter(Boolean);
-      const validation = validateActions(grant.credential.connectorSlug, actions);
+      const validation = await validateActions(grant.credential.connectorSlug, actions, auth.environment.id);
       if (!validation.ok) throw new ApiError(422, "invalid_actions", validation.error);
       data.actionsJson = JSON.stringify(actions);
     }
@@ -72,6 +74,23 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
         throw new ApiError(422, "invalid_approval_mode", "approvalMode must be allow, require_approval or deny.");
       }
       data.approvalMode = body.approvalMode;
+    }
+    let activated = false;
+    if (body.justInTime !== undefined) {
+      data.justInTime = body.justInTime;
+      if (body.justInTime) {
+        data.activatedAt = null;
+      } else if (!grant.activatedAt) {
+        data.activatedAt = new Date();
+      }
+    }
+    if (body.activate === true) {
+      data.justInTime = true;
+      data.activatedAt = new Date();
+      if (body.expiresAt === undefined && !grant.expiresAt) {
+        data.expiresAt = new Date(Date.now() + 60 * 60_000);
+      }
+      activated = true;
     }
 
     if (!Object.keys(data).length) {
@@ -119,6 +138,28 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       ip: clientIp(req),
       payloadSummary: { agent: grant.agent.name, connector: grant.credential.connectorSlug, changed: Object.keys(data) },
     });
+
+    if (activated) {
+      await auditEvent({
+        environmentId: auth.environment.id,
+        actorType: "human",
+        actorId: auth.apiKeyId,
+        actorName: "API key",
+        agentId: grant.agentId,
+        action: "grant.activated",
+        resourceType: "grant",
+        resourceId: updated.id,
+        outcome: "recorded",
+        requestId: rid,
+        ip: clientIp(req),
+        payloadSummary: {
+          agent: grant.agent.name,
+          connector: grant.credential.connectorSlug,
+          manual: true,
+          expiresAt: updated.expiresAt?.toISOString() ?? null,
+        },
+      });
+    }
 
     return apiOk(serializeGrant(updated), { requestId: rid });
   } catch (error) {

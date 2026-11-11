@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { db } from "./db";
 import { CONNECTORS } from "./connectors";
+import { loadConnectorMap } from "./custom-connectors";
 import type { AgentAuthContext } from "./api";
 import {
   buildGatewayTools,
@@ -103,7 +104,9 @@ export async function gatewayTools(
   options: { connector?: string } = {},
 ): Promise<GatewayTool[]> {
   const grants = await loadGatewayGrants(auth.agent.id, auth.environment.id);
-  return buildGatewayTools(CONNECTORS, grants, { ...options, scopes: tokenScopes(auth) });
+  const needsCustom = grants.some((grant) => !CONNECTORS.some((entry) => entry.slug === grant.connectorSlug));
+  const catalog = needsCustom ? [...(await loadConnectorMap(auth.environment.id)).values()] : CONNECTORS;
+  return buildGatewayTools(catalog, grants, { ...options, scopes: tokenScopes(auth) });
 }
 
 export interface GatewayExecution {

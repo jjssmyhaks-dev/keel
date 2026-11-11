@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
-import { CONNECTORS, connector, actionFor } from "@/lib/connectors";
+import { loadConnectorMap } from "@/lib/custom-connectors";
 import { ConnectorLogo } from "@/components/connector-logo";
 import { PageHeader, Panel, Stat, StatusBadge, EmptyState } from "@/components/app/ui";
 
@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "Permissions" };
 export default async function PermissionsPage() {
   const ctx = await getContext();
 
-  const [agents, credentials, grants] = await Promise.all([
+  const [agents, credentials, grants, connectorMap] = await Promise.all([
     db.agent.findMany({
       where: { environmentId: ctx.environment.id, status: { not: "revoked" } },
       orderBy: { name: "asc" },
@@ -26,9 +26,12 @@ export default async function PermissionsPage() {
       where: { environmentId: ctx.environment.id },
       include: { credential: true },
     }),
+    loadConnectorMap(ctx.environment.id),
   ]);
 
-  const connectorsWithCredentials = CONNECTORS.filter((def) => credentials.some((c) => c.connectorSlug === def.slug));
+  const connectorsWithCredentials = [...connectorMap.values()].filter((def) =>
+    credentials.some((c) => c.connectorSlug === def.slug),
+  );
   const grantByKey = new Map(grants.map((grant) => [`${grant.agentId}:${grant.credentialId}`, grant]));
 
   let writeGrantsWithoutApproval = 0;
@@ -39,7 +42,7 @@ export default async function PermissionsPage() {
     const actions = JSON.parse(grant.actionsJson || "[]") as string[];
     const hasWrite = actions.some((action) => {
       if (action === "*") return true;
-      const def = actionFor(grant.credential.connectorSlug, action);
+      const def = connectorMap.get(grant.credential.connectorSlug)?.actions.find((a) => a.name === action);
       return def ? def.risk !== "read" : true;
     });
     if (hasWrite && !grant.approvalMode) writeGrantsWithoutApproval += 1;
@@ -129,7 +132,7 @@ export default async function PermissionsPage() {
                           ? "none"
                           : actions.some((action) => {
                               if (action === "*") return true;
-                              return actionFor(def.slug, action)?.risk !== "read";
+                              return def.actions.find((a) => a.name === action)?.risk !== "read";
                             })
                             ? "write"
                             : "read";

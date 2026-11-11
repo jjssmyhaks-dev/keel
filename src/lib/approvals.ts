@@ -1,11 +1,11 @@
 import type { Agent, Credential, Environment } from "@prisma/client";
 import { db } from "./db";
 import { randomToken } from "./crypto";
-import { actionFor, connector } from "./connectors";
+import { resolveConnector } from "./custom-connectors";
 import { auditEvent } from "./audit";
 import { dispatchEvent } from "./webhooks";
 import { notifyApprovers, notify } from "./notifications";
-import { envSettings } from "./policy";
+import { envSettings, approvalSlaFor } from "./policy";
 import { executeAction, redact } from "./proxy";
 import { emailLayout, sendEmail } from "./email";
 import { checkPlanLimit, productionAccess } from "./limits";
@@ -23,10 +23,18 @@ export async function createApprovalRequest(opts: {
   requestId: string;
   reason: string;
 }) {
-  const connectorDef = connector(opts.credential.connectorSlug);
-  const action = actionFor(opts.credential.connectorSlug, opts.actionName);
+  const connectorDef = await resolveConnector(opts.credential.connectorSlug, opts.environment.id);
+  const action = connectorDef?.actions.find((entry) => entry.name === opts.actionName);
   const settings = envSettings(opts.environment);
   const minutes = settings.approvalExpiryMinutes ?? 60;
+  const sla = await approvalSlaFor({
+    environmentId: opts.environment.id,
+    agentId: opts.agent.id,
+    actionName: opts.actionName,
+    fallbackMinutes: settings.escalateAfterMinutes ?? null,
+  });
+  const slaMinutes = sla.minutes ? Math.max(1, Math.min(sla.minutes, minutes - 1)) : null;
+  const slaDueAt = slaMinutes ? new Date(Date.now() + slaMinutes * 60_000) : null;
   const token = `apr_${randomToken(24)}`;
   const project = await db.project.findUnique({
     where: { id: opts.environment.projectId },
@@ -56,6 +64,7 @@ export async function createApprovalRequest(opts: {
       risk: opts.risk,
       token,
       requestId: opts.requestId,
+      slaDueAt,
       expiresAt: new Date(Date.now() + minutes * 60_000),
     },
   });
@@ -93,6 +102,9 @@ export async function createApprovalRequest(opts: {
   });
   const link = approvalUrlFor(token);
   const minutesLeft = minutes;
+  const escalationText = slaMinutes
+    ? ` · Escalates ${sla.escalateToRole ? `to ${sla.escalateToRole} ` : ""}after ${slaMinutes} minutes`
+    : "";
   await Promise.all(
     approvers.map((member) =>
       sendEmail({
@@ -101,22 +113,25 @@ export async function createApprovalRequest(opts: {
         html: emailLayout(
           "A human decision is needed",
           `<p>${summary}</p>
-           <p style="color:#8b8b8b;font-size:13px">Risk: ${opts.risk} · Environment: ${opts.environment.type} · Expires in ${minutesLeft} minutes.</p>
+           <p style="color:#8b8b8b;font-size:13px">Risk: ${opts.risk} · Environment: ${opts.environment.type} · Expires in ${minutesLeft} minutes${escalationText}.</p>
            <p style="margin:24px 0"><a href="${link}" style="background:#111;color:#fff;padding:12px 20px;text-decoration:none;display:inline-block">Review and decide</a></p>
            <p style="color:#8b8b8b;font-size:12px">Authab never puts credentials in email. Open the request to see the redacted payload.</p>`,
         ),
-        text: `${summary}\nRisk: ${opts.risk}\nExpires in ${minutesLeft} minutes.\nReview: ${link}`,
+        text: `${summary}\nRisk: ${opts.risk}\nExpires in ${minutesLeft} minutes.${escalationText}\nReview: ${link}`,
       }).catch(() => null),
     ),
   );
 
   await dispatchEvent(opts.environment.id, "approval.requested", {
     approvalId: approval.id,
+    kind: "action",
     agent: opts.agent.name,
     action: opts.actionName,
     resource: opts.resource,
     risk: opts.risk,
     summary,
+    slaDueAt: slaDueAt?.toISOString() ?? null,
+    escalateToRole: sla.escalateToRole,
     approvalUrl: link,
   });
 
@@ -144,11 +159,24 @@ export async function decideApproval(opts: {
   if (!approval) return { ok: false, error: "Approval not found." };
   if (approval.status !== "pending") return { ok: false, error: `This request is already ${approval.status}.` };
   if (approval.expiresAt < new Date()) {
-    await db.approvalRequest.update({
-      where: { id: approval.id },
+    await db.approvalRequest.updateMany({
+      where: { id: approval.id, status: "pending" },
       data: { status: "expired", decidedAt: new Date(), decisionNote: "Expired before a decision." },
     });
     return { ok: false, error: "This request has expired." };
+  }
+
+  // Atomically claim the decision so two approvers cannot execute it twice.
+  const claimed = await db.approvalRequest.updateMany({
+    where: { id: approval.id, status: "pending", decidedAt: null },
+    data: {
+      decidedAt: new Date(),
+      decidedBy: opts.userId,
+      decisionNote: opts.note || "Decision in progress.",
+    },
+  });
+  if (claimed.count === 0) {
+    return { ok: false, error: "This request was already decided by another approver." };
   }
 
   if (opts.decision === "deny") {
@@ -183,64 +211,215 @@ export async function decideApproval(opts: {
     return { ok: true, status: "denied" };
   }
 
-  const payload = JSON.parse(approval.payloadJson || "{}") as {
-    input?: Record<string, unknown>;
-    resource?: string | null;
-  };
-  const action = actionFor(approval.credential?.connectorSlug ?? "", approval.action);
+  if (approval.kind === "grant") {
+    const spec = (() => {
+      try {
+        return JSON.parse(approval.grantSpecJson || "{}") as {
+          actions?: string[];
+          resourcePattern?: string;
+          durationMinutes?: number;
+        };
+      } catch {
+        return {};
+      }
+    })();
+    const durationMinutes = Math.max(5, Math.min(Number(spec.durationMinutes ?? 60) || 60, 1440));
+    let status = "approved";
+    let result: Record<string, unknown> = {};
 
-  let result: unknown = null;
-  let status = "approved";
-  if (action && approval.credential) {
-    if (approval.credential.revokedAt || approval.credential.status === "revoked") {
+    if (!approval.grantId || !approval.grant) {
       status = "failed";
-      result = { error: "The connection was revoked before this approval was executed." };
+      result = { error: "The just-in-time grant no longer exists. Ask the agent to request access again." };
+    } else if (!approval.credential) {
+      status = "failed";
+      result = { error: "The connection was removed before this request was approved." };
+    } else if (approval.credential.revokedAt || approval.credential.status === "revoked") {
+      status = "failed";
+      result = { error: "The connection was revoked before this request was approved." };
     } else if (approval.credential.status === "broken") {
       status = "failed";
       result = {
         error:
           approval.credential.healthDetail ??
-          "The provider rejected this credential. Rotate it in the vault before executing.",
+          "The provider rejected this credential. Rotate it in the vault before activating access.",
       };
     } else if (approval.credential.expiresAt && approval.credential.expiresAt < new Date()) {
       status = "failed";
-      result = { error: "The connection expired before this approval was executed. Rotate it in the vault." };
-    } else if (approval.grant?.expiresAt && approval.grant.expiresAt < new Date()) {
-      status = "failed";
-      result = { error: "The grant expired before this approval was executed. Request a new grant." };
+      result = { error: "The connection expired before this request was approved. Rotate it in the vault." };
     } else {
-      const org = await db.organization.findUnique({
-        where: { id: approval.environment.project.orgId },
-        select: { plan: true, planStatus: true },
+      const activatedAt = new Date();
+      const expiresAt = new Date(activatedAt.getTime() + durationMinutes * 60_000);
+      const grant = await db.grant.update({
+        where: { id: approval.grantId },
+        data: {
+          justInTime: true,
+          activatedAt,
+          expiresAt,
+          ...(Array.isArray(spec.actions) && spec.actions.length
+            ? { actionsJson: JSON.stringify(spec.actions) }
+            : {}),
+          ...(typeof spec.resourcePattern === "string" ? { resourcePattern: spec.resourcePattern } : {}),
+        },
       });
-      const plan = org?.plan ?? "free";
-      const planStatus = org?.planStatus ?? "active";
-      const access = productionAccess(plan, planStatus);
-      if (approval.environment.type === "production" && !access.allowed) {
+      const actions = JSON.parse(grant.actionsJson || "[]") as string[];
+      result = {
+        grantId: grant.id,
+        activatedAt: activatedAt.toISOString(),
+        expiresAt: expiresAt.toISOString(),
+        durationMinutes,
+        actions,
+      };
+      await auditEvent({
+        environmentId: approval.environmentId,
+        actorType: "human",
+        actorId: opts.userId,
+        actorName: opts.userName,
+        agentId: approval.agentId,
+        action: "grant.activated",
+        resourceType: "grant",
+        resourceId: grant.id,
+        outcome: "approved",
+        ip: opts.ip,
+        payloadSummary: {
+          approvalId: approval.id,
+          durationMinutes,
+          expiresAt: expiresAt.toISOString(),
+          actions,
+        },
+      });
+    }
+
+    await db.approvalRequest.update({
+      where: { id: approval.id },
+      data: {
+        status,
+        decidedAt: new Date(),
+        decidedBy: opts.userId,
+        decisionNote: opts.note || (status === "approved" ? "Just-in-time access activated." : "Approved."),
+        executionResult: JSON.stringify(result),
+      },
+    });
+
+    await auditEvent({
+      environmentId: approval.environmentId,
+      actorType: "human",
+      actorId: opts.userId,
+      actorName: opts.userName,
+      agentId: approval.agentId,
+      action: "approval.decided",
+      resourceType: "approval",
+      resourceId: approval.id,
+      outcome: status === "failed" ? "error" : "approved",
+      ip: opts.ip,
+      payloadSummary: {
+        decision: "approve",
+        note: opts.note ?? null,
+        action: "grant.request",
+        kind: "grant",
+        executionStatus: status,
+        durationMinutes,
+      },
+    });
+
+    await dispatchEvent(approval.environmentId, "approval.decided", {
+      approvalId: approval.id,
+      kind: "grant",
+      decision: "approve",
+      decidedBy: opts.userName,
+      note: opts.note ?? null,
+      executionStatus: status,
+      grant: result,
+    });
+
+    if (approval.agent.ownerUserId) {
+      await notify({
+        orgId: approval.environment.project.orgId,
+        userId: approval.agent.ownerUserId,
+        type: "approval",
+        title:
+          status === "approved"
+            ? `Access activated: ${approval.agent.name}`
+            : `Access activation failed: ${approval.agent.name}`,
+        body:
+          status === "approved"
+            ? `Just-in-time access is active for ${durationMinutes} minutes.`
+            : String(result.error ?? "The request could not be activated."),
+        href: `/app/approvals/${approval.id}`,
+      });
+    }
+
+    return { ok: true, status, result };
+  }
+
+  const payload = JSON.parse(approval.payloadJson || "{}") as {
+    input?: Record<string, unknown>;
+    resource?: string | null;
+  };
+  const connectorDef = approval.credential
+    ? await resolveConnector(approval.credential.connectorSlug, approval.environment.id)
+    : null;
+  const action = connectorDef?.actions.find((entry) => entry.name === approval.action);
+
+  let result: unknown = null;
+  let status = "approved";
+  if (!approval.credential) {
+    status = "failed";
+    result = { error: "The connection attached to this request no longer exists." };
+  } else if (!connectorDef) {
+    status = "failed";
+    result = { error: "The connector for this request is no longer available." };
+  } else if (!action) {
+    status = "failed";
+    result = { error: `The action "${approval.action}" no longer exists on ${connectorDef.name}.` };
+  } else if (approval.credential.revokedAt || approval.credential.status === "revoked") {
+    status = "failed";
+    result = { error: "The connection was revoked before this approval was executed." };
+  } else if (approval.credential.status === "broken") {
+    status = "failed";
+    result = {
+      error:
+        approval.credential.healthDetail ??
+        "The provider rejected this credential. Rotate it in the vault before executing.",
+    };
+  } else if (approval.credential.expiresAt && approval.credential.expiresAt < new Date()) {
+    status = "failed";
+    result = { error: "The connection expired before this approval was executed. Rotate it in the vault." };
+  } else if (approval.grant?.expiresAt && approval.grant.expiresAt < new Date()) {
+    status = "failed";
+    result = { error: "The grant expired before this approval was executed. Request a new grant." };
+  } else {
+    const org = await db.organization.findUnique({
+      where: { id: approval.environment.project.orgId },
+      select: { plan: true, planStatus: true },
+    });
+    const plan = org?.plan ?? "free";
+    const planStatus = org?.planStatus ?? "active";
+    const access = productionAccess(plan, planStatus);
+    if (approval.environment.type === "production" && !access.allowed) {
+      status = "failed";
+      result = { error: access.message };
+    } else {
+      const quota = await checkPlanLimit(approval.environment.project.orgId, "calls", plan, planStatus);
+      if (!quota.allowed) {
         status = "failed";
-        result = { error: access.message };
+        result = { error: quota.message };
       } else {
-        const quota = await checkPlanLimit(approval.environment.project.orgId, "calls", plan, planStatus);
-        if (!quota.allowed) {
+        try {
+          result = await executeAction({
+            environment: approval.environment,
+            agent: approval.agent,
+            credential: approval.credential,
+            connectorDef: connectorDef ?? undefined,
+            action,
+            input: payload.input ?? {},
+            resource: payload.resource ?? undefined,
+            requestId: approval.requestId,
+            ip: opts.ip,
+            approvalId: approval.id,
+          });
+        } catch (error) {
           status = "failed";
-          result = { error: quota.message };
-        } else {
-          try {
-            result = await executeAction({
-              environment: approval.environment,
-              agent: approval.agent,
-              credential: approval.credential,
-              action,
-              input: payload.input ?? {},
-              resource: payload.resource ?? undefined,
-              requestId: approval.requestId,
-              ip: opts.ip,
-              approvalId: approval.id,
-            });
-          } catch (error) {
-            status = "failed";
-            result = { error: error instanceof Error ? error.message : "Execution failed." };
-          }
+          result = { error: error instanceof Error ? error.message : "Execution failed." };
         }
       }
     }
@@ -257,7 +436,7 @@ export async function decideApproval(opts: {
     },
   });
 
-  if (opts.approveAlways && approval.grant) {
+  if (opts.approveAlways && approval.grant && status === "approved") {
     await db.grant.update({ where: { id: approval.grant.id }, data: { approvalMode: "allow" } });
   }
 
@@ -312,4 +491,93 @@ export async function expireStaleApprovals(environmentId?: string) {
     },
     data: { status: "expired", decidedAt: new Date(), decisionNote: "Expired before a decision." },
   });
+}
+
+export async function escalateOverdueApprovals(environmentId?: string) {
+  const now = new Date();
+  const overdue = await db.approvalRequest.findMany({
+    where: {
+      ...(environmentId ? { environmentId } : {}),
+      status: "pending",
+      escalatedAt: null,
+      decidedAt: null,
+      slaDueAt: { lte: now },
+      expiresAt: { gt: now },
+    },
+    include: {
+      agent: { select: { name: true } },
+      environment: { include: { project: { select: { orgId: true } } } },
+      credential: { select: { name: true, connectorSlug: true } },
+    },
+    take: 100,
+  });
+
+  let escalated = 0;
+  for (const approval of overdue) {
+    const orgId = approval.environment.project.orgId;
+    const sla = await approvalSlaFor({
+      environmentId: approval.environmentId,
+      agentId: approval.agentId,
+      actionName: approval.kind === "grant" ? "grant.request" : approval.action,
+    });
+    const role = sla.escalateToRole || "admin";
+    let members = await db.membership.findMany({
+      where: { orgId, role },
+      select: { userId: true },
+    });
+    if (!members.length) {
+      members = await db.membership.findMany({
+        where: { orgId, role: { in: ["owner", "admin", "approver"] } },
+        select: { userId: true },
+      });
+    }
+    const recipients = [...new Set(members.map((member) => member.userId))];
+
+    await db.approvalRequest.update({
+      where: { id: approval.id },
+      data: { escalatedAt: now },
+    });
+
+    if (recipients.length) {
+      await db.notification.createMany({
+        data: recipients.map((userId) => ({
+          orgId,
+          userId,
+          type: "approval",
+          title: "Approval escalated",
+          body: `${approval.summary} passed its ${sla.minutes ?? "SLA"} minute SLA and needs a decision.`,
+          href: `/app/approvals/${approval.id}`,
+        })),
+      });
+    }
+
+    await auditEvent({
+      environmentId: approval.environmentId,
+      actorType: "system",
+      actorName: "Approval SLA",
+      agentId: approval.agentId,
+      action: "approval.escalated",
+      resourceType: "approval",
+      resourceId: approval.id,
+      outcome: "recorded",
+      payloadSummary: {
+        escalatedToRole: role,
+        recipients: recipients.length,
+        slaDueAt: approval.slaDueAt?.toISOString() ?? null,
+        summary: approval.summary,
+      },
+    });
+
+    await dispatchEvent(approval.environmentId, "approval.escalated", {
+      approvalId: approval.id,
+      kind: approval.kind,
+      summary: approval.summary,
+      escalatedToRole: role,
+      recipients: recipients.length,
+      slaDueAt: approval.slaDueAt?.toISOString() ?? null,
+    });
+
+    escalated += 1;
+  }
+  return escalated;
 }

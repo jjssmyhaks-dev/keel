@@ -9,7 +9,7 @@ import {
   parseJson,
   requestId,
 } from "@/lib/api";
-import { connector } from "@/lib/connectors";
+import { resolveConnector } from "@/lib/custom-connectors";
 import { evaluatePolicy, envSettings, globMatch } from "@/lib/policy";
 import { executeAction } from "@/lib/proxy";
 import { providerAuthFailure } from "@/lib/provider-health";
@@ -25,7 +25,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
   try {
     const auth = await authenticateAgent(req);
     const { connector: connectorSlug } = await ctx.params;
-    const connectorDef = connector(connectorSlug);
+    const connectorDef = await resolveConnector(connectorSlug, auth.environment.id);
     if (!connectorDef) throw new ApiError(404, "unknown_connector", `“${connectorSlug}” is not a supported connector.`);
 
     const body = await parseJson<{
@@ -84,8 +84,15 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
     }
 
     const scopes = Array.isArray(auth.claims.scopes) ? (auth.claims.scopes as string[]) : [];
-    if (scopes.length && !scopes.some((scope) => scope === "*" || scope === actionName || globMatch(scope, actionName))) {
-      throw new ApiError(403, "scope_not_granted", `The agent token does not include the ${actionName} scope.`);
+    const scopeEnforced = auth.claims.scope_enforced === true || scopes.length > 0;
+    if (scopeEnforced && !scopes.some((scope) => scope === "*" || scope === actionName || globMatch(scope, actionName))) {
+      throw new ApiError(
+        403,
+        "scope_not_granted",
+        scopes.length
+          ? `The agent token does not include the ${actionName} scope.`
+          : "This token carries no scopes. Issue a new token after granting access.",
+      );
     }
 
     const idempotencyKey = req.headers.get("idempotency-key")?.trim();
@@ -158,6 +165,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
       actionName,
       resource: body.resource,
       ip,
+      connectorDef,
     });
 
     const finish = async (status: number, payload: unknown) => {
@@ -235,6 +243,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
       environment: auth.environment,
       agent: auth.agent,
       credential,
+      connectorDef,
       action: decision.action!,
       input: body.input ?? {},
       resource: body.resource,

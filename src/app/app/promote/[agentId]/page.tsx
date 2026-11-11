@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { getContext } from "@/lib/session";
 import { previewPromotion } from "@/lib/promotion";
 import { promoteAgentAction } from "@/app/app/actions";
-import { connector } from "@/lib/connectors";
+import { loadConnectorMap } from "@/lib/custom-connectors";
 import { ConnectorLogo } from "@/components/connector-logo";
 import { PageHeader, Panel, Notice, RiskBadge, relativeTime } from "@/components/app/ui";
 
@@ -32,6 +32,7 @@ export default async function PromotePage({
 
   const preview = await previewPromotion(agentId);
   if (!preview.ok) notFound();
+  const connectorMap = await loadConnectorMap(ctx.environment.id);
 
   const agent = preview.agent;
   const blocked = !preview.planOk || Boolean(preview.existing) || !ctx.capabilities.writeProduction || !ctx.user.emailVerifiedAt;
@@ -109,7 +110,7 @@ export default async function PromotePage({
             {preview.diff.length ? (
               <div className="divide-y divide-black/10 dark:divide-border">
                 {preview.diff.map((row) => {
-                  const def = connector(row.connector);
+                  const def = connectorMap.get(row.connector);
                   return (
                     <div key={`${row.connector}-${row.credentialName}`} className="px-4 py-3">
                       <div className="flex flex-wrap items-center gap-2">

@@ -14,6 +14,14 @@ import { sendEmail, appUrl } from "@/lib/email";
 import { PLANS } from "@/lib/plans";
 import { checkPlanLimit, productionAccess } from "@/lib/limits";
 import {
+  ConnectorImportError,
+  archiveCustomConnector,
+  customConnectorAccess,
+  importOpenApiConnector,
+  resolveConnector,
+  rollbackCustomConnector,
+} from "@/lib/custom-connectors";
+import {
   createCheckoutSession,
   createPortalSession,
   ensureStripeCustomer,
@@ -332,8 +340,7 @@ export async function createCredentialAction(formData: FormData) {
     redirect(`/app/vault/new?connector=${connectorSlug}&error=limit`);
   }
 
-  const { connector } = await import("@/lib/connectors");
-  const connectorDef = connector(connectorSlug);
+  const connectorDef = await resolveConnector(connectorSlug, ctx.environment.id);
   if (!connectorDef) redirect("/app/vault/new?error=connector");
   const secretsPath = `/app/vault/new?connector=${connectorSlug}&error=secret`;
 
@@ -413,8 +420,7 @@ export async function rotateCredentialAction(formData: FormData) {
   if (!credential) redirect(`${back}?error=missing`);
   if (credential.revokedAt) redirect(`${back}?error=revoked`);
 
-  const { connector } = await import("@/lib/connectors");
-  const connectorDef = connector(credential.connectorSlug);
+  const connectorDef = await resolveConnector(credential.connectorSlug, ctx.environment.id);
   let sealed: { encryptedPayload: string; dataKeyEncrypted: string };
   let maskedHint = credential.maskedHint;
   let metadata: Record<string, unknown> = {};
@@ -566,6 +572,7 @@ export async function saveGrantAction(formData: FormData) {
   const approvalMode = ["allow", "require_approval", "deny"].includes(approvalModeRaw) ? approvalModeRaw : null;
   const purpose = str(formData, "purpose").slice(0, 200) || null;
   const expiresRaw = str(formData, "expiresAt");
+  const justInTime = bool(formData, "justInTime");
   const conditionsJson = str(formData, "conditions") || "{}";
   try {
     JSON.parse(conditionsJson);
@@ -585,6 +592,8 @@ export async function saveGrantAction(formData: FormData) {
       purpose,
       conditionsJson,
       expiresAt: expiresRaw ? new Date(expiresRaw) : null,
+      justInTime,
+      ...(justInTime ? { activatedAt: null } : before?.justInTime ? { activatedAt: new Date() } : {}),
     },
     create: {
       environmentId: ctx.environment.id,
@@ -596,6 +605,8 @@ export async function saveGrantAction(formData: FormData) {
       purpose,
       conditionsJson,
       expiresAt: expiresRaw ? new Date(expiresRaw) : null,
+      justInTime,
+      activatedAt: justInTime ? null : new Date(),
       createdBy: ctx.user.id,
     },
   });
@@ -609,8 +620,8 @@ export async function saveGrantAction(formData: FormData) {
       actorId: meta.actorId,
       actorName: meta.actorName,
       change: before ? "Grant updated" : "Grant created",
-      beforeJson: before ? JSON.stringify({ actions: JSON.parse(before.actionsJson), resource: before.resourcePattern, approvalMode: before.approvalMode }) : "{}",
-      afterJson: JSON.stringify({ actions, resource: resourcePattern, approvalMode }),
+      beforeJson: before ? JSON.stringify({ actions: JSON.parse(before.actionsJson), resource: before.resourcePattern, approvalMode: before.approvalMode, justInTime: before.justInTime }) : "{}",
+      afterJson: JSON.stringify({ actions, resource: resourcePattern, approvalMode, justInTime }),
     },
   });
   await auditEvent({
@@ -624,10 +635,46 @@ export async function saveGrantAction(formData: FormData) {
     resourceId: grant.id,
     outcome: "recorded",
     ip: meta.ip,
-    payloadSummary: { agent: agent.name, connector: credential.connectorSlug, actions, resource: resourcePattern, approvalMode },
+    payloadSummary: { agent: agent.name, connector: credential.connectorSlug, actions, resource: resourcePattern, approvalMode, justInTime },
   });
   revalidatePath("/app", "layout");
   redirect(`${back}?saved=1`);
+}
+
+export async function activateGrantAction(formData: FormData) {
+  const ctx = await getContext();
+  const agentId = str(formData, "agentId");
+  const grantId = str(formData, "grantId");
+  const back = `/app/permissions/${agentId}`;
+  if (!ctx.capabilities.manageGrants) redirect(`${back}?error=permission`);
+
+  const grant = await db.grant.findFirst({ where: { id: grantId, agentId, environmentId: ctx.environment.id } });
+  if (!grant) redirect(`${back}?error=missing`);
+  if (!grant.justInTime) redirect(`${back}?error=not_jit`);
+
+  const activatedAt = new Date();
+  const expiresAt = new Date(activatedAt.getTime() + 60 * 60_000);
+  await db.grant.update({
+    where: { id: grant.id },
+    data: { activatedAt, expiresAt },
+  });
+
+  const meta = await orgActor(ctx);
+  await auditEvent({
+    environmentId: ctx.environment.id,
+    actorType: "human",
+    actorId: meta.actorId,
+    actorName: meta.actorName,
+    agentId,
+    action: "grant.activated",
+    resourceType: "grant",
+    resourceId: grant.id,
+    outcome: "recorded",
+    ip: meta.ip,
+    payloadSummary: { agent: agentId, expiresAt: expiresAt.toISOString(), manual: true },
+  });
+  revalidatePath("/app", "layout");
+  redirect(`${back}?activated=1`);
 }
 
 export async function decideApprovalAction(formData: FormData) {
@@ -1269,4 +1316,75 @@ export async function markNotificationsReadAction(formData: FormData) {
   });
   revalidatePath("/app", "layout");
   redirect(back);
+}
+
+export async function importCustomConnectorAction(formData: FormData) {
+  const ctx = await getContext();
+  if (!ctx.capabilities.manageSecurity) redirect("/app/connectors?error=permission");
+  const access = customConnectorAccess(ctx.org.plan, ctx.org.planStatus);
+  if (!access.allowed) redirect(`/app/connectors?error=plan&detail=${encodeURIComponent(access.message)}`);
+
+  const spec = String(formData.get("spec") ?? "");
+  if (!spec.trim()) redirect("/app/connectors?error=spec");
+
+  let outcome: { slug: string; version: number; warnings: number };
+  try {
+    const result = await importOpenApiConnector({
+      environmentId: ctx.environment.id,
+      specText: spec,
+      slug: str(formData, "slug") || undefined,
+      name: str(formData, "name") || undefined,
+      category: str(formData, "category") || undefined,
+      color: str(formData, "color") || undefined,
+      baseUrl: str(formData, "baseUrl") || undefined,
+      authScheme: str(formData, "authScheme") || undefined,
+      createdBy: ctx.user.id,
+    });
+    outcome = { slug: result.connector.slug, version: result.version, warnings: result.warnings.length };
+  } catch (error) {
+    if (error instanceof ConnectorImportError) {
+      redirect(`/app/connectors?error=import&detail=${encodeURIComponent(error.message).slice(0, 300)}`);
+    }
+    throw error;
+  }
+
+  revalidatePath("/app/connectors");
+  revalidatePath("/app/vault/new");
+  const suffix = outcome.warnings ? `&warnings=${outcome.warnings}` : "";
+  redirect(`/app/connectors?imported=${outcome.slug}&version=${outcome.version}${suffix}`);
+}
+
+export async function rollbackCustomConnectorAction(formData: FormData) {
+  const ctx = await getContext();
+  if (!ctx.capabilities.manageSecurity) redirect("/app/connectors?error=permission");
+  const access = customConnectorAccess(ctx.org.plan, ctx.org.planStatus);
+  if (!access.allowed) redirect(`/app/connectors?error=plan&detail=${encodeURIComponent(access.message)}`);
+  const slug = str(formData, "slug");
+  const version = Number(str(formData, "version"));
+  if (!slug || !Number.isInteger(version) || version < 1) redirect("/app/connectors?error=missing");
+  const result = await rollbackCustomConnector({
+    environmentId: ctx.environment.id,
+    slug,
+    version,
+    createdBy: ctx.user.id,
+  });
+  if (!result) redirect("/app/connectors?error=missing");
+  revalidatePath("/app/connectors");
+  redirect(`/app/connectors?restored=${slug}&version=${result.version}`);
+}
+
+export async function archiveCustomConnectorAction(formData: FormData) {
+  const ctx = await getContext();
+  if (!ctx.capabilities.manageSecurity) redirect("/app/connectors?error=permission");
+  const slug = str(formData, "slug");
+  if (!slug) redirect("/app/connectors?error=missing");
+  const archived = await archiveCustomConnector({
+    environmentId: ctx.environment.id,
+    slug,
+    createdBy: ctx.user.id,
+  });
+  if (!archived) redirect("/app/connectors?error=missing");
+  revalidatePath("/app/connectors");
+  revalidatePath("/app/vault/new");
+  redirect(`/app/connectors?archived=${slug}`);
 }

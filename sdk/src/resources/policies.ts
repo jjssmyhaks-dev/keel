@@ -4,11 +4,18 @@ import type {
   ApprovalPolicy,
   List,
   PolicyInput,
+  PolicySimulation,
+  PolicySimulationInput,
   PolicyUpdate,
 } from "../types";
 
 export class PoliciesResource {
   constructor(private readonly http: HttpClient) {}
+
+  /** Dry-run a decision without calling the provider or creating an approval. */
+  simulate(input: PolicySimulationInput): Promise<PolicySimulation> {
+    return this.http.request({ method: "POST", path: "/policy/simulate", body: input });
+  }
 
   create(input: PolicyInput): Promise<ApprovalPolicy> {
     return this.http.request({ method: "POST", path: "/approval-policies", body: input });

@@ -3,10 +3,12 @@ import { promises as dns } from "node:dns";
 import { isIP } from "node:net";
 import { db } from "./db";
 import { decryptSecret, encryptSecret, randomToken } from "./crypto";
+import { isPrivateAddress, privateHostname } from "./outbound";
 
 export type WebhookEvent =
   | "approval.requested"
   | "approval.decided"
+  | "approval.escalated"
   | "agent.status_changed"
   | "credential.expiring"
   | "anomaly.detected"
@@ -16,6 +18,7 @@ export type WebhookEvent =
 export const WEBHOOK_EVENTS: { value: WebhookEvent; label: string }[] = [
   { value: "approval.requested", label: "Approval requested" },
   { value: "approval.decided", label: "Approval decided" },
+  { value: "approval.escalated", label: "Approval escalated" },
   { value: "agent.status_changed", label: "Agent status changed" },
   { value: "credential.expiring", label: "Credential expiring" },
   { value: "anomaly.detected", label: "Anomaly detected" },
@@ -26,34 +29,6 @@ const MAX_ATTEMPTS = 5;
 
 function privateAllowed() {
   return process.env.AUTHAB_ALLOW_PRIVATE_WEBHOOKS === "1" && process.env.NODE_ENV !== "production";
-}
-
-function isPrivateAddress(address: string) {
-  if (isIP(address) === 4) {
-    const [a, b] = address.split(".").map(Number);
-    return (
-      a === 0 ||
-      a === 10 ||
-      a === 127 ||
-      (a === 169 && b === 254) ||
-      (a === 172 && b >= 16 && b <= 31) ||
-      (a === 192 && b === 168) ||
-      (a === 100 && b >= 64 && b <= 127) ||
-      (a === 198 && (b === 18 || b === 19)) ||
-      a >= 224
-    );
-  }
-  const lower = address.toLowerCase();
-  return (
-    lower === "::" ||
-    lower === "::1" ||
-    lower.startsWith("fe80") ||
-    lower.startsWith("fc") ||
-    lower.startsWith("fd") ||
-    lower.startsWith("::ffff:127.") ||
-    lower.startsWith("::ffff:10.") ||
-    lower.startsWith("::ffff:192.168.")
-  );
 }
 
 export async function assertSafeWebhookUrl(raw: string) {
@@ -68,22 +43,17 @@ export async function assertSafeWebhookUrl(raw: string) {
     throw new Error("Webhook endpoints must use HTTPS.");
   }
 
-  const host = url.hostname.toLowerCase();
-  const blockedHost =
-    host === "localhost" ||
-    host.endsWith(".localhost") ||
-    host.endsWith(".local") ||
-    host.endsWith(".internal") ||
-    host.endsWith(".home.arpa");
-
+  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
   if (!privateAllowed()) {
-    if (blockedHost) throw new Error("Webhook endpoints must be publicly reachable.");
+    if (privateHostname(host) || (!isIP(host) && !host.includes("."))) {
+      throw new Error("Webhook endpoints must be publicly reachable.");
+    }
     if (isIP(host) && isPrivateAddress(host)) {
       throw new Error("Webhook endpoints cannot target private or loopback addresses.");
     }
     let addresses: { address: string }[];
     try {
-      addresses = await dns.lookup(host, { all: true });
+      addresses = await dns.lookup(host, { all: true, verbatim: true });
     } catch {
       throw new Error("Could not resolve the webhook host.");
     }

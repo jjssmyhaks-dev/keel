@@ -250,6 +250,103 @@ class ProxyTests(ApiTestCase):
             self.assertEqual(caught.exception.code, "signing_dependency_missing")
 
 
+class PillarResourceTests(ApiTestCase):
+    def test_policy_simulation_and_jit_request(self):
+        self.app.responder = lambda method, path, headers, body: (200, {}, {"ok": True})
+        client = self.client()
+        client.policies.simulate(
+            agent_id="agt_1",
+            credential_id="cred_1",
+            action="slack.post_message",
+            input={"channel": "#ops"},
+            ip="203.0.113.7",
+        )
+        simulation = self.app.requests[0]
+        self.assertEqual(simulation["path"], "/v1/policy/simulate")
+        payload = json.loads(simulation["body"])
+        self.assertEqual(payload["agentId"], "agt_1")
+        self.assertEqual(payload["credentialId"], "cred_1")
+        self.assertEqual(payload["input"], {"channel": "#ops"})
+        self.assertEqual(payload["ip"], "203.0.113.7")
+
+        client.grants.request(
+            credential_id="cred_1",
+            actions=["stripe.refunds:create"],
+            reason="Refund a duplicate charge for customer 42",
+            duration_minutes=30,
+            agent_token="agent.jwt.token",
+        )
+        request = self.app.requests[1]
+        self.assertEqual(request["path"], "/v1/grants/request")
+        self.assertEqual(request["headers"]["authorization"], "Bearer agent.jwt.token")
+        payload = json.loads(request["body"])
+        self.assertEqual(payload["credentialId"], "cred_1")
+        self.assertNotIn("credential_id", payload)
+        self.assertEqual(payload["durationMinutes"], 30)
+
+    def test_token_endpoints_use_oauth_shapes(self):
+        self.app.responder = lambda method, path, headers, body: (200, {}, {"access_token": "tok"})
+        client = self.client()
+
+        client.tokens.client_credentials(
+            client_id="agt_1",
+            client_secret="sk_live_secret",
+            scopes=["slack.post_message"],
+            dpop_proof="proof.jwt",
+        )
+        first = self.app.requests[0]
+        self.assertEqual(first["path"], "/v1/tokens/client-credentials")
+        self.assertEqual(first["headers"]["dpop"], "proof.jwt")
+        payload = json.loads(first["body"])
+        self.assertEqual(payload["client_id"], "agt_1")
+        self.assertEqual(payload["client_secret"], "sk_live_secret")
+        self.assertEqual(payload["scope"], "slack.post_message")
+
+        client.tokens.exchange(subject_token="subject.jwt", agent_id="agt_2")
+        second = json.loads(self.app.requests[1]["body"])
+        self.assertEqual(second["subject_token"], "subject.jwt")
+        self.assertEqual(second["subject_token_type"], "urn:ietf:params:oauth:token-type:access_token")
+        self.assertEqual(second["agent_id"], "agt_2")
+
+        client.tokens.workload_exchange(token="workload.jwt", scopes=["github.issues:read"])
+        third = self.app.requests[2]
+        self.assertEqual(third["path"], "/v1/tokens/workload-exchange")
+        self.assertEqual(json.loads(third["body"])["subject_token_type"], "urn:ietf:params:oauth:token-type:jwt")
+
+    def test_custom_connectors_and_secrets(self):
+        self.app.responder = lambda method, path, headers, body: (200, {}, {"ok": True})
+        client = self.client()
+
+        client.connectors.import_spec("openapi: 3.1.0", slug="widgets", base_url="https://api.widgets.dev")
+        imported = self.app.requests[0]
+        self.assertEqual(imported["path"], "/v1/connectors")
+        payload = json.loads(imported["body"])
+        self.assertEqual(payload["slug"], "widgets")
+        self.assertEqual(payload["baseUrl"], "https://api.widgets.dev")
+
+        client.connectors.rollback("widgets", 2)
+        self.assertEqual(self.app.requests[1]["path"], "/v1/connectors/widgets/rollback")
+        self.assertEqual(json.loads(self.app.requests[1]["body"]), {"version": 2})
+
+        client.agents.create_client_secret("agt_1", label="worker", scopes=["slack.post_message"])
+        self.assertEqual(self.app.requests[2]["path"], "/v1/agents/agt_1/client-secrets")
+        secret = json.loads(self.app.requests[2]["body"])
+        self.assertEqual(secret["label"], "worker")
+        self.assertEqual(secret["scopes"], ["slack.post_message"])
+
+        client.workload_identities.create(
+            name="k8s-worker",
+            issuer="https://kubernetes.default.svc",
+            audience="authab",
+            agent_id="agt_1",
+            subject_pattern="system:serviceaccount:agents:*",
+        )
+        self.assertEqual(self.app.requests[3]["path"], "/v1/workload-identities")
+        identity = json.loads(self.app.requests[3]["body"])
+        self.assertEqual(identity["agentId"], "agt_1")
+        self.assertEqual(identity["subjectPattern"], "system:serviceaccount:agents:*")
+
+
 class SigningTests(unittest.TestCase):
     def test_generate_keypair_and_sign_challenge(self):
         try:

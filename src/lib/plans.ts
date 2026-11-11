@@ -71,6 +71,7 @@ export const PLANS: PlanConfig[] = [
       "500,000 proxy calls / month",
       "200 connections",
       "1-year audit retention",
+      "Custom OpenAPI connectors",
       "Advanced policies and delegation",
       "Priority support",
     ],
@@ -87,6 +88,7 @@ export const PLANS: PlanConfig[] = [
     features: [
       "Everything in Scale",
       "Custom volume and retention",
+      "Unlimited custom connectors and versions",
       "Annual invoicing and procurement",
       "Security review and signed DPA",
       "Priority support and onboarding",

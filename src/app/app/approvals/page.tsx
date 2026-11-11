@@ -3,7 +3,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { getContext } from "@/lib/session";
 import { expireStaleApprovals } from "@/lib/approvals";
-import { connector } from "@/lib/connectors";
+import { loadConnectorMap } from "@/lib/custom-connectors";
 import { ConnectorLogo } from "@/components/connector-logo";
 import { PageHeader, Panel, Stat, StatusBadge, RiskBadge, TabLinks, EmptyState, relativeTime, formatDate } from "@/components/app/ui";
 
@@ -24,7 +24,7 @@ export default async function ApprovalsPage({
 
   const status = TABS.includes((query.status ?? "pending") as (typeof TABS)[number]) ? (query.status ?? "pending") : "pending";
 
-  const [approvals, counts] = await Promise.all([
+  const [approvals, counts, connectorMap] = await Promise.all([
     db.approvalRequest.findMany({
       where: {
         environmentId: ctx.environment.id,
@@ -42,6 +42,7 @@ export default async function ApprovalsPage({
       where: { environmentId: ctx.environment.id },
       _count: { _all: true },
     }),
+    loadConnectorMap(ctx.environment.id),
   ]);
 
   const countFor = (key: string) =>
@@ -84,7 +85,7 @@ export default async function ApprovalsPage({
         {approvals.length ? (
           <div className="divide-y divide-black/10 border border-black/10 bg-white dark:divide-border dark:border-border dark:bg-card">
             {approvals.map((approval) => {
-              const def = connector(approval.credential?.connectorSlug ?? "");
+              const def = connectorMap.get(approval.credential?.connectorSlug ?? "");
               const open = approval.status === "pending";
               return (
                 <Link
@@ -103,11 +104,25 @@ export default async function ApprovalsPage({
                     <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[9px] uppercase tracking-[0.1em] text-black/40 dark:text-muted-foreground">
                       <span>{approval.agent.name}</span>
                       <span>·</span>
+                      {approval.kind === "grant" ? (
+                        <>
+                          <span className="text-[#25567a]">JIT access</span>
+                          <span>·</span>
+                        </>
+                      ) : null}
                       <span>{relativeTime(approval.createdAt)}</span>
                       <span>·</span>
                       <span className={open ? "text-[#8c5a12]" : ""}>
                         {open ? `expires ${relativeTime(approval.expiresAt)}` : `decided ${formatDate(approval.decidedAt)}`}
                       </span>
+                      {open && approval.slaDueAt ? (
+                        <>
+                          <span>·</span>
+                          <span className={approval.escalatedAt ? "text-[#8c3225]" : "text-[#8c5a12]"}>
+                            {approval.escalatedAt ? "escalated" : `SLA ${relativeTime(approval.slaDueAt)}`}
+                          </span>
+                        </>
+                      ) : null}
                     </p>
                   </div>
                   <RiskBadge risk={approval.risk} />

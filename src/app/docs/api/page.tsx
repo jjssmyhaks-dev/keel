@@ -30,6 +30,8 @@ const endpoints: { group: string; rows: [string, string, string, string][] }[] =
       ["GET", "/v1/credentials/:id", "API key", "Metadata, mask, health and grants. Never returns the secret."],
       ["PATCH", "/v1/credentials/:id", "Secret key", "Rotate or update metadata and expiry."],
       ["DELETE", "/v1/credentials/:id", "Secret key", "Revoke the credential."],
+      ["POST", "/v1/credentials/:id/refresh", "Secret key", "Run the provider refresh grant and persist rotated tokens."],
+      ["POST", "/v1/credentials/:id/check", "Secret key", "Probe the provider's read-only health check now."],
     ],
   },
   {
@@ -40,8 +42,34 @@ const endpoints: { group: string; rows: [string, string, string, string][] }[] =
       ["GET", "/v1/grants/:id", "API key", "Read one grant."],
       ["PATCH", "/v1/grants/:id", "Secret key", "Change actions, resource, conditions, mode or expiry."],
       ["DELETE", "/v1/grants/:id", "Secret key", "Remove the grant."],
-      ["GET/POST", "/v1/approval-policies", "API key / secret", "List or create action-pattern policies."],
+      ["POST", "/v1/grants/request", "Agent JWT", "Just-in-time access request; creates a pending approval with an SLA."],
+      ["POST", "/v1/policy/simulate", "Secret key", "Dry-run a policy decision with the full trace. No provider call."],
+      ["GET/POST", "/v1/approval-policies", "API key / secret", "List or create action-pattern policies with SLA minutes."],
       ["GET/PATCH/DELETE", "/v1/approval-policies/:id", "API key / secret", "Read, update or delete a policy."],
+    ],
+  },
+  {
+    group: "Agent-native auth",
+    rows: [
+      ["POST", "/v1/tokens/client-credentials", "Client secret", "OAuth 2.1 client-credentials grant; supports DPoP-bound tokens."],
+      ["POST", "/v1/tokens/exchange", "Agent JWT", "RFC 8693 token exchange; cross-agent hops require an active delegation."],
+      ["POST", "/v1/tokens/workload-exchange", "Workload JWT", "Exchange a SPIFFE, Kubernetes or OIDC workload JWT for an agent token."],
+      ["GET/POST", "/v1/delegations", "API key / secret", "List or record parent-to-child delegations, scoped to the parent's grants."],
+      ["DELETE", "/v1/delegations/:id", "Secret key", "Revoke a delegation; tokens issued under it fail on the next call."],
+      ["GET/POST", "/v1/workload-identities", "API key / secret", "List or register workload identity trust rules."],
+      ["GET/PATCH/DELETE", "/v1/workload-identities/:id", "API key / secret", "Inspect, update or remove a workload identity."],
+      ["GET/POST", "/v1/agents/:id/client-secrets", "API key / secret", "List or issue client secrets, narrowed to the agent's grant scopes."],
+      ["DELETE", "/v1/agents/:id/client-secrets/:secretId", "Secret key", "Revoke a client secret."],
+    ],
+  },
+  {
+    group: "Connectors",
+    rows: [
+      ["GET", "/v1/connectors", "API key", "Built-in and active custom connectors, plus custom metadata and versions."],
+      ["POST", "/v1/connectors", "Secret key", "Import an OpenAPI 3.0/3.1 JSON or YAML document (Scale and Enterprise)."],
+      ["GET", "/v1/connectors/:slug", "API key", "Read a custom connector and its version history."],
+      ["DELETE", "/v1/connectors/:slug", "Secret key", "Archive a custom connector."],
+      ["POST", "/v1/connectors/:slug/rollback", "Secret key", "Restore a previous connector version as a new version."],
     ],
   },
   {
@@ -80,7 +108,7 @@ export default function ApiReferencePage() {
       eyebrow="Build"
       title="API reference"
       intro="The REST API is the source of truth. Every dashboard action maps to one of these endpoints, and every endpoint is scoped to the environment of the key or token that calls it."
-      updated="31 October 2026"
+      updated="11 November 2026"
       aside={
         <DocsAside
           links={[
@@ -110,7 +138,8 @@ export default function ApiReferencePage() {
         <tbody>
           <tr><td>Secret API key <code>sk_…</code></td><td><code>Authorization: Bearer sk_…</code></td><td>Read and write everything in its environment.</td></tr>
           <tr><td>Publishable key <code>pk_…</code></td><td><code>Authorization: Bearer pk_…</code></td><td>Read-only endpoints; introspection.</td></tr>
-          <tr><td>Agent token</td><td><code>Authorization: Bearer eyJ…</code></td><td>Proxy calls only, constrained by the agent&apos;s grants.</td></tr>
+          <tr><td>Agent token</td><td><code>Authorization: Bearer eyJ…</code></td><td>Proxy calls, MCP tools and just-in-time grant requests, constrained by the agent&apos;s grants.</td></tr>
+          <tr><td>Client secret</td><td><code>client_id</code> + <code>client_secret</code></td><td>Exchange for a short-lived agent token at <code>/v1/tokens/client-credentials</code>.</td></tr>
         </tbody>
       </table>
       <p>
