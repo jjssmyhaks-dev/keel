@@ -12,8 +12,8 @@ export const metadata: Metadata = { title: "Policy lab" };
 
 const EFFECT_STYLE: Record<string, { label: string; classes: string }> = {
   allow: { label: "Allowed", classes: "border-[#2f7d5c]/35 bg-[#2f7d5c]/[0.07] text-[#245f47]" },
-  require_approval: { label: "Needs approval", classes: "border-[#a56b18]/35 bg-[#a56b18]/[0.07] text-[#8c5a12]" },
-  deny: { label: "Denied", classes: "border-[#b3402f]/35 bg-[#b3402f]/[0.07] text-[#8c3225]" },
+  require_approval: { label: "Needs approval", classes: "border-[#a56b18]/35 bg-[#a56b18]/[0.07] text-[#8c5a12] dark:text-[#e8b26a]" },
+  deny: { label: "Denied", classes: "border-[#b3402f]/35 bg-[#b3402f]/[0.07] text-[#8c3225] dark:text-[#f0a396]" },
 };
 
 export default async function PolicyLabPage({
@@ -96,7 +96,7 @@ export default async function PolicyLabPage({
         title="Test the rule before the agent does."
         description="Evaluate a call against the live policy engine without touching the provider. Conditions, autonomous mode, just-in-time grants and approval routing all resolve exactly as they would at call time."
         actions={
-          <Link href="/app/permissions" className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card">
+          <Link href="/app/permissions" className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
             Grants
           </Link>
         }
@@ -113,7 +113,7 @@ export default async function PolicyLabPage({
             <form method="GET" action="/app/policy" className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="agentId" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                  <label htmlFor="agentId" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                     Agent
                   </label>
                   <select
@@ -121,7 +121,7 @@ export default async function PolicyLabPage({
                     name="agentId"
                     required
                     defaultValue={selectedAgentId}
-                    className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-2 text-[12px] outline-none focus:border-black dark:border-border dark:bg-background"
+                    className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-2 text-[12px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                   >
                     <option value="">Select an agent</option>
                     {agents.map((agent) => (
@@ -132,7 +132,7 @@ export default async function PolicyLabPage({
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="credentialId" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                  <label htmlFor="credentialId" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                     Connection
                   </label>
                   <select
@@ -140,7 +140,7 @@ export default async function PolicyLabPage({
                     name="credentialId"
                     required
                     defaultValue={selectedCredentialId}
-                    className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-2 text-[12px] outline-none focus:border-black dark:border-border dark:bg-background"
+                    className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-2 text-[12px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                   >
                     <option value="">Select a connection</option>
                     {credentials.map((credential) => (
@@ -154,7 +154,7 @@ export default async function PolicyLabPage({
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="action" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                  <label htmlFor="action" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                     Action
                   </label>
                   <input
@@ -164,7 +164,7 @@ export default async function PolicyLabPage({
                     list="policy-actions"
                     defaultValue={query.action ?? ""}
                     placeholder={actionOptions[0]?.name ?? "stripe.create_refund"}
-                    className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                    className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                   />
                   <datalist id="policy-actions">
                     {actionOptions.map((action) => (
@@ -175,49 +175,49 @@ export default async function PolicyLabPage({
                   </datalist>
                 </div>
                 <div>
-                  <label htmlFor="resource" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
-                    Resource <span className="normal-case tracking-normal text-black/30 dark:text-muted-foreground">optional</span>
+                  <label htmlFor="resource" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
+                    Resource <span className="normal-case tracking-normal text-black/60 dark:text-muted-foreground">optional</span>
                   </label>
                   <input
                     id="resource"
                     name="resource"
                     defaultValue={query.resource ?? ""}
                     placeholder={def?.resourcePlaceholder ?? "customer:cus_123"}
-                    className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                    className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                   />
                 </div>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="ip" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
-                    Caller IP <span className="normal-case tracking-normal text-black/30 dark:text-muted-foreground">for IP conditions</span>
+                  <label htmlFor="ip" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
+                    Caller IP <span className="normal-case tracking-normal text-black/60 dark:text-muted-foreground">for IP conditions</span>
                   </label>
                   <input
                     id="ip"
                     name="ip"
                     defaultValue={query.ip ?? ""}
                     placeholder="203.0.113.42"
-                    className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                    className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                   />
                 </div>
                 <div>
-                  <label htmlFor="at" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
-                    Evaluate at <span className="normal-case tracking-normal text-black/30 dark:text-muted-foreground">ISO, optional</span>
+                  <label htmlFor="at" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
+                    Evaluate at <span className="normal-case tracking-normal text-black/60 dark:text-muted-foreground">ISO, optional</span>
                   </label>
                   <input
                     id="at"
                     name="at"
                     defaultValue={query.at ?? ""}
                     placeholder="2026-11-11T09:30:00Z"
-                    className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                    className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="inputJson" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
-                  Tool input <span className="normal-case tracking-normal text-black/30 dark:text-muted-foreground">JSON for amount conditions</span>
+                <label htmlFor="inputJson" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
+                  Tool input <span className="normal-case tracking-normal text-black/60 dark:text-muted-foreground">JSON for amount conditions</span>
                 </label>
                 <textarea
                   id="inputJson"
@@ -225,7 +225,7 @@ export default async function PolicyLabPage({
                   rows={4}
                   defaultValue={query.inputJson ?? ""}
                   placeholder={'{\n  "amount": 250,\n  "currency": "usd"\n}'}
-                  className="mt-1 w-full resize-y border border-black/15 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                  className="mt-1 w-full resize-y border border-black/45 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                 />
               </div>
 
@@ -236,7 +236,7 @@ export default async function PolicyLabPage({
                 >
                   Simulate decision
                 </button>
-                <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/35 dark:text-muted-foreground">
+                <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/60 dark:text-muted-foreground">
                   reads live grants, policies and agent state
                 </p>
               </div>
@@ -250,18 +250,18 @@ export default async function PolicyLabPage({
                   {effect?.label}
                 </span>
                 <RiskBadge risk={decision.risk} />
-                <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/35 dark:text-muted-foreground">
+                <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/60 dark:text-muted-foreground">
                   source {decision.source}
                 </span>
                 {decision.action ? (
-                  <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/35 dark:text-muted-foreground">
+                  <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/60 dark:text-muted-foreground">
                     · {decision.action.name} · {decision.action.method}
                   </span>
                 ) : null}
               </div>
               <div className="border-b border-black/10 px-4 py-3 dark:border-border">
                 <p className="text-[12px] leading-relaxed text-black/70 dark:text-muted-foreground">{decision.reason}</p>
-                <p className="mt-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-black/40 dark:text-muted-foreground">
+                <p className="mt-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-black/60 dark:text-muted-foreground">
                   {decision.effect === "allow"
                     ? "The proxy would call the provider now."
                     : decision.effect === "require_approval"
@@ -277,15 +277,15 @@ export default async function PolicyLabPage({
                         step.outcome === "pass"
                           ? "border-[#2f7d5c]/30 text-[#245f47]"
                           : step.outcome === "fail"
-                            ? "border-[#b3402f]/35 text-[#8c3225]"
-                            : "border-black/15 text-black/35 dark:border-border dark:text-muted-foreground"
+                            ? "border-[#b3402f]/35 text-[#8c3225] dark:text-[#f0a396]"
+                            : "border-black/15 text-black/60 dark:border-border dark:text-muted-foreground"
                       }`}
                     >
                       {step.outcome}
                     </span>
                     <div className="min-w-0">
                       <p className="font-mono text-[10px]">{step.check}</p>
-                      <p className="mt-0.5 text-[11px] leading-relaxed text-black/50 dark:text-muted-foreground">{step.detail}</p>
+                      <p className="mt-0.5 text-[11px] leading-relaxed text-black/60 dark:text-muted-foreground">{step.detail}</p>
                     </div>
                   </div>
                 ))}
@@ -302,11 +302,11 @@ export default async function PolicyLabPage({
                   <div key={policy.id} className="px-4 py-2.5">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-mono text-[10px]">{policy.actionPattern}</span>
-                      <span className="border border-black/10 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-black/45 dark:border-border dark:text-muted-foreground">
+                      <span className="border border-black/10 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-black/60 dark:border-border dark:text-muted-foreground">
                         {policy.mode}
                       </span>
                     </div>
-                    <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.1em] text-black/35 dark:text-muted-foreground">
+                    <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.1em] text-black/60 dark:text-muted-foreground">
                       {policy.agent?.name ?? "environment default"}
                       {policy.slaMinutes ? ` · SLA ${policy.slaMinutes}m` : ""}
                       {policy.escalateToRole ? ` · escalate to ${policy.escalateToRole}` : ""}
@@ -328,15 +328,15 @@ export default async function PolicyLabPage({
           </Panel>
 
           <div className="border border-black/10 bg-white p-4 dark:border-border dark:bg-card">
-            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/40 dark:text-muted-foreground">What gets checked</p>
-            <ul className="mt-2 space-y-1.5 text-[11px] leading-relaxed text-black/55 dark:text-muted-foreground">
+            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">What gets checked</p>
+            <ul className="mt-2 space-y-1.5 text-[11px] leading-relaxed text-black/65 dark:text-muted-foreground">
               <li>Agent status, credential state and connector action allowlist</li>
               <li>Grant pattern, action list, approval mode and expiry</li>
               <li>Just-in-time grants stay denied until activated</li>
               <li>IP allowlists, time windows and amount ceilings are fail-closed</li>
               <li>Approval policies route the call; SLA decides when to escalate</li>
             </ul>
-            <p className="mt-3 border-t border-black/10 pt-2 text-[10px] leading-relaxed text-black/35 dark:border-border dark:text-muted-foreground">
+            <p className="mt-3 border-t border-black/10 pt-2 text-[10px] leading-relaxed text-black/60 dark:border-border dark:text-muted-foreground">
               Simulation is read-only: no approval request is created, no audit event is chained, no provider is contacted.
             </p>
           </div>

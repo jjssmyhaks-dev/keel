@@ -50,6 +50,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       activeEnvironment={{ id: ctx.environment.id, type: ctx.environment.type }}
       pendingApprovals={pendingApprovals}
       unreadNotifications={unreadNotifications}
+      isPlatformAdmin={ctx.user.isPlatformAdmin}
       search={{
         agents,
         credentials: credentials.map((credential) => ({

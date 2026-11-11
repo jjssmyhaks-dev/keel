@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { sha256 } from "@/lib/crypto";
-import { createSession } from "@/lib/session";
+import { beginLogin } from "@/lib/login";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ token: string }> }) {
   const { token } = await ctx.params;
@@ -32,10 +32,21 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
     return NextResponse.redirect(`${origin}/sign-in?notice=magic-expired`);
   }
   const h = await headers();
-  await createSession(user.id, {
-    ip: h.get("x-forwarded-for")?.split(",")[0]?.trim() || undefined,
-    userAgent: h.get("user-agent") || undefined,
-  });
+  const outcome = await beginLogin(
+    user,
+    {
+      ip: h.get("x-forwarded-for")?.split(",")[0]?.trim() || undefined,
+      userAgent: h.get("user-agent") || undefined,
+    },
+    { authMethod: "magic" },
+  );
+
+  if (outcome.kind === "challenge") {
+    return NextResponse.redirect(`${origin}/mfa?token=${encodeURIComponent(outcome.token)}`);
+  }
+  if (outcome.kind === "enroll") {
+    return NextResponse.redirect(`${origin}/mfa/enroll?required=1`);
+  }
 
   return NextResponse.redirect(`${origin}${user.onboardedAt ? "/app" : "/onboarding"}`);
 }

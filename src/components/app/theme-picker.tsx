@@ -37,7 +37,7 @@ export function ThemePicker({ initial }: { initial: ThemeId }) {
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-[12px] font-medium">{theme.name}</span>
-                <span className="block truncate font-mono text-[9px] text-black/40 dark:text-muted-foreground">
+                <span className="block truncate font-mono text-[9px] text-black/60 dark:text-muted-foreground">
                   {theme.description}
                 </span>
               </span>
@@ -46,7 +46,7 @@ export function ThemePicker({ initial }: { initial: ThemeId }) {
           );
         })}
       </div>
-      <p className="mt-3 text-[10px] leading-relaxed text-black/40 dark:text-muted-foreground">
+      <p className="mt-3 text-[10px] leading-relaxed text-black/60 dark:text-muted-foreground">
         Applies to this browser only. Each theme has a matching dark palette.
       </p>
     </div>

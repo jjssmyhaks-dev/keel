@@ -160,7 +160,7 @@ export function HeroSection() {
             </Link>
           </div>
 
-          <div className={`mt-12 flex items-center gap-2 font-mono text-[11px] text-white/35 transition-all duration-1000 delay-500 ${visible ? "opacity-100" : "opacity-0"}`}>
+          <div className={`mt-12 flex items-center gap-2 font-mono text-[11px] text-white/60 transition-all duration-1000 delay-500 ${visible ? "opacity-100" : "opacity-0"}`}>
             <span className="w-1.5 h-1.5 rounded-full bg-[#eca8d6] live-dot" />
             No credit card · Development mode free forever
           </div>
@@ -180,7 +180,7 @@ export function HeroSection() {
           ].map((stat) => (
             <div key={stat.label} className="flex flex-col gap-1.5">
               <span className="text-2xl lg:text-4xl font-display text-white">{stat.value}</span>
-              <span className="text-[11px] text-white/40 leading-tight max-w-[180px]">{stat.label}</span>
+              <span className="text-[11px] text-white/60 leading-tight max-w-[180px]">{stat.label}</span>
             </div>
           ))}
         </div>

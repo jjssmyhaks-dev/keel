@@ -91,7 +91,7 @@ export function ProcessSection() {
         <div className="relative mb-16 lg:mb-24 grid lg:grid-cols-2 gap-8 lg:gap-12 items-end">
           <div>
             <div className={`transition-all duration-1000 ${visible ? "opacity-100" : "opacity-0"}`}>
-              <span className="inline-flex items-center gap-3 text-sm font-mono text-white/40 mb-8">
+              <span className="inline-flex items-center gap-3 text-sm font-mono text-white/60 mb-8">
                 <span className="w-12 h-px bg-white/20" />
                 Process
               </span>
@@ -102,8 +102,8 @@ export function ProcessSection() {
               }`}
             >
               <span className="block">Register.</span>
-              <span className="block text-white/30">Grant.</span>
-              <span className="block text-white/10">Execute.</span>
+              <span className="block text-white/60">Grant.</span>
+              <span className="block text-white/40">Execute.</span>
             </h2>
           </div>
 
@@ -112,7 +112,7 @@ export function ProcessSection() {
               Three calls to go from a bare model to an agent with a real identity and a
               governed path to production.
             </p>
-            <div className="mt-8 inline-flex items-center gap-3 font-mono text-[11px] text-white/35">
+            <div className="mt-8 inline-flex items-center gap-3 font-mono text-[11px] text-white/60">
               <span className="w-1.5 h-1.5 rounded-full bg-[#eca8d6] live-dot" />
               Dev mode is permissive. Prod enforces.
             </div>
@@ -139,7 +139,7 @@ export function ProcessSection() {
               <div className="flex items-center gap-4 mb-8">
                 <span
                   className={`text-4xl font-display transition-colors duration-300 ${
-                    activeStep === index ? "text-[#eca8d6]" : "text-white/20"
+                    activeStep === index ? "text-[#eca8d6]" : "text-white/60"
                   }`}
                 >
                   {item.number}
@@ -149,7 +149,7 @@ export function ProcessSection() {
                 </div>
               </div>
               <h3 className="text-3xl lg:text-4xl font-display mb-1">{item.title}</h3>
-              <span className="text-xl text-white/40 font-display block mb-5">{item.subtitle}</span>
+              <span className="text-xl text-white/60 font-display block mb-5">{item.subtitle}</span>
               <p className="text-sm text-white/55 leading-relaxed">{item.description}</p>
               <div
                 className={`absolute bottom-0 left-0 right-0 h-px bg-[#eca8d6] transition-transform duration-500 origin-left ${
@@ -166,9 +166,9 @@ export function ProcessSection() {
               <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
               <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
               <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
-              <span className="ml-3 font-mono text-[11px] text-white/40">{step.fileName}</span>
+              <span className="ml-3 font-mono text-[11px] text-white/60">{step.fileName}</span>
             </div>
-            <span className="font-mono text-[10px] text-white/25 uppercase tracking-widest">typescript</span>
+            <span className="font-mono text-[10px] text-white/60 uppercase tracking-widest">typescript</span>
           </div>
           <pre className="p-6 lg:p-8 overflow-x-auto text-[13px] leading-[1.85] text-white/75 font-mono min-h-[280px]">
             <code>{step.code}</code>

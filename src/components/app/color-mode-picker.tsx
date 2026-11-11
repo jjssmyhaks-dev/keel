@@ -40,7 +40,7 @@ export function ColorModePicker() {
           );
         })}
       </div>
-      <p className="mt-2 text-[10px] leading-relaxed text-black/40 dark:text-muted-foreground">
+      <p className="mt-2 text-[10px] leading-relaxed text-black/60 dark:text-muted-foreground">
         System follows the appearance setting on your device.
       </p>
     </div>

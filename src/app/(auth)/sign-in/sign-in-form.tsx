@@ -133,7 +133,7 @@ export function SignInForm({
               Explore the demo workspace
             </button>
           </form>
-          <p className="mt-2 text-center font-mono text-[10px] text-muted-foreground/70">
+          <p className="mt-2 text-center font-mono text-[10px] text-muted-foreground">
             demo@authab.dev · AuthabDemo!2026 · Northwind Labs
           </p>
         </>

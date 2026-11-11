@@ -17,6 +17,7 @@ import { createApprovalRequest } from "@/lib/approvals";
 import { auditEvent } from "@/lib/audit";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { sha256 } from "@/lib/crypto";
+import { redact, redactedFieldNames } from "@/lib/redaction";
 import { serializeApproval } from "@/lib/serializers";
 import { checkPlanLimit, productionAccess } from "@/lib/limits";
 import { approvalUrlFor } from "@/lib/signed-links";
@@ -192,7 +193,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
         actorId: auth.agent.id,
         actorName: auth.agent.name,
         agentId: auth.agent.id,
-        action: "proxy.call",
+        action: connectorDef.sandbox ? "sandbox.call" : "proxy.call",
         resourceType: "connector",
         resourceId: connectorDef.slug,
         outcome: "denied",
@@ -205,7 +206,24 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
           risk: decision.risk,
           reason: decision.reason,
           source: decision.source,
-          input: body.input ?? {},
+          ...(connectorDef.sandbox ? { sandbox: true } : {}),
+          input: redact(body.input ?? {}, connectorDef.redactedFields),
+          trust: {
+            egress: false,
+            request: { method: "—", target: null },
+            injection: {
+              location: "none",
+              name: null,
+              scheme: null,
+              source: "Denied before execution — no credential was decrypted or injected",
+            },
+            injectedHeaders: [],
+            injectedParams: [],
+            injectedBodyFields: [],
+            redactions: redactedFieldNames(body.input ?? {}, connectorDef.redactedFields),
+            responseRedactions: 0,
+            responseStatus: null,
+          },
         },
       });
       return apiError(
@@ -249,6 +267,13 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
       resource: body.resource,
       requestId: rid,
       ip,
+      decision: {
+        effect: decision.effect,
+        risk: decision.risk,
+        source: decision.source,
+        reason: decision.reason,
+        grantId: decision.grant?.id ?? null,
+      },
     });
 
     const providerError = providerAuthFailure(connectorDef.slug, result.body);

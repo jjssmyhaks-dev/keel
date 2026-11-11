@@ -75,6 +75,12 @@ audit event with per-environment SHA-256 hash chain
 
 Read calls are allowed in development and production when granted. Writes are allowed in development but require approval in production by default. Destructive and financial actions require approval in both. **Safe launch** overrides non-read calls to require approval for the first seven days after promotion.
 
+## Sandbox playground
+
+`/app/playground` exercises the proxy before a provider key exists. It calls the same `POST /api/v1/proxy/sandbox` endpoint agents use, provisioning a sandbox connection row with no stored secret and a sandbox-only grant (`sandbox.*`) on first run. Five actions cover read, write, financial, destructive and admin risk; agent status, grants, resource patterns, conditions, policy, approvals and rate limits all run unchanged.
+
+Allowed runs execute in-process and return a synthetic envelope — no secret is decrypted and no network request leaves the app. Financial, destructive and admin actions open a real approval that executes the stored sandbox call when decided. Sandbox events land in the audit chain as `sandbox.call`, count toward grant call caps, and are excluded from billable proxy usage.
+
 ## Neon
 
 The app runs on Neon Postgres. `neon.ts` declares the branch policy and the services used by this deployment:
@@ -107,7 +113,7 @@ Every environment calls providers for real. Policy, approvals, rate limits and a
 | Policy | `POST /policy/simulate`, `GET/POST /approval-policies`, `GET/PATCH/DELETE /approval-policies/:id` |
 | Connectors | `POST /connectors` (OpenAPI 3 import), `GET/DELETE /connectors/:slug`, `POST /connectors/:slug/rollback` |
 | Approvals | `GET /approvals`, `GET/POST /approvals/:id` |
-| Proxy | `POST /proxy/:connector` (agent JWT; `Idempotency-Key` supported) |
+| Proxy | `POST /proxy/:connector` (agent JWT; `Idempotency-Key` supported; `sandbox` runs the pipeline with no provider egress) |
 | Audit | `GET /audit`, `GET /audit/verify`, `GET /audit/export` |
 | Webhooks | `GET/POST /webhooks`, `GET/PATCH/DELETE /webhooks/:id` |
 | Public | `GET /jwks`, `GET /openapi`, `GET /api/status`, `POST /api/mcp`, `GET /api/mcp/registry` |
@@ -165,7 +171,7 @@ AUTHAB_API_KEY=sk_dev_... AUTHAB_AGENT_ID=agt_atlas AUTHAB_CONNECTOR=slack AUTHA
 - Every policy decision is deny-by-default and evaluated server-side. Conditions on CIDR, time window, day, timezone, amount and call rate fail closed when malformed. `POST /policy/simulate` runs the same pipeline as the proxy without executing or consuming anything.
 - Custom connectors compile from OpenAPI 3.0/3.1 only, require HTTPS servers, reject private and link-local base URLs, refuse required header/cookie parameters the proxy cannot forward, cap imports at 100 actions, and stay behind the Scale/Enterprise plan gate.
 - Approval payloads are redacted before storage. Approving executes the stored call; the requester cannot approve its own request. Approval SLAs escalate to a configured role and the scheduler expires unanswered requests.
-- Audit events are chained per environment with `SHA-256(prevHash + ":" + canonicalJSON(event))`. Appends take a Postgres advisory lock so concurrent writes cannot fork the chain; `GET /audit/verify` walks the chain.
+- Audit events are chained per environment with `SHA-256(prevHash + ":" + canonicalJSON(event))`. Appends take a Postgres advisory lock so concurrent writes cannot fork the chain; `GET /audit/verify` walks the chain. A database trigger rejects UPDATE, DELETE and TRUNCATE unless a maintenance or restore job opts in with `SET LOCAL app.audit_maintenance = 'on'`.
 - Dashboard sessions are httpOnly and database-backed; API keys are stored hashed with a prefix retained for display. Sign-in, sign-up, magic-link and reset requests are throttled in the database.
 - Webhook delivery blocks loopback, private, link-local and metadata addresses, refuses redirects, and retries failed deliveries with exponential backoff.
 - Responses set HSTS, a same-origin Content Security Policy, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` and a same-origin opener policy.
@@ -184,6 +190,9 @@ npm run connectors:check # validate connector manifests, action names, risks, ho
 npm run db:seed         # reseed demo workspace (blocked in production unless ALLOW_DEMO_SEED=1)
 npm run db:migrate      # apply pending Prisma migrations to Neon
 npm run db:reset        # destructive: reset schema and reseed
+npm run db:backup       # checksummed logical backup of every table (direct connection)
+npm run db:restore      # guarded, single-transaction restore; --target is mandatory
+npm run loadtest        # closed-loop HTTP load test with p50/p95/p99 and thresholds
 npm run sdk:build       # compile the SDK
 npm run sdk:test        # SDK crypto, webhook signature and AI SDK tool-loop checks
 npm run python:test     # Python SDK and framework integration tests
@@ -204,6 +213,7 @@ npm run mcp:typecheck   # typecheck MCP server against SDK source
 7. To enable card checkout, set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and price IDs for each plan and currency (`STRIPE_PRICE_PRO`, `STRIPE_PRICE_PRO_INR`, `STRIPE_PRICE_SCALE`, `STRIPE_PRICE_SCALE_INR`), then register `${APP_URL}/api/stripe/webhook` for `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid` and `invoice.payment_failed`. Without Stripe, the billing page falls back to emailing a plan-change request.
 8. Leave `ALLOW_DEMO_LOGIN` and `ALLOW_DEMO_SEED` unset in production. Demo access is disabled there unless explicitly enabled.
 9. Put `/api/status` behind your uptime monitor, and run `GET /api/v1/audit/verify` as a scheduled check with a secret key.
+10. Schedule `npm run db:backup` daily to storage outside the database provider, keep `MASTER_KEY`, `JWT_SIGNING_PRIVATE_KEY` and `AUTH_COOKIE_SECRET` recoverable from a secret manager, and run a restore rehearsal monthly. See `docs/operations/backup-restore.md` for the measured RPO/RTO and the procedure.
 
 ## Demo data
 

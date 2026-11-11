@@ -81,7 +81,7 @@ export default async function OverviewPage() {
           <>
             <Link
               href="/app/approvals"
-              className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card"
+              className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card"
             >
               Approvals {pendingCount ? `(${pendingCount})` : ""}
             </Link>
@@ -122,7 +122,7 @@ export default async function OverviewPage() {
                     href={`/app/agents/${agent.id}`}
                     className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-black/[0.025] dark:hover:bg-white/[0.02]"
                   >
-                    <span className="flex size-8 shrink-0 items-center justify-center border border-black/15 bg-[#faf9f6] font-mono text-[10px] dark:border-border dark:bg-background">
+                    <span className="flex size-8 shrink-0 items-center justify-center border border-black/45 bg-[#faf9f6] font-mono text-[10px] dark:border-white/40 dark:bg-background">
                       {agent.name.slice(0, 2).toUpperCase()}
                     </span>
                     <div className="min-w-0 flex-1">
@@ -130,14 +130,14 @@ export default async function OverviewPage() {
                         <p className="truncate text-[13px]">{agent.name}</p>
                         <StatusBadge status={agent.status} />
                       </div>
-                      <p className="truncate font-mono text-[10px] text-black/40 dark:text-muted-foreground">
+                      <p className="truncate font-mono text-[10px] text-black/60 dark:text-muted-foreground">
                         {agent.grants.length} grant{agent.grants.length === 1 ? "" : "s"} · {agent.framework ?? "framework-less"}
                       </p>
                     </div>
-                    <span className="hidden font-mono text-[10px] text-black/40 dark:text-muted-foreground sm:block">
+                    <span className="hidden font-mono text-[10px] text-black/60 dark:text-muted-foreground sm:block">
                       {agent.lastActiveAt ? relativeTime(agent.lastActiveAt) : "never active"}
                     </span>
-                    <span className="font-mono text-[10px] text-black/30">→</span>
+                    <span className="font-mono text-[10px] text-black/60 dark:text-muted-foreground">→</span>
                   </Link>
                 ))}
               </div>
@@ -165,7 +165,7 @@ export default async function OverviewPage() {
                 />
               ))}
             </div>
-            <div className="mt-2 flex justify-between font-mono text-[9px] uppercase tracking-[0.14em] text-black/35 dark:text-muted-foreground">
+            <div className="mt-2 flex justify-between font-mono text-[9px] uppercase tracking-[0.14em] text-black/60 dark:text-muted-foreground">
               <span>24h ago</span>
               <span>{dayEvents.length} calls</span>
               <span>now</span>
@@ -186,21 +186,21 @@ export default async function OverviewPage() {
               {recent.length ? (
                 recent.map((event) => (
                   <div key={event.id} className="flex items-center gap-3 px-4 py-2.5">
-                    <span className="w-14 shrink-0 font-mono text-[9px] uppercase tracking-[0.12em] text-black/35 dark:text-muted-foreground">
+                    <span className="w-14 shrink-0 font-mono text-[9px] uppercase tracking-[0.12em] text-black/60 dark:text-muted-foreground">
                       {relativeTime(event.timestamp)}
                     </span>
                     <StatusBadge status={event.outcome} />
                     <p className="min-w-0 flex-1 truncate text-[12px]">
                       <span className="font-medium">{actionLabel(event.action)}</span>
-                      <span className="text-black/45 dark:text-muted-foreground"> · {event.actorName}</span>
+                      <span className="text-black/60 dark:text-muted-foreground"> · {event.actorName}</span>
                     </p>
-                    <span className="hidden font-mono text-[10px] text-black/35 dark:text-muted-foreground md:block">
+                    <span className="hidden font-mono text-[10px] text-black/60 dark:text-muted-foreground md:block">
                       {event.resourceType}
                     </span>
                   </div>
                 ))
               ) : (
-                <p className="px-4 py-6 text-[12px] text-black/45 dark:text-muted-foreground">No activity recorded yet.</p>
+                <p className="px-4 py-6 text-[12px] text-black/60 dark:text-muted-foreground">No activity recorded yet.</p>
               )}
             </div>
           </Panel>
@@ -227,19 +227,19 @@ export default async function OverviewPage() {
                   >
                     <div className="flex items-center gap-2">
                       <RiskBadge risk={approval.risk} />
-                      <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-black/35 dark:text-muted-foreground">
+                      <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-black/60 dark:text-muted-foreground">
                         {relativeTime(approval.createdAt)}
                       </span>
                     </div>
                     <p className="mt-1.5 line-clamp-2 text-[12px] leading-snug">{approval.summary}</p>
-                    <p className="mt-1 font-mono text-[9px] text-black/35 dark:text-muted-foreground">{approval.agent.name}</p>
+                    <p className="mt-1 font-mono text-[9px] text-black/60 dark:text-muted-foreground">{approval.agent.name}</p>
                   </Link>
                 ))}
               </div>
             ) : (
               <div className="px-4 py-8 text-center">
                 <p className="font-display text-xl tracking-tight">Inbox zero.</p>
-                <p className="mt-1 text-[12px] text-black/45 dark:text-muted-foreground">Nothing is blocked on a human.</p>
+                <p className="mt-1 text-[12px] text-black/60 dark:text-muted-foreground">Nothing is blocked on a human.</p>
               </div>
             )}
           </Panel>
@@ -267,11 +267,11 @@ export default async function OverviewPage() {
                     <span className="size-1.5 shrink-0 rounded-full" style={{ background: def?.color ?? "#999" }} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[12px]">{credential.name}</p>
-                      <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/35 dark:text-muted-foreground">
+                      <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/60 dark:text-muted-foreground">
                         {def?.name ?? credential.connectorSlug}
                       </p>
                     </div>
-                    <span className="font-mono text-[9px] text-black/40 dark:text-muted-foreground">
+                    <span className="font-mono text-[9px] text-black/60 dark:text-muted-foreground">
                       {credential.status === "broken"
                         ? "broken"
                         : credential.expiresAt
@@ -289,22 +289,22 @@ export default async function OverviewPage() {
           <Panel title="Usage" hint={`${plan.name} plan`} bodyClassName="p-4">
             <div className="flex items-baseline justify-between">
               <p className="font-display text-2xl tracking-tight">{usedCalls.toLocaleString("en-IN")}</p>
-              <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/40 dark:text-muted-foreground">
+              <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/60 dark:text-muted-foreground">
                 {callLimit > 0 ? `of ${callLimit.toLocaleString("en-IN")}` : "unlimited"}
               </p>
             </div>
             <div className="mt-2 h-1.5 bg-black/10 dark:bg-white/10">
               <div className="h-full bg-black dark:bg-foreground" style={{ width: `${callPercent}%` }} />
             </div>
-            <p className="mt-2 text-[11px] text-black/45 dark:text-muted-foreground">
+            <p className="mt-2 text-[11px] text-black/60 dark:text-muted-foreground">
               Proxy calls this month. {plan.name === "free" ? "Upgrade for production and 50k calls." : "Calls beyond the allowance are refused, not billed over."}
             </p>
             <div className="mt-3 flex gap-2">
-              <Link href="/app/billing" className="border border-black/15 px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[0.14em] hover:border-black dark:border-border">
+              <Link href="/app/billing" className="border border-black/45 px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[0.14em] hover:border-black dark:border-white/40">
                 Billing
               </Link>
               {ctx.environment.type === "development" && (
-                <Link href="/app/agents" className="border border-black/15 px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[0.14em] hover:border-black dark:border-border">
+                <Link href="/app/agents" className="border border-black/45 px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[0.14em] hover:border-black dark:border-white/40">
                   Promote to prod
                 </Link>
               )}
@@ -312,7 +312,7 @@ export default async function OverviewPage() {
           </Panel>
 
           <div className="border border-black/10 bg-[#0b0b0b] p-4 text-[#e8e6e1] dark:border-border">
-            <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/45">Quickstart</p>
+            <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/80">Quickstart</p>
             <pre className="mt-3 overflow-x-auto text-[10px] leading-relaxed text-[#cfcdc6]">{`const authab = new Authab("sk_dev_…");
 
 const token = await authab.agents.token("agt_atlas");

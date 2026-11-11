@@ -1,16 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalShell } from "@/components/legal/legal-shell";
+import { SUBPROCESSORS } from "@/lib/trust";
 
 export const metadata: Metadata = {
   title: "Data processing agreement",
   description: "How Authab processes workspace data on your behalf, where it is stored, and who helps us run the service.",
 };
-
-const subprocessors = [
-  ["Neon", "AWS ap-southeast-1 (Singapore)", "Application hosting, managed Postgres, encrypted backups", "GDPR, SCCs"],
-  ["Resend", "United States", "Transactional email — sign-in, approvals, security alerts", "SCCs"],
-];
 
 export default function DpaPage() {
   return (
@@ -60,12 +56,12 @@ export default function DpaPage() {
           </tr>
         </thead>
         <tbody>
-          {subprocessors.map(([name, location, purpose, safeguards]) => (
-            <tr key={name}>
-              <td>{name}</td>
-              <td>{location}</td>
-              <td>{purpose}</td>
-              <td>{safeguards}</td>
+          {SUBPROCESSORS.map((processor) => (
+            <tr key={processor.name}>
+              <td>{processor.name}</td>
+              <td>{processor.location}</td>
+              <td>{processor.purpose}</td>
+              <td>{processor.safeguards}</td>
             </tr>
           ))}
         </tbody>
@@ -88,10 +84,11 @@ export default function DpaPage() {
 
       <h2 id="audit">6. Audits</h2>
       <p>
-        We will answer reasonable security questionnaires and provide our latest audit or penetration-test summary
-        under NDA. If that is not sufficient, you may conduct an audit once per year with 30 days&apos; notice, remotely
-        where possible, at your cost, subject to confidentiality and without access to other customers&apos; data. We
-        cooperate with supervisory authorities as required.
+        We will answer reasonable security questionnaires and share audit or penetration-test reports under NDA once
+        they exist. None has been completed yet; current compliance status, subprocessors and controls are published in
+        the <Link href="/trust">Trust Center</Link>. If that is not sufficient, you may conduct an audit once per year
+        with 30 days&apos; notice, remotely where possible, at your cost, subject to confidentiality and without access to
+        other customers&apos; data. We cooperate with supervisory authorities as required.
       </p>
 
       <h2 id="retention">7. Retention and deletion</h2>

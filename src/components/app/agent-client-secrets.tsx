@@ -110,7 +110,7 @@ export function AgentClientSecrets({
         <form onSubmit={createSecret} className="space-y-3 border border-black/10 bg-[#faf9f6] p-3 dark:border-border dark:bg-background">
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label htmlFor="secret_label" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+              <label htmlFor="secret_label" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                 Label
               </label>
               <input
@@ -118,18 +118,18 @@ export function AgentClientSecrets({
                 value={label}
                 onChange={(event) => setLabel(event.target.value)}
                 maxLength={60}
-                className="mt-1 w-full border border-black/15 bg-white px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-card"
+                className="mt-1 w-full border border-black/45 bg-white px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-white/40 dark:bg-card"
               />
             </div>
             <div>
-              <label htmlFor="secret_days" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+              <label htmlFor="secret_days" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                 Expires
               </label>
               <select
                 id="secret_days"
                 value={days}
                 onChange={(event) => setDays(event.target.value)}
-                className="mt-1 w-full border border-black/15 bg-white px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-card"
+                className="mt-1 w-full border border-black/45 bg-white px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-white/40 dark:bg-card"
               >
                 <option value="">Never</option>
                 <option value="30">In 30 days</option>
@@ -139,7 +139,7 @@ export function AgentClientSecrets({
             </div>
           </div>
           <div>
-            <label htmlFor="secret_scopes" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+            <label htmlFor="secret_scopes" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
               Scopes (optional)
             </label>
             <input
@@ -147,7 +147,7 @@ export function AgentClientSecrets({
               value={scopes}
               onChange={(event) => setScopes(event.target.value)}
               placeholder="Blank = every granted action. Or: slack.post_message, github.issues.write"
-              className="mt-1 w-full border border-black/15 bg-white px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-card"
+              className="mt-1 w-full border border-black/45 bg-white px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-white/40 dark:bg-card"
             />
           </div>
           <button
@@ -158,13 +158,13 @@ export function AgentClientSecrets({
           </button>
         </form>
       ) : (
-        <p className="text-[11px] text-black/45 dark:text-muted-foreground">
+        <p className="text-[11px] text-black/60 dark:text-muted-foreground">
           Your role can view agent credentials but cannot issue or revoke them.
         </p>
       )}
 
       {error ? (
-        <p className="border border-[#b3402f]/30 bg-[#b3402f]/[0.06] px-3 py-2 text-[11px] text-[#8c3225]">{error}</p>
+        <p className="border border-[#b3402f]/30 bg-[#b3402f]/[0.06] px-3 py-2 text-[11px] text-[#8c3225] dark:text-[#f0a396]">{error}</p>
       ) : null}
 
       {revealed ? (
@@ -181,7 +181,7 @@ export function AgentClientSecrets({
             >
               {copied ? "Copied" : "Copy"}
             </button>
-            <p className="text-[10px] text-black/45 dark:text-muted-foreground">
+            <p className="text-[10px] text-black/60 dark:text-muted-foreground">
               Only a hash is stored. This value cannot be shown again.
             </p>
           </div>
@@ -194,22 +194,22 @@ export function AgentClientSecrets({
             <div key={secret.id} className="px-3 py-2.5">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-mono text-[11px]">{secret.prefix}…</span>
-                <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/40 dark:text-muted-foreground">{secret.label}</span>
+                <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/60 dark:text-muted-foreground">{secret.label}</span>
                 {secret.revokedAt ? (
-                  <span className="border border-[#b3402f]/35 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-[#8c3225]">revoked</span>
+                  <span className="border border-[#b3402f]/35 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-[#8c3225] dark:text-[#f0a396]">revoked</span>
                 ) : null}
                 {canManage && !secret.revokedAt ? (
                   <button
                     type="button"
                     disabled={busy}
                     onClick={() => revokeSecret(secret.id)}
-                    className="ml-auto font-mono text-[9px] uppercase tracking-[0.12em] text-[#8c3225] underline disabled:opacity-40"
+                    className="ml-auto font-mono text-[9px] uppercase tracking-[0.12em] text-[#8c3225] dark:text-[#f0a396] underline disabled:opacity-40"
                   >
                     Revoke
                   </button>
                 ) : null}
               </div>
-              <p className="mt-1 font-mono text-[9px] text-black/40 dark:text-muted-foreground">
+              <p className="mt-1 font-mono text-[9px] text-black/60 dark:text-muted-foreground">
                 {secret.scopes.length ? secret.scopes.join(", ") : "all granted actions"} ·{" "}
                 {secret.lastUsedAt ? `used ${relativeTime(secret.lastUsedAt)}` : "never used"} ·{" "}
                 {secret.expiresAt ? `expires ${formatDate(secret.expiresAt)}` : "no expiry"}
@@ -218,7 +218,7 @@ export function AgentClientSecrets({
           ))}
         </div>
       ) : (
-        <p className="text-[11px] leading-relaxed text-black/45 dark:text-muted-foreground">
+        <p className="text-[11px] leading-relaxed text-black/60 dark:text-muted-foreground">
           No client secret yet. Issue one so this agent can obtain short-lived tokens with{" "}
           <span className="font-mono">POST /api/v1/tokens/client-credentials</span> instead of holding a long-lived API key.
         </p>

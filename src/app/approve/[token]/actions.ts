@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { getSession, can } from "@/lib/session";
+import { getSession, canWithGrants, parseGrants } from "@/lib/session";
 import { decideApproval } from "@/lib/approvals";
 import { verifyApprovalLink } from "@/lib/signed-links";
 
@@ -29,7 +29,7 @@ export async function decideApprovalAction(formData: FormData) {
   const membership = await db.membership.findUnique({
     where: { orgId_userId: { orgId: approval.environment.project.orgId, userId: session.user.id } },
   });
-  if (!membership || !can(membership.role, "approve")) {
+  if (!membership || !canWithGrants(membership.role, parseGrants(membership.permissionsJson), "approve")) {
     redirect(`/approve/${link}?error=permission`);
   }
 

@@ -40,18 +40,18 @@ const timeline = [
 
 export default function AboutPage() {
   return (
-    <main className="relative">
+    <main id="main-content" tabIndex={-1} className="relative">
       <Navigation />
       <section className="pt-32 lg:pt-40 pb-16">
         <div className="mx-auto max-w-[1400px] px-6 lg:px-12">
-          <p className="mono-label text-foreground/40 mb-6">About</p>
+          <p className="mono-label text-foreground/60 mb-6">About</p>
           <h1 className="font-display text-[13vw] leading-[0.85] tracking-[-0.02em] lg:text-[9rem]">
             Agents need
             <br />
             <span className="text-stroke">a place</span> to belong.
           </h1>
           <div className="mt-12 grid gap-8 border-t border-foreground/10 pt-8 lg:grid-cols-12">
-            <p className="lg:col-span-4 mono-label text-foreground/40">Authab Systems · Bengaluru</p>
+            <p className="lg:col-span-4 mono-label text-foreground/60">Authab Systems · Bengaluru</p>
             <div className="lg:col-span-8 max-w-2xl space-y-4 text-[16px] leading-relaxed text-foreground/70">
               <p>
                 Software is no longer just executed. It decides, drafts, sends and pays. The tools we built for
@@ -72,15 +72,15 @@ export default function AboutPage() {
         <div className="mx-auto max-w-[1400px] px-6 lg:px-12">
           <div className="grid gap-10 lg:grid-cols-12">
             <div className="lg:col-span-4">
-              <p className="mono-label text-foreground/40 mb-4">What we believe</p>
+              <p className="mono-label text-foreground/60 mb-4">What we believe</p>
               <h2 className="font-display text-5xl leading-[0.95]">Four rules we do not bend.</h2>
             </div>
             <div className="lg:col-span-8 grid gap-px border border-foreground/12 bg-foreground/10 sm:grid-cols-2">
               {principles.map((principle) => (
                 <div key={principle.number} className="bg-background p-6">
-                  <p className="mono-label text-foreground/30">{principle.number}</p>
+                  <p className="mono-label text-foreground/60">{principle.number}</p>
                   <h3 className="mt-4 text-lg font-medium">{principle.title}</h3>
-                  <p className="mt-2 text-[13px] leading-relaxed text-foreground/55">{principle.body}</p>
+                  <p className="mt-2 text-[13px] leading-relaxed text-foreground/65">{principle.body}</p>
                 </div>
               ))}
             </div>
@@ -91,13 +91,13 @@ export default function AboutPage() {
       <section className="py-16 lg:py-24">
         <div className="mx-auto max-w-[1400px] px-6 lg:px-12 grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-4">
-            <p className="mono-label text-foreground/40 mb-4">How we got here</p>
+            <p className="mono-label text-foreground/60 mb-4">How we got here</p>
             <h2 className="font-display text-5xl leading-[0.95]">One incident at a time.</h2>
           </div>
           <div className="lg:col-span-8 divide-y divide-foreground/10 border-y border-foreground/10">
             {timeline.map((item) => (
               <div key={item.year} className="grid gap-4 py-6 sm:grid-cols-[90px_1fr]">
-                <p className="font-mono text-[12px] text-foreground/35">{item.year}</p>
+                <p className="font-mono text-[12px] text-foreground/60">{item.year}</p>
                 <p className="text-[15px] leading-relaxed text-foreground/70">{item.text}</p>
               </div>
             ))}
@@ -110,7 +110,7 @@ export default function AboutPage() {
           <div className="flex flex-wrap items-center justify-between gap-5 border border-foreground/12 p-6 lg:p-8">
             <div>
               <p className="text-lg font-medium">Building agents that touch real systems?</p>
-              <p className="mt-1 text-[13px] text-foreground/50">
+              <p className="mt-1 text-[13px] text-foreground/60">
                 We work closely with design partners on financial, support and infrastructure agents.
               </p>
             </div>

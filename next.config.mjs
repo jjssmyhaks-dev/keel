@@ -19,7 +19,13 @@ const contentSecurityPolicy = [
 const nextConfig = {
   typescript: { ignoreBuildErrors: false },
   poweredByHeader: false,
-  serverExternalPackages: ["@prisma/client", "prisma"],
+  serverExternalPackages: [
+    "@prisma/client",
+    "prisma",
+    "@opentelemetry/sdk-node",
+    "@opentelemetry/exporter-trace-otlp-http",
+    "@opentelemetry/resources",
+  ],
   experimental: {
     serverActions: { bodySizeLimit: "2mb" },
   },

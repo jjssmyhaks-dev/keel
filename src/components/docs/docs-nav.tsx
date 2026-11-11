@@ -49,7 +49,7 @@ export function DocsSidebar() {
     <nav aria-label="Docs" className="space-y-8">
       {DOCS_NAV.map((group) => (
         <div key={group.label}>
-          <p className="mono-label text-foreground/40 mb-3">{group.label}</p>
+          <p className="mono-label text-foreground/60 mb-3">{group.label}</p>
           <ul className="space-y-0.5 border-l border-foreground/10">
             {group.links.map((link) => {
               const active =
@@ -60,10 +60,11 @@ export function DocsSidebar() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
+                    aria-current={active ? "page" : undefined}
                     className={`block -ml-px border-l py-1.5 pl-4 text-[13px] transition-colors ${
                       active
                         ? "border-foreground text-foreground font-medium"
-                        : "border-transparent text-foreground/55 hover:text-foreground hover:border-foreground/30"
+                        : "border-transparent text-foreground/65 hover:text-foreground hover:border-foreground/30"
                     }`}
                   >
                     {link.name}
@@ -86,17 +87,21 @@ export function DocsMobileNav() {
   return (
     <details className="lg:hidden mb-10 border border-foreground/12 bg-foreground/[0.02]">
       <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3">
-        <span className="mono-label text-foreground/45">Docs menu</span>
+        <span className="mono-label text-foreground/60">Docs menu</span>
         <span className="text-[12px]">{active?.name ?? "Overview"}</span>
       </summary>
       <div className="grid gap-6 border-t border-foreground/10 p-4 sm:grid-cols-2">
         {DOCS_NAV.map((group) => (
           <div key={group.label}>
-            <p className="mono-label text-foreground/35 mb-2">{group.label}</p>
+            <p className="mono-label text-foreground/60 mb-2">{group.label}</p>
             <ul className="space-y-1.5">
               {group.links.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-[13px] text-foreground/65 hover:text-foreground">
+                  <Link
+                    href={link.href}
+                    aria-current={active?.href === link.href ? "page" : undefined}
+                    className="text-[13px] text-foreground/65 hover:text-foreground"
+                  >
                     {link.name}
                   </Link>
                 </li>

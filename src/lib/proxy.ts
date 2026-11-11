@@ -9,6 +9,8 @@ import { gmailRawMessage } from "./gmail";
 import { providerAuthFailure } from "./provider-health";
 import { assertPublicHost, isPrivateHost, privateOutboundAllowed } from "./outbound";
 import { refreshCredentialIfNeeded } from "./oauth-connect";
+import { endSpanError, endSpanOk, startSpan, traceIdOf } from "./tracing";
+import { redact, redactedFieldNames, redactDeep, secretValues } from "./redaction";
 
 export type ExecutionResult = {
   status: number;
@@ -20,18 +22,6 @@ export type ExecutionResult = {
 
 const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 const MAX_REDIRECTS = 3;
-
-function redact(input: Record<string, unknown>, fields: string[]) {
-  const out: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(input)) {
-    if (fields.includes(key.toLowerCase()) || /token|secret|password|authorization/i.test(key)) {
-      out[key] = "[redacted]";
-    } else {
-      out[key] = value;
-    }
-  }
-  return out;
-}
 
 function safeJson(value: string) {
   try {
@@ -282,6 +272,103 @@ export async function recordUsage(orgId: string, metric: string, quantity = 1) {
   await db.usageRecord.create({ data: { orgId, metric, period, quantity } });
 }
 
+async function executeSandboxCall(opts: {
+  environment: Environment;
+  agent: Agent | null;
+  credential: Credential;
+  connectorDef: Connector;
+  action: ConnectorAction;
+  input: Record<string, unknown>;
+  resource?: string;
+  requestId: string;
+  ip?: string | null;
+  approvalId?: string;
+  decision?: { effect: string; risk: string; source: string; reason: string; grantId?: string | null };
+}): Promise<ExecutionResult> {
+  const { environment, agent, action, connectorDef, credential } = opts;
+  const started = Date.now();
+  const redactedInput = redact(opts.input, connectorDef.redactedFields);
+  const redactions = redactedFieldNames(opts.input, connectorDef.redactedFields);
+  const span = startSpan("proxy.call", {
+    "authab.connector": connectorDef.slug,
+    "authab.action": action.name,
+    "authab.environment.id": environment.id,
+    "authab.environment.type": environment.type,
+    "authab.sandbox": true,
+    ...(agent ? { "authab.agent.id": agent.id, "authab.agent.name": agent.name } : {}),
+  });
+  const traceId = traceIdOf(span);
+  endSpanOk(span);
+  span.end();
+  const latencyMs = Math.max(1, Date.now() - started);
+  const result: ExecutionResult = {
+    status: 200,
+    body: {
+      sandbox: true,
+      action: action.name,
+      resource: opts.resource ?? null,
+      request: { method: action.method, url: `sandbox://${action.name}` },
+      input: redactedInput,
+      response: action.sample ?? { ok: true },
+      note: "No network egress. Auth, grants, policy, approvals, rate limits and audit ran exactly as they do for a live connector.",
+    },
+    latencyMs,
+    truncated: false,
+    request: { method: action.method, url: `sandbox://${action.name}` },
+  };
+
+  await db.credential.update({ where: { id: credential.id }, data: { lastUsedAt: new Date() } }).catch(() => null);
+  if (agent) {
+    await db.agent.update({ where: { id: agent.id }, data: { lastActiveAt: new Date() } }).catch(() => null);
+  }
+  await auditEvent({
+    environmentId: environment.id,
+    actorType: agent ? "agent" : "system",
+    actorId: agent?.id ?? null,
+    actorName: agent?.name ?? "Sandbox",
+    agentId: agent?.id ?? null,
+    action: "sandbox.call",
+    resourceType: "connector",
+    resourceId: connectorDef.slug,
+    outcome: "allowed",
+    requestId: opts.requestId,
+    ip: opts.ip,
+    payloadSummary: {
+      action: action.name,
+      resource: opts.resource,
+      credentialId: credential.id,
+      status: 200,
+      latencyMs,
+      sandbox: true,
+      approvalId: opts.approvalId,
+      ...(traceId ? { traceId } : {}),
+      input: redactedInput,
+      ...(opts.decision ? { decision: opts.decision } : {}),
+      trust: {
+        egress: false,
+        request: { method: action.method, target: `sandbox://${action.name}` },
+        injection: {
+          location: "none",
+          name: null,
+          scheme: null,
+          source: "No secret — the sandbox executor never reads credential material",
+        },
+        injectedHeaders: [],
+        injectedParams: [],
+        injectedBodyFields: [],
+        redactions,
+        responseRedactions: 0,
+        responseStatus: 200,
+        latencyMs,
+        billable: false,
+        ...(traceId ? { traceId } : {}),
+      },
+    },
+  });
+
+  return result;
+}
+
 export async function executeAction(opts: {
   environment: Environment;
   agent: Agent | null;
@@ -296,11 +383,29 @@ export async function executeAction(opts: {
   healthCheck?: boolean;
   skipHealthNote?: boolean;
   countUsage?: boolean;
+  decision?: { effect: string; risk: string; source: string; reason: string; grantId?: string | null };
 }): Promise<ExecutionResult> {
   const { environment, agent, action } = opts;
   let credential = opts.credential;
   const connectorDef = opts.connectorDef ?? (await resolveConnector(credential.connectorSlug, environment.id));
   if (!connectorDef) throw new Error(`Unknown connector "${credential.connectorSlug}".`);
+
+  if (connectorDef.sandbox) {
+    return executeSandboxCall({
+      environment,
+      agent,
+      credential,
+      connectorDef,
+      action,
+      input: opts.input,
+      resource: opts.resource,
+      requestId: opts.requestId,
+      ip: opts.ip,
+      approvalId: opts.approvalId,
+      decision: opts.decision,
+    });
+  }
+
   const started = Date.now();
   const auditAction = opts.healthCheck ? "credential.checked" : "proxy.call";
   const actorName = agent?.name ?? "Credential health check";
@@ -310,6 +415,7 @@ export async function executeAction(opts: {
   }
 
   const redacted = redact(opts.input, connectorDef.redactedFields);
+  const redactions = redactedFieldNames(opts.input, connectorDef.redactedFields);
   const secret = (await decryptSecret(
     environment.projectId,
     credential.encryptedPayload,
@@ -343,10 +449,17 @@ export async function executeAction(opts: {
   }
 
   const headers: Record<string, string> = { Accept: "application/json" };
+  const injectedHeaders: string[] = [];
+  const injectedParams: string[] = [];
+  const injectedBodyFields: string[] = [];
   if (injection.type === "header") {
-    if (token) headers[injection.name] = `${injection.prefix ?? ""}${token}`;
+    if (token) {
+      headers[injection.name] = `${injection.prefix ?? ""}${token}`;
+      injectedHeaders.push(injection.name);
+    }
   } else if (token) {
     url.searchParams.set(injection.name, token);
+    injectedParams.push(injection.name);
   }
 
   if (injection.basic) {
@@ -356,19 +469,57 @@ export async function executeAction(opts: {
       throw new Error("The stored basic-auth credential is incomplete.");
     }
     headers.Authorization = `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
+    injectedHeaders.push("Authorization");
   }
 
   const extraHeaders = action.extraHeaders ?? injection.extraHeaders ?? [];
   for (const header of extraHeaders) {
     const value = header.value ?? (header.field ? fieldValue(secret, header.field) : "");
-    if (value) headers[header.name] = `${header.prefix ?? ""}${value}`;
+    if (value) {
+      headers[header.name] = `${header.prefix ?? ""}${value}`;
+      injectedHeaders.push(header.name);
+    }
   }
 
   const extraParams = action.queryParams ?? injection.queryParams ?? [];
   for (const param of extraParams) {
     const value = param.value ?? (param.field ? fieldValue(secret, param.field) : "");
-    if (value) url.searchParams.set(param.name, value);
+    if (value) {
+      url.searchParams.set(param.name, value);
+      injectedParams.push(param.name);
+    }
   }
+
+  const authSource =
+    injection.basic
+      ? "Basic auth"
+      : connectorDef.authStrategy === "snowflake-jwt"
+        ? "Snowflake key-pair JWT"
+        : credential.type === "oauth"
+          ? "OAuth access token"
+          : action.authField
+            ? `Credential field “${action.authField}”`
+            : credential.type === "bearer"
+              ? "Bearer token"
+              : "API key";
+  const injectedNothing = !token && !injection.basic;
+  const injectionSummary = injectedNothing
+    ? { location: "none" as const, name: null, scheme: null, source: "No credential injected — this action is public" }
+    : {
+        location: injection.basic ? ("header" as const) : injection.type,
+        name: injection.basic ? "Authorization" : injection.name,
+        scheme: injection.basic
+          ? "Basic"
+          : injection.type === "header"
+            ? injection.prefix?.trim() || "raw"
+            : null,
+        source: authSource,
+      };
+  const responseSecrets = secretValues(
+    secret,
+    [action.authField, injection.basic?.passwordField].filter((key): key is string => Boolean(key)),
+  );
+  if (token && token.length >= 8 && !responseSecrets.includes(token)) responseSecrets.push(token);
 
   const queryFields = action.queryFields ?? [];
   for (const key of queryFields) {
@@ -397,7 +548,10 @@ export async function executeAction(opts: {
     for (const key of queryFields) delete body[key];
     for (const param of connectorDef.bodyParams ?? []) {
       const value = fieldValue(secret, param.field);
-      if (value) body[param.name] = value;
+      if (value) {
+        body[param.name] = value;
+        injectedBodyFields.push(param.name);
+      }
     }
 
     if (connectorDef.slug === "google" && !action.graphqlQuery && typeof body.raw !== "string" && !body.message) {
@@ -458,9 +612,23 @@ export async function executeAction(opts: {
     ...extraParams.map((param) => param.name),
   ];
 
+  const span = startSpan("proxy.call", {
+    "http.request.method": method,
+    "url.full": publicRequestUrl(url, sensitiveParams),
+    "server.address": url.hostname,
+    "authab.connector": connectorDef.slug,
+    "authab.action": action.name,
+    "authab.environment.id": environment.id,
+    "authab.environment.type": environment.type,
+    ...(agent ? { "authab.agent.id": agent.id, "authab.agent.name": agent.name } : {}),
+  });
+  const traceId = traceIdOf(span);
+
   let result: ExecutionResult;
+  let currentUrl = url;
+  let requestTarget = `${url.origin}${url.pathname}`;
+  let responseRedactions = 0;
   try {
-    let currentUrl = url;
     await assertPublicHost(url.hostname, "Upstream host");
     let response = await fetch(currentUrl, init);
 
@@ -479,6 +647,7 @@ export async function executeAction(opts: {
         delete headers["Content-Type"];
       }
       currentUrl = next;
+      requestTarget = `${currentUrl.origin}${currentUrl.pathname}`;
       await assertPublicHost(next.hostname, "Upstream host");
       response = await fetch(currentUrl, init);
     }
@@ -489,14 +658,22 @@ export async function executeAction(opts: {
     }
 
     const { text, truncated } = await readBodyLimited(response);
+    const scanned = redactDeep(parseBody(text, response.headers.get("content-type") ?? ""), responseSecrets);
+    responseRedactions = scanned.hits;
     result = {
       status: response.status,
-      body: parseBody(text, response.headers.get("content-type") ?? ""),
+      body: scanned.value,
       latencyMs: Date.now() - started,
       truncated,
       request: { method, url: publicRequestUrl(currentUrl, sensitiveParams) },
     };
   } catch (error) {
+    endSpanError(span, error);
+    span.end();
+    const cause =
+      error instanceof Error
+        ? (error as Error & { cause?: { code?: string; message?: string } }).cause
+        : undefined;
     await auditEvent({
       environmentId: environment.id,
       actorType: agent ? "agent" : "system",
@@ -514,8 +691,26 @@ export async function executeAction(opts: {
         resource: opts.resource,
         credentialId: credential.id,
         host: url.hostname,
+        latencyMs: Date.now() - started,
+        ...(traceId ? { traceId } : {}),
         error: error instanceof Error ? error.message : "upstream_failure",
+        ...(cause?.code ? { errorCode: cause.code } : {}),
+        ...(cause?.message ? { errorCause: cause.message } : {}),
         input: redacted,
+        ...(opts.decision ? { decision: opts.decision } : {}),
+        trust: {
+          egress: true,
+          request: { method: init.method ?? method, target: requestTarget },
+          injection: injectionSummary,
+          injectedHeaders: [...new Set(injectedHeaders)],
+          injectedParams: [...new Set(injectedParams)],
+          injectedBodyFields: [...new Set(injectedBodyFields)],
+          redactions,
+          responseRedactions: 0,
+          responseStatus: null,
+          latencyMs: Date.now() - started,
+          ...(traceId ? { traceId } : {}),
+        },
       },
     });
     throw new Error(
@@ -524,6 +719,16 @@ export async function executeAction(opts: {
       }`,
     );
   }
+
+  const providerError = providerAuthFailure(connectorDef.slug, result.body);
+  span.setAttribute("http.response.status_code", result.status);
+  span.setAttribute("authab.upstream.latency_ms", result.latencyMs);
+  if (result.status >= 400 || providerError) {
+    endSpanError(span, new Error(providerError ?? `Upstream returned HTTP ${result.status}.`));
+  } else {
+    endSpanOk(span);
+  }
+  span.end();
 
   await db.credential.update({ where: { id: credential.id }, data: { lastUsedAt: new Date() } }).catch(() => null);
   if (agent) {
@@ -534,7 +739,6 @@ export async function executeAction(opts: {
     select: { orgId: true },
   });
   if (opts.countUsage !== false) await recordUsage(project?.orgId ?? "", "proxy_calls");
-  const providerError = providerAuthFailure(connectorDef.slug, result.body);
   if (!opts.skipHealthNote) {
     await noteCredentialHealth(credential, action.name, result.status, project?.orgId ?? "", providerError);
   }
@@ -560,12 +764,30 @@ export async function executeAction(opts: {
       latencyMs: result.latencyMs,
       truncated: result.truncated,
       approvalId: opts.approvalId,
+      ...(traceId ? { traceId } : {}),
       ...(providerError ? { providerError } : {}),
       input: redacted,
+      ...(opts.decision ? { decision: opts.decision } : {}),
+      trust: {
+        egress: true,
+        request: { method: result.request.method, target: requestTarget },
+        injection: injectionSummary,
+        injectedHeaders: [...new Set(injectedHeaders)],
+        injectedParams: [...new Set(injectedParams)],
+        injectedBodyFields: [...new Set(injectedBodyFields)],
+        redactions,
+        responseRedactions,
+        responseStatus: result.status,
+        latencyMs: result.latencyMs,
+        truncated: result.truncated,
+        ...(providerError ? { providerError } : {}),
+        ...(traceId ? { traceId } : {}),
+        billable: opts.countUsage !== false,
+      },
     },
   });
 
   return result;
 }
 
-export { redact, safeJson };
+export { redact, redactedFieldNames, safeJson };

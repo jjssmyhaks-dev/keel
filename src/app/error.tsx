@@ -15,20 +15,20 @@ export default function Error({
   }, [error]);
 
   return (
-    <main className="min-h-screen bg-background text-foreground flex items-center justify-center px-6 py-24">
+    <main id="main-content" tabIndex={-1} className="min-h-screen bg-background text-foreground flex items-center justify-center px-6 py-24">
       <div className="w-full max-w-xl">
-        <p className="mono-label text-foreground/40 mb-6">500 · Something failed</p>
+        <p className="mono-label text-foreground/60 mb-6">500 · Something failed</p>
         <h1 className="font-display text-5xl leading-[0.95] tracking-tight lg:text-6xl">
           The request
           <br />
-          <span className="text-foreground/35">stopped here.</span>
+          <span className="text-foreground/60">stopped here.</span>
         </h1>
         <p className="mt-6 text-[15px] leading-relaxed text-foreground/60">
           Authab logged the failure and did not continue the operation. Retry, or check the status page before trying
           again.
         </p>
         {error.digest ? (
-          <p className="mt-4 font-mono text-[11px] text-foreground/40">Digest: {error.digest}</p>
+          <p className="mt-4 font-mono text-[11px] text-foreground/60">Digest: {error.digest}</p>
         ) : null}
         <div className="mt-8 flex flex-wrap gap-3">
           <button

@@ -7,6 +7,8 @@ import { expireStaleApprovals, escalateOverdueApprovals } from "@/lib/approvals"
 import { evaluateAlerts } from "@/lib/alerts";
 import { refreshExpiringOAuthTokens, runHealthChecks } from "@/lib/credential-health";
 import { planFor } from "@/lib/plans";
+import { processAuditSinks } from "@/lib/audit-sinks";
+import { sweepBilling } from "@/lib/billing";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -31,6 +33,8 @@ async function run(req: Request) {
   const now = Date.now();
   const nowDate = new Date(now);
   const retried = await retryPendingWebhooks(25);
+  const auditSinks = await processAuditSinks({ limit: 100 });
+  const billing = await sweepBilling();
 
   await expireStaleApprovals();
   const approvalsEscalated = await escalateOverdueApprovals();
@@ -62,16 +66,20 @@ async function run(req: Request) {
   for (const org of orgs) {
     const retentionDays = planFor(org.plan).limits.retentionDays;
     if (retentionDays < 0) continue;
-    const result = await db.auditEvent.deleteMany({
-      where: {
-        environment: { project: { orgId: org.id } },
-        timestamp: { lt: new Date(now - retentionDays * 86_400_000) },
-      },
+    const result = await db.$transaction(async (tx) => {
+      // WORM trigger: retention is the only sanctioned mutation of the audit table.
+      await tx.$executeRawUnsafe(`SET LOCAL app.audit_maintenance = 'on'`);
+      return tx.auditEvent.deleteMany({
+        where: {
+          environment: { project: { orgId: org.id } },
+          timestamp: { lt: new Date(now - retentionDays * 86_400_000) },
+        },
+      });
     });
     prunedAudit += result.count;
   }
 
-  const [challenges, counters, blocklist, idempotency, loginTokens, deliveries, sessions, invitations] = await Promise.all([
+  const [challenges, counters, blocklist, idempotency, loginTokens, deliveries, sessions, invitations, requestErrors] = await Promise.all([
     db.challengeUse.deleteMany({ where: { usedAt: { lt: new Date(now - 24 * 60 * 60_000) } } }),
     pruneRateLimitCounters(),
     db.tokenBlocklist.deleteMany({ where: { expiresAt: { lt: nowDate } } }),
@@ -94,11 +102,14 @@ async function run(req: Request) {
       },
     }),
     db.invitation.deleteMany({ where: { expiresAt: { lt: new Date(now - 30 * 24 * 60 * 60_000) } } }),
+    db.errorEvent.deleteMany({ where: { createdAt: { lt: new Date(now - 30 * 24 * 60 * 60_000) } } }),
   ]);
 
   return NextResponse.json({
     ok: true,
     webhooks: retried,
+    auditSinks,
+    billing,
     tokenRefreshes,
     approvalsEscalated,
     health,
@@ -114,6 +125,7 @@ async function run(req: Request) {
     prunedDeliveries: deliveries.count,
     prunedSessions: sessions.count,
     prunedInvitations: invitations.count,
+    prunedRequestErrors: requestErrors.count,
   });
 }
 

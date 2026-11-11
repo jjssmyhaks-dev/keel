@@ -40,7 +40,7 @@ export default async function OAuthAppsPage({
         title="One-click OAuth apps."
         description="Register an OAuth app once and the vault offers Connect buttons for that provider. Tokens are exchanged server-side, sealed with the connection key and refreshed before they expire. Client secrets never reach the browser."
         actions={
-          <Link href="/app/vault" className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card">
+          <Link href="/app/vault" className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
             Vault
           </Link>
         }
@@ -64,8 +64,8 @@ export default async function OAuthAppsPage({
       {query.saved ? <Notice kind="ok">OAuth app saved. The provider is now connectable from the vault.</Notice> : null}
       {query.removed ? <Notice kind="ok">OAuth app removed. Existing connections keep their tokens until revoked.</Notice> : null}
 
-      <div className="mb-6 border border-black/10 bg-[#faf9f6] p-4 text-[11px] leading-relaxed text-black/55 dark:border-border dark:bg-card dark:text-muted-foreground">
-        <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+      <div className="mb-6 border border-black/10 bg-[#faf9f6] p-4 text-[11px] leading-relaxed text-black/65 dark:border-border dark:bg-card dark:text-muted-foreground">
+        <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
           Redirect URI to register at the provider
         </p>
         <p className="mt-1.5 font-mono text-[11px] break-all">
@@ -101,15 +101,15 @@ export default async function OAuthAppsPage({
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-[13px] font-medium">{def?.name ?? provider.label}</p>
-                  <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-black/35 dark:text-muted-foreground">
+                  <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-black/60 dark:text-muted-foreground">
                     {app ? `database app · ${app.clientId}` : env ? "server env credentials" : "not configured"}
                   </p>
                 </div>
                 <span
                   className={`border px-2 py-1 font-mono text-[9px] uppercase tracking-[0.12em] ${
                     client
-                      ? "border-[#2f7d5c]/30 bg-[#2f7d5c]/10 text-[#2f7d5c]"
-                      : "border-black/15 text-black/40 dark:border-border dark:text-muted-foreground"
+                      ? "border-[#2f7d5c]/30 bg-[#2f7d5c]/10 text-[#276a4e] dark:text-[#7fd1ab]"
+                      : "border-black/15 text-black/60 dark:border-border dark:text-muted-foreground"
                   }`}
                 >
                   {client ? "connect ready" : "add client"}
@@ -120,7 +120,7 @@ export default async function OAuthAppsPage({
                 <form action={saveOAuthAppAction} className="space-y-3">
                   <input type="hidden" name="connector" value={provider.key} />
                   <div>
-                    <label htmlFor={`clientId-${provider.key}`} className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                    <label htmlFor={`clientId-${provider.key}`} className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                       Client ID
                     </label>
                     <input
@@ -129,11 +129,11 @@ export default async function OAuthAppsPage({
                       required
                       defaultValue={app?.clientId ?? ""}
                       placeholder={`${provider.key}-client-id`}
-                      className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[12px] outline-none focus:border-black dark:border-border dark:bg-background"
+                      className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[12px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                     />
                   </div>
                   <div>
-                    <label htmlFor={`clientSecret-${provider.key}`} className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                    <label htmlFor={`clientSecret-${provider.key}`} className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                       Client secret {app ? "· leave blank to keep" : ""}
                     </label>
                     <input
@@ -141,11 +141,11 @@ export default async function OAuthAppsPage({
                       name="clientSecret"
                       type="password"
                       autoComplete="off"
-                      className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[12px] outline-none focus:border-black dark:border-border dark:bg-background"
+                      className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[12px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                     />
                   </div>
                   <div>
-                    <label htmlFor={`scopes-${provider.key}`} className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                    <label htmlFor={`scopes-${provider.key}`} className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                       Scopes
                     </label>
                     <textarea
@@ -153,33 +153,33 @@ export default async function OAuthAppsPage({
                       name="scopes"
                       rows={2}
                       defaultValue={(app ? (JSON.parse(app.scopesJson || "[]") as string[]) : provider.scopes).join(" ")}
-                      className="mt-1 w-full resize-none border border-black/15 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                      className="mt-1 w-full resize-none border border-black/45 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[11px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label htmlFor={`sep-${provider.key}`} className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                      <label htmlFor={`sep-${provider.key}`} className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                         Scope separator
                       </label>
                       <select
                         id={`sep-${provider.key}`}
                         name="scopeSeparator"
                         defaultValue={app?.scopeSeparator || provider.scopeSeparator}
-                        className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                        className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[11px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                       >
                         <option value=" ">space</option>
                         <option value=",">comma</option>
                       </select>
                     </div>
                     <div>
-                      <label htmlFor={`auth-${provider.key}`} className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                      <label htmlFor={`auth-${provider.key}`} className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                         Token auth
                       </label>
                       <select
                         id={`auth-${provider.key}`}
                         name="tokenAuth"
                         defaultValue={app?.tokenAuth || provider.tokenAuth}
-                        className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                        className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[11px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                       >
                         <option value="body">client_secret_post</option>
                         <option value="basic">client_secret_basic</option>
@@ -198,7 +198,7 @@ export default async function OAuthAppsPage({
                     >
                       Save OAuth app
                     </button>
-                    <Link href={`/app/vault/new?connector=${provider.key}`} className="border border-black/15 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border">
+                    <Link href={`/app/vault/new?connector=${provider.key}`} className="border border-black/45 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40">
                       Manual token
                     </Link>
                   </div>
@@ -206,11 +206,11 @@ export default async function OAuthAppsPage({
 
                 <div className="space-y-3">
                   <div className="border border-black/10 bg-[#faf9f6] p-3 dark:border-border dark:bg-background">
-                    <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                    <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                       Redirect URI
                     </p>
                     <p className="mt-1 break-all font-mono text-[10px]">{connectRedirectUri(provider.key)}</p>
-                    <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                    <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                       Server env fallback
                     </p>
                     <p className="mt-1 break-all font-mono text-[10px]">
@@ -219,10 +219,10 @@ export default async function OAuthAppsPage({
                       CONNECT_{envPrefix}_CLIENT_SECRET
                     </p>
                     {env ? (
-                      <p className="mt-2 text-[10px] text-[#2f7d5c]">Environment credentials detected for {env.clientId}.</p>
+                      <p className="mt-2 text-[10px] text-[#276a4e] dark:text-[#7fd1ab]">Environment credentials detected for {env.clientId}.</p>
                     ) : null}
                   </div>
-                  <div className="border border-black/10 p-3 text-[10px] leading-relaxed text-black/50 dark:border-border dark:text-muted-foreground">
+                  <div className="border border-black/10 p-3 text-[10px] leading-relaxed text-black/60 dark:border-border dark:text-muted-foreground">
                     Default scopes: {provider.scopes.join(", ") || "provider-managed"}.
                     {provider.extraAuthParams ? (
                       <>

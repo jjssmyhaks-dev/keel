@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Menu, X, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ const links = [
 export function Navigation({ overlay = false }: { overlay?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -36,6 +38,15 @@ export function Navigation({ overlay = false }: { overlay?: boolean }) {
     return () => {
       document.body.style.overflow = "";
     };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
   const dark = overlay && !scrolled;
@@ -68,6 +79,7 @@ export function Navigation({ overlay = false }: { overlay?: boolean }) {
               <Link
                 key={link.name}
                 href={link.href}
+                aria-current={pathname === link.href ? "page" : undefined}
                 className={`text-[13px] transition-colors duration-300 relative group ${
                   dark ? "text-white/65 hover:text-white" : "text-foreground/65 hover:text-foreground"
                 }`}
@@ -86,7 +98,7 @@ export function Navigation({ overlay = false }: { overlay?: boolean }) {
             {mounted && (
               <button
                 onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-                className={`p-1.5 transition-colors ${dark ? "text-white/60 hover:text-white" : "text-foreground/50 hover:text-foreground"}`}
+                className={`p-1.5 transition-colors ${dark ? "text-white/60 hover:text-white" : "text-foreground/60 hover:text-foreground"}`}
                 aria-label="Toggle theme"
               >
                 {resolvedTheme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -113,8 +125,10 @@ export function Navigation({ overlay = false }: { overlay?: boolean }) {
 
           <button
             onClick={() => setOpen(!open)}
-            className={`md:hidden p-2 ${dark || open ? "" : ""} ${open ? "text-foreground" : dark ? "text-white" : "text-foreground"}`}
             aria-label="Toggle menu"
+            aria-expanded={open}
+            aria-controls="mobile-menu"
+            className={`md:hidden p-2 ${open ? "text-foreground" : dark ? "text-white" : "text-foreground"}`}
           >
             {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -122,6 +136,8 @@ export function Navigation({ overlay = false }: { overlay?: boolean }) {
       </nav>
 
       <div
+        id="mobile-menu"
+        inert={!open}
         className={`md:hidden fixed inset-0 bg-background z-40 transition-all duration-500 ${
           open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
@@ -132,6 +148,7 @@ export function Navigation({ overlay = false }: { overlay?: boolean }) {
               <Link
                 key={link.name}
                 href={link.href}
+                aria-current={pathname === link.href ? "page" : undefined}
                 onClick={() => setOpen(false)}
                 className={`text-4xl font-display text-foreground transition-all duration-500 ${
                   open ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"

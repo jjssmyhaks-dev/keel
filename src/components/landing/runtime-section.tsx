@@ -33,7 +33,7 @@ function FlowDiagram() {
         </svg>
       </div>
 
-      <div className="relative font-mono text-[10px] text-white/30 mb-10 flex items-center justify-between">
+      <div className="relative font-mono text-[10px] text-white/60 mb-10 flex items-center justify-between">
         <span>POST /v1/proxy/slack/slack.post_message</span>
         <span className="hidden sm:inline">x-request-id: req_01JQ8…</span>
       </div>
@@ -41,16 +41,16 @@ function FlowDiagram() {
       <div className="relative flex flex-col gap-0">
         <div className="border border-white/15 bg-black px-5 py-4 flex items-center justify-between">
           <div>
-            <div className="mono-label text-white/35 mb-1">Caller</div>
+            <div className="mono-label text-white/60 mb-1">Caller</div>
             <div className="text-white text-sm">Agent · atlas</div>
           </div>
-          <div className="font-mono text-[10px] text-white/35 text-right">
+          <div className="font-mono text-[10px] text-white/60 text-right">
             <div>Bearer eyJhbGciOiJFZERTQS…</div>
             <div className="text-[#eca8d6]/70">exp 4m 52s</div>
           </div>
         </div>
 
-        <div className="flex justify-center py-2 text-white/25">
+        <div className="flex justify-center py-2 text-white/60">
           <ArrowDown className="w-4 h-4" />
         </div>
 
@@ -68,21 +68,21 @@ function FlowDiagram() {
             ))}
           </div>
           <div className="mt-3 flex items-center justify-between text-[10px]">
-            <span className="text-white/30">host allow-list: slack.com</span>
+            <span className="text-white/60">host allow-list: slack.com</span>
             <span className="text-emerald-400">credential ready</span>
           </div>
         </div>
 
-        <div className="flex justify-center py-2 text-white/25">
+        <div className="flex justify-center py-2 text-white/60">
           <ArrowDown className="w-4 h-4" />
         </div>
 
         <div className="border border-white/15 bg-black px-5 py-4 flex items-center justify-between">
           <div>
-            <div className="mono-label text-white/35 mb-1">Upstream</div>
+            <div className="mono-label text-white/60 mb-1">Upstream</div>
             <div className="text-white text-sm">api.slack.com</div>
           </div>
-          <div className="font-mono text-[10px] text-white/35 text-right">
+          <div className="font-mono text-[10px] text-white/60 text-right">
             <div>200 OK · 214 ms</div>
             <div>ratelimit-remaining: 47</div>
           </div>
@@ -93,7 +93,7 @@ function FlowDiagram() {
         {guarantees.map((g) => (
           <div key={g.k} className="bg-black p-3">
             <div className="text-[9px] uppercase tracking-widest text-[#eca8d6]/70 mb-1">{g.k}</div>
-            <div className="text-[10px] text-white/45 leading-snug">{g.v}</div>
+            <div className="text-[10px] text-white/60 leading-snug">{g.v}</div>
           </div>
         ))}
       </div>
@@ -122,7 +122,7 @@ export function RuntimeSection() {
       <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
         <div className="grid lg:grid-cols-12 gap-10 lg:gap-16 items-start">
           <div className="lg:col-span-5 lg:sticky lg:top-32">
-            <span className="inline-flex items-center gap-3 text-sm font-mono text-white/40 mb-6">
+            <span className="inline-flex items-center gap-3 text-sm font-mono text-white/60 mb-6">
               <span className="w-12 h-px bg-white/20" />
               Runtime
             </span>
@@ -133,7 +133,7 @@ export function RuntimeSection() {
             >
               The secret
               <br />
-              <span className="text-white/30">stays here.</span>
+              <span className="text-white/60">stays here.</span>
             </h2>
             <p className="mt-8 text-lg text-white/50 leading-relaxed max-w-md">
               Agents call named actions. The proxy checks the grant, evaluates policy,
@@ -144,12 +144,12 @@ export function RuntimeSection() {
               {components.map((c, i) => (
                 <div key={c.name} className="flex items-start justify-between gap-4 py-3.5">
                   <div className="flex items-start gap-4">
-                    <span className="font-mono text-[10px] text-white/25 mt-1">
+                    <span className="font-mono text-[10px] text-white/60 mt-1">
                       {String(i + 1).padStart(2, "0")}
                     </span>
                     <div>
                       <div className="text-sm text-white/85">{c.name}</div>
-                      <div className="text-[11px] text-white/35 mt-0.5">{c.detail}</div>
+                      <div className="text-[11px] text-white/60 mt-0.5">{c.detail}</div>
                     </div>
                   </div>
                 </div>
@@ -163,7 +163,7 @@ export function RuntimeSection() {
             }`}
           >
             <FlowDiagram />
-            <div className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-3 font-mono text-[10px] text-white/30">
+            <div className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-3 font-mono text-[10px] text-white/60">
               <span>response normalization</span>
               <span>idempotency keys</span>
               <span>15s upstream timeout</span>

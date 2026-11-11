@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, BookOpen, ChevronsUpDown, LogOut, Menu, X } from "lucide-react";
@@ -18,6 +18,7 @@ export function AppShell({
   activeEnvironment,
   pendingApprovals,
   unreadNotifications,
+  isPlatformAdmin,
   search,
   children,
 }: {
@@ -29,11 +30,31 @@ export function AppShell({
   activeEnvironment: { id: string; type: string };
   pendingApprovals: number;
   unreadNotifications: number;
+  isPlatformAdmin: boolean;
   search: CommandSearch;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [desktop, setDesktop] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1024px)");
+    const update = () => setDesktop(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
+
   const initials = user.name
     .split(/\s+/)
     .map((part) => part[0])
@@ -55,13 +76,15 @@ export function AppShell({
       )}
 
       <aside
+        id="app-sidebar"
+        inert={!open && !desktop}
         className={`fixed inset-y-0 left-0 z-50 flex w-[264px] flex-col border-r border-black/10 bg-[#faf9f6] transition-transform dark:border-border dark:bg-card lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex h-16 items-center justify-between border-b border-black/10 px-5 dark:border-border">
           <Link href="/app" aria-label="Authab dashboard">
-            <Logo tone="dark" />
+            <Logo />
           </Link>
           <button className="lg:hidden" aria-label="Close menu" onClick={() => setOpen(false)}>
             <X className="size-4" />
@@ -72,16 +95,16 @@ export function AppShell({
           <div className="flex items-center justify-between">
             <div className="min-w-0">
               <p className="truncate text-[13px] font-medium">{org.name}</p>
-              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-black/45 dark:text-muted-foreground">
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-black/60 dark:text-muted-foreground">
                 {org.plan} plan · {role}
               </p>
             </div>
-            <ChevronsUpDown className="size-3.5 shrink-0 text-black/35" />
+            <ChevronsUpDown className="size-3.5 shrink-0 text-black/60" />
           </div>
           <div className="mt-3 flex items-center justify-between border border-black/10 bg-white px-2.5 py-2 dark:border-border dark:bg-background">
             <div className="min-w-0">
               <p className="truncate text-[12px]">{project.name}</p>
-              <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/40 dark:text-muted-foreground">
+              <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/60 dark:text-muted-foreground">
                 {activeEnvironment.type === "production" ? "Production" : "Development"}
               </p>
             </div>
@@ -109,9 +132,14 @@ export function AppShell({
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4">
-          {NAV.map((group) => (
+          {NAV.map((group) => ({
+            ...group,
+            items: group.items.filter((item) => !item.adminOnly || isPlatformAdmin),
+          }))
+            .filter((group) => group.items.length > 0)
+            .map((group) => (
             <div key={group.label} className="mb-5">
-              <p className="px-2 pb-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-black/35 dark:text-muted-foreground">
+              <p className="px-2 pb-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-black/60 dark:text-muted-foreground">
                 {group.label}
               </p>
               <div className="space-y-0.5">
@@ -123,6 +151,7 @@ export function AppShell({
                     <Link
                       key={item.href}
                       href={item.href}
+                      aria-current={active ? "page" : undefined}
                       onClick={() => setOpen(false)}
                       className={`group flex items-center gap-2.5 border border-transparent px-2 py-[7px] text-[13px] transition-colors ${
                         active
@@ -147,7 +176,7 @@ export function AppShell({
 
           <Link
             href="/docs"
-            className="flex items-center gap-2.5 px-2 py-[7px] text-[13px] text-black/55 hover:text-black dark:text-muted-foreground dark:hover:text-foreground"
+            className="flex items-center gap-2.5 px-2 py-[7px] text-[13px] text-black/65 hover:text-black dark:text-muted-foreground dark:hover:text-foreground"
           >
             <BookOpen className="size-[15px]" strokeWidth={1.7} />
             Documentation
@@ -161,13 +190,13 @@ export function AppShell({
             </span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-[12px]">{user.name}</p>
-              <p className="truncate font-mono text-[9px] text-black/40 dark:text-muted-foreground">{user.email}</p>
+              <p className="truncate font-mono text-[9px] text-black/60 dark:text-muted-foreground">{user.email}</p>
             </div>
             <form action={signOutAction}>
               <button
                 type="submit"
                 aria-label="Sign out"
-                className="p-1 text-black/40 transition-colors hover:text-black dark:text-muted-foreground dark:hover:text-foreground"
+                className="p-1.5 text-black/60 transition-colors hover:text-black dark:text-muted-foreground dark:hover:text-foreground"
               >
                 <LogOut className="size-3.5" />
               </button>
@@ -181,11 +210,13 @@ export function AppShell({
           <button
             className="lg:hidden"
             aria-label="Open navigation"
+            aria-expanded={open}
+            aria-controls="app-sidebar"
             onClick={() => setOpen(true)}
           >
             <Menu className="size-4" />
           </button>
-          <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+          <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
             <span className="hidden sm:inline">{org.name}</span>
             <span className="hidden sm:inline">/</span>
             <span>{activeEnvironment.type === "production" ? "Production" : "Development"}</span>
@@ -213,7 +244,7 @@ export function AppShell({
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-[1280px] px-4 py-8 lg:px-8 lg:py-10">{children}</main>
+        <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-[1280px] px-4 py-8 lg:px-8 lg:py-10">{children}</main>
       </div>
     </div>
   );

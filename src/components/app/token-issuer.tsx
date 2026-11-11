@@ -9,7 +9,7 @@ export function TokenIssuer({ agentId, keyMode }: { agentId: string; keyMode: st
 
   if (keyMode === "client") {
     return (
-      <p className="text-[12px] leading-relaxed text-black/50 dark:text-muted-foreground">
+      <p className="text-[12px] leading-relaxed text-black/60 dark:text-muted-foreground">
         This agent holds its own private key. Issue tokens from your backend with a signed challenge, or rotate to a
         Authab-managed key from the identity panel.
       </p>
@@ -28,11 +28,11 @@ export function TokenIssuer({ agentId, keyMode }: { agentId: string; keyMode: st
           {pending ? "Signing…" : "Issue 5-minute token"}
         </button>
       </form>
-      {state?.error ? <p className="mt-2 text-[12px] text-[#8c3225]">{state.error}</p> : null}
+      {state?.error ? <p className="mt-2 text-[12px] text-[#8c3225] dark:text-[#f0a396]">{state.error}</p> : null}
       {state?.token ? (
         <div className="mt-3">
           <div className="flex items-center justify-between">
-            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/40 dark:text-muted-foreground">
+            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
               Expires {state.expiresAt ? new Date(state.expiresAt).toLocaleTimeString("en-IN") : ""}
             </p>
             <button

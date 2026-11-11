@@ -59,7 +59,7 @@ export default async function PermissionsPage() {
         title="Access, drawn as a grid."
         description="Every cell is an explicit grant. No grant means no access — agents cannot borrow scopes from each other or from the environment."
         actions={
-          <Link href="/app/agents" className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card">
+          <Link href="/app/agents" className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
             Manage agents
           </Link>
         }
@@ -74,10 +74,10 @@ export default async function PermissionsPage() {
 
       {unmappedAgents.length ? (
         <div className="mt-4 border border-[#a56b18]/30 bg-[#a56b18]/[0.06] px-4 py-3">
-          <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#8c5a12]">
+          <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#8c5a12] dark:text-[#e8b26a]">
             {unmappedAgents.length} agent{unmappedAgents.length === 1 ? "" : "s"} hold no grants
           </p>
-          <p className="mt-1 text-[12px] leading-relaxed text-[#8c5a12]">
+          <p className="mt-1 text-[12px] leading-relaxed text-[#8c5a12] dark:text-[#e8b26a]">
             {unmappedAgents.map((agent) => agent.name).join(", ")} can authenticate but cannot call any service. Grant access or
             suspend them so the fleet stays honest.
           </p>
@@ -90,7 +90,7 @@ export default async function PermissionsPage() {
             <table className="w-full min-w-[720px] border-collapse text-left">
               <thead>
                 <tr className="border-b border-black/10 dark:border-border">
-                  <th className="sticky left-0 z-10 bg-white px-4 py-3 font-mono text-[9px] uppercase tracking-[0.16em] text-black/40 dark:bg-card dark:text-muted-foreground">
+                  <th className="sticky left-0 z-10 bg-white px-4 py-3 font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:bg-card dark:text-muted-foreground">
                     Agent
                   </th>
                   {connectorsWithCredentials.map((def) => (
@@ -102,12 +102,12 @@ export default async function PermissionsPage() {
                       >
                         <ConnectorLogo slug={def.slug} mark={def.mark} mono className="size-3.5" />
                       </span>
-                      <span className="mt-1 block font-mono text-[8px] uppercase tracking-[0.1em] text-black/35 dark:text-muted-foreground">
+                      <span className="mt-1 block font-mono text-[8px] uppercase tracking-[0.1em] text-black/60 dark:text-muted-foreground">
                         {def.name.split(" ")[0]}
                       </span>
                     </th>
                   ))}
-                  <th className="px-3 py-3 text-right font-mono text-[9px] uppercase tracking-[0.16em] text-black/40 dark:text-muted-foreground">
+                  <th className="px-3 py-3 text-right font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                     Total
                   </th>
                 </tr>
@@ -122,7 +122,7 @@ export default async function PermissionsPage() {
                           <span className="text-[12px] group-hover:underline">{agent.name}</span>
                           {agent.status !== "active" ? <StatusBadge status={agent.status} /> : null}
                         </Link>
-                        <span className="font-mono text-[9px] text-black/35 dark:text-muted-foreground">{agent.keyMode === "platform" ? "managed" : "byok"}</span>
+                        <span className="font-mono text-[9px] text-black/60 dark:text-muted-foreground">{agent.keyMode === "platform" ? "managed" : "byok"}</span>
                       </th>
                       {connectorsWithCredentials.map((def) => {
                         const cred = credentials.find((c) => c.connectorSlug === def.slug);
@@ -148,22 +148,23 @@ export default async function PermissionsPage() {
                               }
                             >
                               <span
+                                aria-hidden="true"
                                 className={`flex size-6 items-center justify-center border font-mono text-[9px] transition-colors ${
                                   state === "none"
                                     ? "border-dashed border-black/15 text-transparent hover:border-black/40 dark:border-border"
                                     : state === "write"
-                                      ? "border-black bg-black text-[#eca8d6]"
-                                      : "border-[#2f7d5c]/40 bg-[#2f7d5c]/[0.08] text-[#2f7d5c]"
+                                      ? "border-black bg-black text-white"
+                                      : "border-[#2f7d5c]/40 bg-[#2f7d5c]/[0.08] text-[#276a4e] dark:text-[#7fd1ab]"
                                 }`}
                               >
-                                {state === "none" ? "·" : actions.length}
+                                {state === "none" ? "" : actions.length}
                               </span>
                             </Link>
                           </td>
                         );
                       })}
                       <td className="px-3 py-2 text-right">
-                        <Link href={`/app/permissions/${agent.id}`} className="font-mono text-[10px] text-black/45 underline-offset-2 hover:underline dark:text-muted-foreground">
+                        <Link href={`/app/permissions/${agent.id}`} className="font-mono text-[10px] text-black/60 underline-offset-2 hover:underline dark:text-muted-foreground">
                           {agentGrants.length} grant{agentGrants.length === 1 ? "" : "s"}
                         </Link>
                       </td>
@@ -195,8 +196,8 @@ export default async function PermissionsPage() {
           { title: "Expiry is a feature", body: "Set grant expiry for contractors and experiments. When the date passes, the proxy denies the call and the audit shows why." },
         ].map((item) => (
           <div key={item.title} className="border border-black/10 bg-white p-4 dark:border-border dark:bg-card">
-            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/40 dark:text-muted-foreground">{item.title}</p>
-            <p className="mt-1.5 text-[12px] leading-relaxed text-black/55 dark:text-muted-foreground">{item.body}</p>
+            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">{item.title}</p>
+            <p className="mt-1.5 text-[12px] leading-relaxed text-black/65 dark:text-muted-foreground">{item.body}</p>
           </div>
         ))}
       </div>

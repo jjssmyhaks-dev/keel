@@ -114,13 +114,16 @@ POST /api/v1/credentials/:id/refresh → rotates tokens now`}</pre>
         Redaction has two directions. Inbound, fields listed on the connector (for example{" "}
         <code>token</code>, <code>authorization</code>, <code>text</code> for Slack) are stripped from approval payloads
         before they are stored, so a human can approve intent without seeing message bodies. Outbound, provider
-        responses are scanned for the credential value and replaced with <code>[redacted]</code> before reaching the
-        agent.
+        responses are scanned for the exact credential strings (8 characters or longer) and replaced with{" "}
+        <code>[redacted]</code> before reaching the agent. The call&apos;s trust record stores how many replacements
+        were made.
       </p>
       <p>
         Connector definitions declare exactly which fields are sensitive; see{" "}
-        <Link href="/docs/connectors">the connector catalogue</Link>. Redaction is best-effort on free-form provider
-        responses: never rely on it as your only control for secrets you inject into prompt context.
+        <Link href="/docs/connectors">the connector catalogue</Link>. Redaction is exact-string matching, not semantic
+        classification, and is best-effort on free-form provider responses: never rely on it as your only control for
+        secrets you inject into prompt context. Each call&apos;s{" "}
+        <Link href="/docs/concepts/audit#trust">trust view</Link> shows what was injected and redacted.
       </p>
 
       <h2 id="health">Health checks</h2>

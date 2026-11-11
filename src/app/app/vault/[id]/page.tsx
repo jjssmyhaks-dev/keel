@@ -73,7 +73,7 @@ export default async function CredentialDetailPage({
   const recentCalls = await db.auditEvent.findMany({
     where: {
       environmentId: ctx.environment.id,
-      action: "proxy.call",
+      action: def?.sandbox ? "sandbox.call" : "proxy.call",
       OR: [
         { payloadSummary: { contains: credential.id } },
         ...(credential.grants.length
@@ -98,7 +98,7 @@ export default async function CredentialDetailPage({
         title={credential.name}
         description={def?.description ?? "A connection in this environment."}
         actions={
-          <Link href="/app/vault" className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card">
+          <Link href="/app/vault" className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
             Back to vault
           </Link>
         }
@@ -134,13 +134,13 @@ export default async function CredentialDetailPage({
           <ConnectorLogo slug={credential.connectorSlug} mark={def?.mark} mono className="size-4" />
         </span>
         <StatusBadge status={revoked ? "revoked" : credential.status} />
-        <span className="font-mono text-[10px] text-black/40 dark:text-muted-foreground">{credential.maskedHint || "••••"}</span>
-        <span className="font-mono text-[10px] text-black/30 dark:text-muted-foreground">·</span>
-        <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-black/40 dark:text-muted-foreground">
+        <span className="font-mono text-[10px] text-black/60 dark:text-muted-foreground">{credential.maskedHint || "••••"}</span>
+        <span className="font-mono text-[10px] text-black/60 dark:text-muted-foreground">·</span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-black/60 dark:text-muted-foreground">
           {credential.type.replace("_", " ")}
         </span>
-        <span className="font-mono text-[10px] text-black/30 dark:text-muted-foreground">·</span>
-        <span className="font-mono text-[10px] text-black/40 dark:text-muted-foreground">
+        <span className="font-mono text-[10px] text-black/60 dark:text-muted-foreground">·</span>
+        <span className="font-mono text-[10px] text-black/60 dark:text-muted-foreground">
           {credential.lastUsedAt ? `last used ${relativeTime(credential.lastUsedAt)}` : "never used"}
         </span>
       </div>
@@ -160,19 +160,26 @@ export default async function CredentialDetailPage({
             </dl>
             <div className="border-t border-black/10 px-4 py-3 dark:border-border">
               <details>
-                <summary className="cursor-pointer font-mono text-[9px] uppercase tracking-[0.16em] text-black/40 dark:text-muted-foreground">
+                <summary className="cursor-pointer font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                   Encrypted envelope
                 </summary>
-                <div className="mt-2 space-y-2">
-                  <div>
-                    <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/35 dark:text-muted-foreground">Ciphertext</p>
-                    <p className="mt-0.5 break-all font-mono text-[10px] text-black/60 dark:text-muted-foreground">{credential.encryptedPayload ? `${credential.encryptedPayload.slice(0, 120)}…` : "Destroyed on revocation"}</p>
+                {def?.sandbox ? (
+                  <p className="mt-2 text-[11px] leading-relaxed text-black/65 dark:text-muted-foreground">
+                    No ciphertext. This row carries an inert placeholder because the sandbox executor never reads
+                    credential material.
+                  </p>
+                ) : (
+                  <div className="mt-2 space-y-2">
+                    <div>
+                      <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/60 dark:text-muted-foreground">Ciphertext</p>
+                      <p className="mt-0.5 break-all font-mono text-[10px] text-black/60 dark:text-muted-foreground">{credential.encryptedPayload ? `${credential.encryptedPayload.slice(0, 120)}…` : "Destroyed on revocation"}</p>
+                    </div>
+                    <div>
+                      <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/60 dark:text-muted-foreground">Wrapped data key</p>
+                      <p className="mt-0.5 break-all font-mono text-[10px] text-black/60 dark:text-muted-foreground">{credential.dataKeyEncrypted ? `${credential.dataKeyEncrypted.slice(0, 120)}…` : "Destroyed on revocation"}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/35 dark:text-muted-foreground">Wrapped data key</p>
-                    <p className="mt-0.5 break-all font-mono text-[10px] text-black/60 dark:text-muted-foreground">{credential.dataKeyEncrypted ? `${credential.dataKeyEncrypted.slice(0, 120)}…` : "Destroyed on revocation"}</p>
-                  </div>
-                </div>
+                )}
               </details>
             </div>
           </Panel>
@@ -198,7 +205,7 @@ export default async function CredentialDetailPage({
                           {grant.agent.name}
                         </Link>
                         <StatusBadge status={grant.agent.status} />
-                        <Link href={`/app/permissions/${grant.agentId}`} className="ml-auto font-mono text-[9px] uppercase tracking-[0.12em] text-black/45 underline dark:text-muted-foreground">
+                        <Link href={`/app/permissions/${grant.agentId}`} className="ml-auto font-mono text-[9px] uppercase tracking-[0.12em] text-black/60 underline dark:text-muted-foreground">
                           Edit
                         </Link>
                       </div>
@@ -206,14 +213,14 @@ export default async function CredentialDetailPage({
                         {actions.map((action) => {
                           const actionDef = def?.actions.find((entry) => entry.name === action);
                           return (
-                            <span key={action} className="inline-flex items-center gap-1 border border-black/10 px-1.5 py-0.5 font-mono text-[9px] text-black/55 dark:border-border dark:text-muted-foreground">
+                            <span key={action} className="inline-flex items-center gap-1 border border-black/10 px-1.5 py-0.5 font-mono text-[9px] text-black/65 dark:border-border dark:text-muted-foreground">
                               {action}
                               {actionDef ? <RiskBadge risk={actionDef.risk} /> : null}
                             </span>
                           );
                         })}
                       </div>
-                      <p className="mt-1.5 font-mono text-[9px] text-black/35 dark:text-muted-foreground">
+                      <p className="mt-1.5 font-mono text-[9px] text-black/60 dark:text-muted-foreground">
                         resource: {grant.resourcePattern} · {grant.approvalMode ?? "policy default"}
                         {grant.expiresAt ? ` · expires ${formatDate(grant.expiresAt)}` : ""}
                       </p>
@@ -224,7 +231,7 @@ export default async function CredentialDetailPage({
             ) : (
               <div className="px-4 py-8 text-center">
                 <p className="font-display text-xl tracking-tight">No agent can use this yet.</p>
-                <p className="mt-1 text-[12px] text-black/45 dark:text-muted-foreground">
+                <p className="mt-1 text-[12px] text-black/60 dark:text-muted-foreground">
                   A stored secret grants nothing by itself. Add a grant so the proxy can inject it.
                 </p>
                 <Link href="/app/permissions" className="mt-3 inline-block border border-black bg-black px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white">
@@ -234,24 +241,33 @@ export default async function CredentialDetailPage({
             )}
           </Panel>
 
-          <Panel title="Recent proxied calls" hint="Last six calls through this connection" bodyClassName="p-0">
+          <Panel
+            title={def?.sandbox ? "Recent sandbox calls" : "Recent proxied calls"}
+            hint={def?.sandbox ? "Last six runs through this connection" : "Last six calls through this connection"}
+            bodyClassName="p-0"
+          >
             {recentCalls.length ? (
               <div className="divide-y divide-black/10 dark:divide-border">
                 {recentCalls.map((event) => {
                   const payload = JSON.parse(event.payloadSummary || "{}") as { action?: string; risk?: string; resource?: string };
                   return (
-                    <div key={event.id} className="flex flex-wrap items-center gap-2 px-4 py-2.5">
-                      <span className="w-14 shrink-0 font-mono text-[9px] text-black/35 dark:text-muted-foreground">{relativeTime(event.timestamp)}</span>
+                    <Link
+                      key={event.id}
+                      href={`/app/activity/${event.id}`}
+                      title="Open the call trust view"
+                      className="flex flex-wrap items-center gap-2 px-4 py-2.5 transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+                    >
+                      <span className="w-14 shrink-0 font-mono text-[9px] text-black/60 dark:text-muted-foreground">{relativeTime(event.timestamp)}</span>
                       <StatusBadge status={event.outcome} />
                       <span className="min-w-0 flex-1 truncate font-mono text-[11px]">{payload.action ?? "proxy call"}</span>
                       {payload.risk ? <RiskBadge risk={payload.risk} /> : null}
-                      <span className="font-mono text-[9px] text-black/30 dark:text-muted-foreground">#{event.seq}</span>
-                    </div>
+                      <span className="font-mono text-[9px] text-black/60 dark:text-muted-foreground">#{event.seq}</span>
+                    </Link>
                   );
                 })}
               </div>
             ) : (
-              <p className="px-4 py-6 text-[12px] text-black/45 dark:text-muted-foreground">No proxied calls through this connection yet.</p>
+              <p className="px-4 py-6 text-[12px] text-black/60 dark:text-muted-foreground">No proxied calls through this connection yet.</p>
             )}
           </Panel>
         </div>
@@ -261,24 +277,24 @@ export default async function CredentialDetailPage({
             <Panel title="Token lifecycle" hint="OAuth tokens refresh automatically" bodyClassName="p-4">
               <dl className="space-y-2 text-[11px]">
                 <div className="flex items-start justify-between gap-3">
-                  <dt className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/40 dark:text-muted-foreground">Token endpoint</dt>
+                  <dt className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/60 dark:text-muted-foreground">Token endpoint</dt>
                   <dd className="max-w-[220px] break-all text-right font-mono text-[10px]">{credential.tokenEndpoint ?? "—"}</dd>
                 </div>
                 <div className="flex items-start justify-between gap-3">
-                  <dt className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/40 dark:text-muted-foreground">Access token expires</dt>
+                  <dt className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/60 dark:text-muted-foreground">Access token expires</dt>
                   <dd className="text-right font-mono text-[10px]">{credential.tokenExpiresAt ? formatDate(credential.tokenExpiresAt) : "No expiry reported"}</dd>
                 </div>
                 <div className="flex items-start justify-between gap-3">
-                  <dt className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/40 dark:text-muted-foreground">Refresh token</dt>
+                  <dt className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/60 dark:text-muted-foreground">Refresh token</dt>
                   <dd className="text-right font-mono text-[10px]">{credential.refreshable ? "Stored · auto-refresh before expiry" : "Not issued"}</dd>
                 </div>
               </dl>
               {scopes.length ? (
                 <div className="mt-3 border-t border-black/10 pt-3 dark:border-border">
-                  <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/40 dark:text-muted-foreground">Granted scopes</p>
+                  <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/60 dark:text-muted-foreground">Granted scopes</p>
                   <div className="mt-1.5 flex flex-wrap gap-1">
                     {scopes.map((scope) => (
-                      <span key={scope} className="border border-black/10 px-1.5 py-0.5 font-mono text-[9px] text-black/55 dark:border-border dark:text-muted-foreground">
+                      <span key={scope} className="border border-black/10 px-1.5 py-0.5 font-mono text-[9px] text-black/65 dark:border-border dark:text-muted-foreground">
                         {scope}
                       </span>
                     ))}
@@ -309,14 +325,28 @@ export default async function CredentialDetailPage({
                   </form>
                 ) : null}
               </div>
-              <p className="mt-2 text-[10px] leading-relaxed text-black/45 dark:text-muted-foreground">
+              <p className="mt-2 text-[10px] leading-relaxed text-black/60 dark:text-muted-foreground">
                 The proxy refreshes this token five minutes before expiry. If the provider rejects the refresh token, the
                 connection is marked broken and owners are notified. Reconnect from the vault to issue new tokens.
               </p>
             </Panel>
           ) : null}
 
-          <Panel title="Rotate secret" hint="Replace without breaking grants" bodyClassName="p-4">
+          {def?.sandbox ? (
+            <Panel title="No secret to rotate" hint="Sandbox connection" bodyClassName="p-4">
+              <p className="text-[11px] leading-relaxed text-black/60 dark:text-muted-foreground">
+                The sandbox has no stored credential. It exists so the proxy pipeline — auth, grants, policy,
+                approvals, rate limits and audit — can run before a provider key is wired.
+              </p>
+              <Link
+                href="/app/playground"
+                className="mt-3 inline-block border border-black px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.14em] text-white bg-black hover:bg-[#eca8d6] hover:text-black"
+              >
+                Open the playground
+              </Link>
+            </Panel>
+          ) : (
+            <Panel title="Rotate secret" hint="Replace without breaking grants" bodyClassName="p-4">
             <form action={rotateCredentialAction} className="space-y-3">
               <input type="hidden" name="credentialId" value={credential.id} />
               {def?.credentialFields?.length ? (
@@ -324,7 +354,7 @@ export default async function CredentialDetailPage({
                   <div key={field.key}>
                     <label
                       htmlFor={`rotate_${field.key}`}
-                      className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground"
+                      className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground"
                     >
                       {field.label}
                       {field.required ? " *" : ""}
@@ -337,7 +367,7 @@ export default async function CredentialDetailPage({
                         placeholder="Leave blank to keep current"
                         spellCheck={false}
                         autoComplete="off"
-                        className="mt-1 w-full resize-none border border-black/15 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                        className="mt-1 w-full resize-none border border-black/45 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                       />
                     ) : (
                       <input
@@ -347,7 +377,7 @@ export default async function CredentialDetailPage({
                         placeholder="Leave blank to keep current"
                         spellCheck={false}
                         autoComplete="off"
-                        className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                        className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                       />
                     )}
                   </div>
@@ -359,7 +389,7 @@ export default async function CredentialDetailPage({
                   rows={3}
                   placeholder="Paste the replacement credential"
                   spellCheck={false}
-                  className="w-full resize-none border border-black/15 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                  className="w-full resize-none border border-black/45 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                 />
               )}
               <button
@@ -369,10 +399,11 @@ export default async function CredentialDetailPage({
                 Rotate secret
               </button>
             </form>
-            <p className="mt-2 text-[11px] leading-relaxed text-black/45 dark:text-muted-foreground">
+            <p className="mt-2 text-[11px] leading-relaxed text-black/60 dark:text-muted-foreground">
               The old ciphertext is overwritten immediately. Grants and agent identities are untouched.
             </p>
-          </Panel>
+            </Panel>
+          )}
 
           <Panel title="Health history" hint="Stored and latest checks" bodyClassName="p-0">
             {credential.healthEvents.length ? (
@@ -381,14 +412,18 @@ export default async function CredentialDetailPage({
                   <div key={event.id} className="px-4 py-2.5">
                     <div className="flex items-center justify-between gap-3">
                       <StatusBadge status={healthBadge(event.result)} />
-                      <span className="font-mono text-[9px] text-black/35 dark:text-muted-foreground">{relativeTime(event.checkedAt)}</span>
+                      <span className="font-mono text-[9px] text-black/60 dark:text-muted-foreground">{relativeTime(event.checkedAt)}</span>
                     </div>
-                    {event.detail ? <p className="mt-1 text-[11px] leading-relaxed text-black/55 dark:text-muted-foreground">{event.detail}</p> : null}
+                    {event.detail ? <p className="mt-1 text-[11px] leading-relaxed text-black/65 dark:text-muted-foreground">{event.detail}</p> : null}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="px-4 py-5 text-[11px] text-black/45 dark:text-muted-foreground">No health checks recorded.</p>
+              <p className="px-4 py-5 text-[11px] text-black/60 dark:text-muted-foreground">
+                {def?.sandbox
+                  ? "Health checks do not apply: the sandbox has no provider to probe. Every run is a synthetic executor call."
+                  : "No health checks recorded."}
+              </p>
             )}
           </Panel>
 
@@ -397,7 +432,7 @@ export default async function CredentialDetailPage({
               <dl className="divide-y divide-black/10 text-[12px] dark:divide-border">
                 {Object.entries(metadata).map(([key, value]) => (
                   <div key={key} className="flex items-start justify-between gap-4 px-4 py-2.5">
-                    <dt className="font-mono text-[10px] text-black/45 dark:text-muted-foreground">{key}</dt>
+                    <dt className="font-mono text-[10px] text-black/60 dark:text-muted-foreground">{key}</dt>
                     <dd className="text-right font-mono text-[10px]">{typeof value === "string" ? value : JSON.stringify(value)}</dd>
                   </div>
                 ))}
@@ -410,15 +445,16 @@ export default async function CredentialDetailPage({
               <EmptyState title="Already revoked" description="This connection can no longer be used by the proxy." />
             ) : (
               <>
-                <p className="text-[11px] leading-relaxed text-black/45 dark:text-muted-foreground">
-                  Revoking marks the secret unusable. Any call that resolves to this connection is denied and audited. Grants are
-                  kept on record so the decision is visible in history.
+                <p className="text-[11px] leading-relaxed text-black/60 dark:text-muted-foreground">
+                  {def?.sandbox
+                    ? "Revoking disables the sandbox connection and its grant. The next playground run provisions a fresh one. Any call that resolves to this connection is denied and audited."
+                    : "Revoking marks the secret unusable. Any call that resolves to this connection is denied and audited. Grants are kept on record so the decision is visible in history."}
                 </p>
                 <form action={revokeCredentialAction} className="mt-3">
                   <input type="hidden" name="credentialId" value={credential.id} />
                   <ConfirmButton
                     message={`Revoke ${credential.name}? Agents calling it will be denied immediately.`}
-                    className="w-full border border-[#b3402f]/40 bg-[#b3402f]/[0.06] px-2 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-[#8c3225] hover:bg-[#b3402f] hover:text-white disabled:opacity-40"
+                    className="w-full border border-[#b3402f]/40 bg-[#b3402f]/[0.06] px-2 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-[#8c3225] dark:text-[#f0a396] hover:bg-[#b3402f] hover:text-white disabled:opacity-40"
                   >
                     Revoke connection
                   </ConfirmButton>
@@ -435,7 +471,7 @@ export default async function CredentialDetailPage({
 function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex items-start justify-between gap-6 px-4 py-2.5">
-      <dt className="text-black/45 dark:text-muted-foreground">{label}</dt>
+      <dt className="text-black/60 dark:text-muted-foreground">{label}</dt>
       <dd className={`text-right capitalize ${mono ? "font-mono text-[11px] normal-case" : ""}`}>{value}</dd>
     </div>
   );

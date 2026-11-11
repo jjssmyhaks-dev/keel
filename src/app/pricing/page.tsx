@@ -25,7 +25,15 @@ const faqs = [
   },
   {
     q: "Can I pay in INR?",
-    a: "Yes. Choose INR in Billing and Stripe checkout charges the INR price; international customers pay in USD. Paid plans activate as soon as Stripe confirms the subscription, and invoices appear in Billing.",
+    a: "Yes. Choose INR in Billing and Stripe checkout charges the INR price; international customers pay in USD. Paid plans activate as soon as Stripe confirms the subscription, and invoices appear in Billing with hosted and PDF copies.",
+  },
+  {
+    q: "Is there a trial?",
+    a: "A workspace that has never had a paid subscription can start a 14-day trial of Pro or Scale from Billing. No card is required to start. When the trial ends, add a payment method to keep the plan or the workspace returns to Free limits.",
+  },
+  {
+    q: "What happens if a payment fails?",
+    a: "Stripe retries the charge and the workspace is marked past due; paid limits stay paused during the retry window. If collection still fails after seven days, billing is suspended and the workspace runs on Free limits until an invoice is paid.",
   },
   {
     q: "What happens when I downgrade?",
@@ -39,7 +47,7 @@ const faqs = [
 
 export default function PricingPage() {
   return (
-    <main className="relative">
+    <main id="main-content" tabIndex={-1} className="relative">
       <Navigation />
       <div className="pt-24">
         <PricingSection standalone />

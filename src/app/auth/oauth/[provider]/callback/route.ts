@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies, headers } from "next/headers";
 import { db } from "@/lib/db";
-import { createSession } from "@/lib/session";
+import { beginLogin } from "@/lib/login";
 import { provisionOrganization } from "@/lib/provisioning";
 import { exchangeCode, OAuthCookie } from "@/lib/oauth";
 import { auditEvent } from "@/lib/audit";
@@ -56,11 +56,21 @@ export async function GET(req: Request, ctx: { params: Promise<{ provider: strin
     }
 
     const h = await headers();
-    await createSession(user.id, {
-      ip: h.get("x-forwarded-for")?.split(",")[0]?.trim() || undefined,
-      userAgent: h.get("user-agent") || undefined,
-      device: "Web browser (OAuth)",
-    });
+    const outcome = await beginLogin(
+      user,
+      {
+        ip: h.get("x-forwarded-for")?.split(",")[0]?.trim() || undefined,
+        userAgent: h.get("user-agent") || undefined,
+        device: "Web browser (OAuth)",
+      },
+      { authMethod: "oauth" },
+    );
+    if (outcome.kind === "challenge") {
+      return NextResponse.redirect(`${origin}/mfa?token=${encodeURIComponent(outcome.token)}`);
+    }
+    if (outcome.kind === "enroll") {
+      return NextResponse.redirect(`${origin}/mfa/enroll?required=1`);
+    }
 
     const env = await db.environment.findFirst({
       where: { project: { org: { memberships: { some: { userId: user.id } } } } },

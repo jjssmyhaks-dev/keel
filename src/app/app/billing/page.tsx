@@ -8,18 +8,27 @@ import { periodKey } from "@/lib/proxy";
 import { priceIdFor, stripeConfigured } from "@/lib/stripe";
 import { PageHeader, Panel, Stat, Notice, StatusBadge, formatDate } from "@/components/app/ui";
 import { openBillingPortalAction, requestPlanChangeAction, startCheckoutAction } from "@/app/app/actions";
+import {
+  DUNNING_GRACE_DAYS,
+  TRIAL_DAYS,
+  billingAddressLines,
+  daysUntil,
+  invoiceDisplayStatus,
+  parseBillingAddress,
+  trialEligible,
+} from "@/lib/billing-rules";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "Billing" };
 
 function meter(used: number, limit: number) {
-  if (limit < 0) return { pct: 0, label: "Unlimited", tone: "text-[#2f7d5c]" };
+  if (limit < 0) return { pct: 0, label: "Unlimited", tone: "text-[#276a4e] dark:text-[#7fd1ab]" };
   const pct = Math.min(100, Math.round((used / Math.max(limit, 1)) * 100));
   return {
     pct,
     label: `${used.toLocaleString("en-IN")} / ${limit.toLocaleString("en-IN")}`,
-    tone: pct >= 90 ? "text-[#8c3225]" : pct >= 70 ? "text-[#8c5a12]" : "text-black/50 dark:text-muted-foreground",
+    tone: pct >= 90 ? "text-[#8c3225] dark:text-[#f0a396]" : pct >= 70 ? "text-[#8c5a12] dark:text-[#e8b26a]" : "text-black/60 dark:text-muted-foreground",
   };
 }
 
@@ -36,15 +45,28 @@ export default async function BillingPage({
   const currency = ctx.org.billingCurrency === "INR" ? "INR" : "USD";
   const period = periodKey();
   const stripeReady = stripeConfigured();
+  const trialDays = daysUntil(ctx.org.trialEndsAt);
+  const canTrial = trialEligible(ctx.org);
+  const trialOffered =
+    canTrial && stripeReady && ["pro", "scale"].some((key) => Boolean(priceIdFor(key, currency)));
+  const address = parseBillingAddress(ctx.org.billingAddressJson);
+  const dunningDays = ctx.org.dunningStartedAt
+    ? Math.max(0, Math.floor((Date.now() - new Date(ctx.org.dunningStartedAt).getTime()) / 86_400_000))
+    : 0;
 
   const [usage, invoices, agentCount, credentialCount] = await Promise.all([
-    db.usageRecord.findMany({ where: { orgId: ctx.org.id, period } }),
+    db.usageRecord.findMany({
+      where: { orgId: ctx.org.id, metric: "proxy_calls" },
+      orderBy: { period: "desc" },
+      take: 12,
+    }),
     db.invoice.findMany({ where: { orgId: ctx.org.id }, orderBy: { issuedAt: "desc" }, take: 12 }),
     db.agent.count({ where: { environment: { project: { orgId: ctx.org.id } } } }),
     db.credential.count({ where: { environment: { project: { orgId: ctx.org.id } }, revokedAt: null } }),
   ]);
+  const usageHistory = usage.slice(0, 6);
 
-  const callsThisMonth = usage.find((record) => record.metric === "proxy_calls")?.quantity ?? 0;
+  const callsThisMonth = usage.find((record) => record.period === period)?.quantity ?? 0;
   const callsMeter = meter(callsThisMonth, plan.limits.callsPerMonth);
   const agentMeter = meter(agentCount, plan.limits.agents);
   const credentialMeter = meter(credentialCount, plan.limits.credentials);
@@ -92,15 +114,48 @@ export default async function BillingPage({
           Plan change requested. Billing will follow up — the current plan stays active until then.
         </Notice>
       ) : null}
+      {ctx.org.planStatus === "trialing" ? (
+        <Notice kind="info">
+          Trial active{trialDays !== null ? ` — ${trialDays} ${trialDays === 1 ? "day" : "days"} left` : ""}
+          {ctx.org.trialEndsAt ? ` (ends ${formatDate(ctx.org.trialEndsAt)})` : ""}. Add a payment method before the trial
+          ends to keep paid limits.
+        </Notice>
+      ) : null}
       {!billingActive ? (
         <Notice kind="error">
-          Subscription status is <strong>{ctx.org.planStatus}</strong>. Free limits apply and production writes are disabled
-          until Stripe reports the subscription is active again.
+          {ctx.org.planStatus === "past_due" ? (
+            <>
+              Payment failed{dunningDays > 0 ? ` ${dunningDays} ${dunningDays === 1 ? "day" : "days"} ago` : ""}. Stripe is
+              retrying automatically for {DUNNING_GRACE_DAYS} days; after that the workspace moves to Free limits. Update the
+              payment method to restore paid features.
+            </>
+          ) : ctx.org.planStatus === "unpaid" ? (
+            <>
+              Billing is suspended after {DUNNING_GRACE_DAYS} days of failed payments. Free limits apply and production
+              writes are disabled until Stripe collects an open invoice.
+            </>
+          ) : (
+            <>
+              Subscription status is <strong>{ctx.org.planStatus}</strong>. Free limits apply and production writes are
+              disabled until Stripe reports the subscription is active again.
+            </>
+          )}
         </Notice>
       ) : null}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Plan" value={subscribed.name} detail={billingActive ? `${formatPrice(subscribed, currency)} / month` : `Billing ${ctx.org.planStatus} · ${plan.name} limits`} accent />
+        <Stat
+          label="Plan"
+          value={subscribed.name}
+          detail={
+            billingActive
+              ? ctx.org.planStatus === "trialing" && trialDays !== null
+                ? `Trial · ${trialDays} of ${TRIAL_DAYS} days left`
+                : `${formatPrice(subscribed, currency)} / month`
+              : `Billing ${ctx.org.planStatus} · ${plan.name} limits`
+          }
+          accent
+        />
         <Stat label="Proxy calls" value={callsThisMonth.toLocaleString("en-IN")} detail={callsMeter.label} />
         <Stat label="Agents" value={agentCount} detail={agentMeter.label} />
         <Stat label="Connections" value={credentialCount} detail={credentialMeter.label} />
@@ -108,7 +163,19 @@ export default async function BillingPage({
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <div className="space-y-6">
-          <Panel title="This billing period" hint={period} bodyClassName="p-4">
+          <Panel
+            title="This billing period"
+            hint={period}
+            bodyClassName="p-4"
+            actions={
+              <a
+                href="/app/billing/usage"
+                className="border border-black/45 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.12em] text-black/65 hover:border-black hover:text-black dark:border-white/40 dark:text-muted-foreground dark:hover:text-foreground"
+              >
+                Usage CSV ↓
+              </a>
+            }
+          >
             <div className="space-y-4">
               {[
                 { label: "Proxy calls", used: callsThisMonth, limit: plan.limits.callsPerMonth, meter: callsMeter },
@@ -130,36 +197,89 @@ export default async function BillingPage({
               ))}
             </div>
             {plan.limits.callsPerMonth > 0 && callsThisMonth > plan.limits.callsPerMonth ? (
-              <p className="mt-4 border-t border-black/10 pt-3 text-[11px] leading-relaxed text-[#8c3225] dark:border-border">
+              <p className="mt-4 border-t border-black/10 pt-3 text-[11px] leading-relaxed text-[#8c3225] dark:text-[#f0a396] dark:border-border">
                 This workspace is over its monthly call allowance. New proxy calls are refused until the period resets or the
                 plan changes. Nothing is billed automatically.
               </p>
             ) : null}
             {plan.limits.callsPerMonth > 0 ? (
-              <p className="mt-4 border-t border-black/10 pt-3 font-mono text-[9px] uppercase tracking-[0.12em] text-black/35 dark:border-border dark:text-muted-foreground">
+              <p className="mt-4 border-t border-black/10 pt-3 font-mono text-[9px] uppercase tracking-[0.12em] text-black/60 dark:border-border dark:text-muted-foreground">
                 Allowances reset on the first of each month · extra usage is refused, not billed
               </p>
+            ) : null}
+            {usageHistory.length ? (
+              <div className="mt-4 border-t border-black/10 pt-3 dark:border-border">
+                <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/60 dark:text-muted-foreground">
+                  Usage history
+                </p>
+                <div className="mt-2 space-y-1.5">
+                  {usageHistory.map((record) => {
+                    const over = plan.limits.callsPerMonth >= 0 && record.quantity > plan.limits.callsPerMonth;
+                    return (
+                      <div key={record.id} className="flex items-center justify-between gap-3">
+                        <span className="font-mono text-[10px]">{record.period}</span>
+                        <span
+                          className={`font-mono text-[10px] ${
+                            over ? "text-[#8c3225] dark:text-[#f0a396]" : "text-black/60 dark:text-muted-foreground"
+                          }`}
+                        >
+                          {record.quantity.toLocaleString("en-IN")} calls{over ? " · over allowance" : ""}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 text-[10px] leading-relaxed text-black/60 dark:text-muted-foreground">
+                  The CSV statement covers the last 12 periods and is a usage record, not a tax invoice.
+                </p>
+              </div>
             ) : null}
           </Panel>
 
           <Panel title="Invoices" hint="Paid and open" bodyClassName="p-0">
             {invoices.length ? (
               <div className="divide-y divide-black/10 dark:divide-border">
-                {invoices.map((invoice) => (
-                  <div key={invoice.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5">
-                    <span className="font-mono text-[11px]">{invoice.number}</span>
-                    <span className="text-[11px] text-black/45 dark:text-muted-foreground">{formatDate(invoice.issuedAt)}</span>
-                    <span className="ml-auto font-mono text-[11px]">
-                      {invoice.currency === "INR"
-                        ? `₹${(invoice.amount / 100).toLocaleString("en-IN")}`
-                        : `$${(invoice.amount / 100).toFixed(2)}`}
-                    </span>
-                    <StatusBadge status={invoice.status === "paid" ? "approved" : invoice.status === "open" ? "pending" : "failed"} />
-                  </div>
-                ))}
+                {invoices.map((invoice) => {
+                  const display = invoiceDisplayStatus(invoice.status);
+                  return (
+                    <div key={invoice.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5">
+                      <span className="font-mono text-[11px]">{invoice.number}</span>
+                      <span className="text-[11px] text-black/60 dark:text-muted-foreground">
+                        {formatDate(invoice.issuedAt)}
+                        {invoice.paidAt ? ` · paid ${formatDate(invoice.paidAt)}` : ""}
+                      </span>
+                      <span className="ml-auto font-mono text-[11px]">
+                        {invoice.currency === "INR"
+                          ? `₹${(invoice.amount / 100).toLocaleString("en-IN")}`
+                          : `$${(invoice.amount / 100).toFixed(2)}`}
+                      </span>
+                      {invoice.hostedUrl ? (
+                        <a
+                          href={invoice.hostedUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/60 underline-offset-2 hover:text-black hover:underline dark:text-muted-foreground dark:hover:text-foreground"
+                        >
+                          Hosted ↗
+                        </a>
+                      ) : null}
+                      {invoice.pdfUrl ? (
+                        <a
+                          href={invoice.pdfUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/60 underline-offset-2 hover:text-black hover:underline dark:text-muted-foreground dark:hover:text-foreground"
+                        >
+                          PDF
+                        </a>
+                      ) : null}
+                      <StatusBadge status={display.badge} />
+                    </div>
+                  );
+                })}
               </div>
             ) : (
-              <p className="px-4 py-6 text-[12px] text-black/45 dark:text-muted-foreground">
+              <p className="px-4 py-6 text-[12px] text-black/60 dark:text-muted-foreground">
                 No invoices yet. The {subscribed.name} plan has no charge on file{subscribed.priceUsd === 0 ? " — it is free." : "."}
               </p>
             )}
@@ -177,9 +297,9 @@ export default async function BillingPage({
               ))}
             </ul>
             <div className="mt-4 border-t border-black/10 pt-3 dark:border-border">
-              <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/40 dark:text-muted-foreground">Retention</p>
+              <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/60 dark:text-muted-foreground">Retention</p>
               <p className="mt-0.5 text-[12px]">{plan.limits.retentionDays.toLocaleString("en-IN")} days of audit history</p>
-              <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/40 dark:text-muted-foreground">Seats</p>
+              <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/60 dark:text-muted-foreground">Seats</p>
               <p className="mt-0.5 text-[12px]">{plan.limits.members < 0 ? "Unlimited members" : `${plan.limits.members} members`}</p>
             </div>
           </Panel>
@@ -187,12 +307,22 @@ export default async function BillingPage({
           <Panel title="Billing contact" hint="Where invoices go" bodyClassName="p-0">
             <dl className="divide-y divide-black/10 text-[12px] dark:divide-border">
               <div className="flex items-center justify-between gap-4 px-4 py-2.5">
-                <dt className="text-black/45 dark:text-muted-foreground">Email</dt>
+                <dt className="text-black/60 dark:text-muted-foreground">Email</dt>
                 <dd className="font-mono text-[10px]">{ctx.org.billingEmail ?? "Not set"}</dd>
               </div>
               <div className="flex items-center justify-between gap-4 px-4 py-2.5">
-                <dt className="text-black/45 dark:text-muted-foreground">Currency</dt>
+                <dt className="text-black/60 dark:text-muted-foreground">Currency</dt>
                 <dd className="font-mono text-[10px]">{currency}</dd>
+              </div>
+              <div className="flex items-start justify-between gap-4 px-4 py-2.5">
+                <dt className="text-black/60 dark:text-muted-foreground">Tax ID</dt>
+                <dd className="font-mono text-[10px]">{ctx.org.taxId ?? "Not set"}</dd>
+              </div>
+              <div className="flex items-start justify-between gap-4 px-4 py-2.5">
+                <dt className="text-black/60 dark:text-muted-foreground">Billing address</dt>
+                <dd className="max-w-[60%] text-right font-mono text-[10px]">
+                  {billingAddressLines(address).length ? billingAddressLines(address).join(", ") : "Not set"}
+                </dd>
               </div>
             </dl>
             {ctx.capabilities.manageBilling ? (
@@ -204,7 +334,7 @@ export default async function BillingPage({
                   <form action={openBillingPortalAction}>
                     <button
                       type="submit"
-                      className="font-mono text-[9px] uppercase tracking-[0.12em] text-black/45 underline-offset-2 hover:text-black hover:underline dark:text-muted-foreground dark:hover:text-foreground"
+                      className="font-mono text-[9px] uppercase tracking-[0.12em] text-black/60 underline-offset-2 hover:text-black hover:underline dark:text-muted-foreground dark:hover:text-foreground"
                     >
                       Manage billing →
                     </button>
@@ -214,7 +344,11 @@ export default async function BillingPage({
             ) : null}
           </Panel>
 
-          <Panel title="Change plan" hint="Upgrade or talk to sales" bodyClassName="p-0">
+          <Panel
+            title="Change plan"
+            hint={trialOffered ? `${TRIAL_DAYS}-day trial on paid plans · no card to start` : "Upgrade or talk to sales"}
+            bodyClassName="p-0"
+          >
             <div className="divide-y divide-black/10 dark:divide-border">
               {upgradePlans.map((candidate) => {
                 const checkoutReady = stripeReady && Boolean(priceIdFor(candidate.key, currency));
@@ -223,9 +357,9 @@ export default async function BillingPage({
                     <Link key={candidate.key} href="/contact" className="flex items-center gap-3 px-4 py-2.5 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
                       <div className="min-w-0 flex-1">
                         <p className="text-[12px] font-medium">{candidate.name}</p>
-                        <p className="font-mono text-[9px] text-black/40 dark:text-muted-foreground">Custom pricing</p>
+                        <p className="font-mono text-[9px] text-black/60 dark:text-muted-foreground">Custom pricing</p>
                       </div>
-                      <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/40 dark:text-muted-foreground">
+                      <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/60 dark:text-muted-foreground">
                         Contact →
                       </span>
                     </Link>
@@ -240,13 +374,13 @@ export default async function BillingPage({
                     <input type="hidden" name="plan" value={candidate.key} />
                     <div className="min-w-0 flex-1">
                       <p className="text-[12px] font-medium">{candidate.name}</p>
-                      <p className="font-mono text-[9px] text-black/40 dark:text-muted-foreground">{formatPrice(candidate, currency)} / month</p>
+                      <p className="font-mono text-[9px] text-black/60 dark:text-muted-foreground">{formatPrice(candidate, currency)} / month</p>
                     </div>
                     <button
                       type="submit"
-                      className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/45 underline-offset-2 hover:text-black hover:underline dark:text-muted-foreground dark:hover:text-foreground"
+                      className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/60 underline-offset-2 hover:text-black hover:underline dark:text-muted-foreground dark:hover:text-foreground"
                     >
-                      {checkoutReady ? "Upgrade →" : "Request →"}
+                      {checkoutReady ? (canTrial ? "Start trial →" : "Upgrade →") : "Request →"}
                     </button>
                   </form>
                 );

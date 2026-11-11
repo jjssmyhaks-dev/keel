@@ -61,11 +61,11 @@ export default async function VaultPage({
         actions={
           <div className="flex items-center gap-2">
             <form action={runHealthChecksAction}>
-              <button className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card">
+              <button className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
                 Check connections
               </button>
             </form>
-            <Link href="/app/connect" className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card">
+            <Link href="/app/connect" className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
               OAuth apps
             </Link>
             <Link href="/app/vault/new" className="border border-black bg-black px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white hover:bg-[#eca8d6] hover:text-black">
@@ -107,7 +107,7 @@ export default async function VaultPage({
         <Link
           href="/app/vault"
           className={`border px-2.5 py-1 text-[11px] ${
-            !query.connector ? "border-black bg-black text-white dark:border-foreground dark:bg-foreground dark:text-background" : "border-transparent text-black/55 hover:border-black/15 dark:text-muted-foreground"
+            !query.connector ? "border-black bg-black text-white dark:border-foreground dark:bg-foreground dark:text-background" : "border-transparent text-black/65 hover:border-black/15 dark:text-muted-foreground"
           }`}
         >
           All
@@ -122,10 +122,10 @@ export default async function VaultPage({
               className={`border px-2.5 py-1 text-[11px] ${
                 query.connector === def.slug
                   ? "border-black bg-black text-white dark:border-foreground dark:bg-foreground dark:text-background"
-                  : "border-transparent text-black/55 hover:border-black/15 dark:text-muted-foreground"
+                  : "border-transparent text-black/65 hover:border-black/15 dark:text-muted-foreground"
               }`}
             >
-              {def.name} <span className="opacity-50">{count}</span>
+              {def.name} <span>{count}</span>
             </Link>
           );
         })}
@@ -154,7 +154,7 @@ export default async function VaultPage({
                       </span>
                       <div className="min-w-0">
                         <p className="truncate text-[12px] font-medium">{credential.name}</p>
-                        <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-black/35 dark:text-muted-foreground">
+                        <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-black/60 dark:text-muted-foreground">
                           {def?.name ?? credential.connectorSlug}
                         </p>
                       </div>
@@ -162,18 +162,18 @@ export default async function VaultPage({
                         <StatusBadge status={credential.revokedAt ? "revoked" : credential.status} />
                       </span>
                     </div>
-                    <div className="mt-4 flex items-center justify-between font-mono text-[10px] text-black/45 dark:text-muted-foreground">
+                    <div className="mt-4 flex items-center justify-between font-mono text-[10px] text-black/60 dark:text-muted-foreground">
                       <span>{credential.maskedHint || "••••"}</span>
                       <span>{credential.type}</span>
                     </div>
                   </div>
-                  <div className="mt-4 flex items-center justify-between border-t border-black/10 pt-2.5 font-mono text-[9px] uppercase tracking-[0.1em] text-black/35 dark:border-border dark:text-muted-foreground">
+                  <div className="mt-4 flex items-center justify-between border-t border-black/10 pt-2.5 font-mono text-[9px] uppercase tracking-[0.1em] text-black/60 dark:border-border dark:text-muted-foreground">
                     <span>{agents} agent{agents === 1 ? "" : "s"}</span>
                     <span>{credential.lastUsedAt ? `used ${relativeTime(credential.lastUsedAt)}` : "never used"}</span>
                     <span>{expiry ? `expires ${formatDate(expiry)}` : "no expiry"}</span>
                   </div>
                   {credential.healthDetail ? (
-                    <p className="mt-2 line-clamp-1 text-[10px] text-[#8c3225]">{credential.healthDetail}</p>
+                    <p className="mt-2 line-clamp-1 text-[10px] text-[#8c3225] dark:text-[#f0a396]">{credential.healthDetail}</p>
                   ) : null}
                 </Link>
               );
@@ -194,7 +194,7 @@ export default async function VaultPage({
         )}
       </div>
 
-      <p className="mt-6 font-mono text-[9px] uppercase tracking-[0.16em] text-black/35 dark:text-muted-foreground">
+      <p className="mt-6 font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
         Master key → project key → per-credential data key · AES-256-GCM · every read logged
       </p>
     </div>

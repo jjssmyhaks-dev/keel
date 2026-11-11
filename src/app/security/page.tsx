@@ -42,15 +42,15 @@ const practices = [
 
 export default function SecurityPage() {
   return (
-    <main className="relative">
+    <main id="main-content" tabIndex={-1} className="relative">
       <Navigation />
       <section className="pt-32 lg:pt-40 pb-16">
         <div className="mx-auto max-w-[1400px] px-6 lg:px-12">
-          <p className="mono-label text-foreground/40 mb-6">Security</p>
+          <p className="mono-label text-foreground/60 mb-6">Security</p>
           <h1 className="font-display text-6xl leading-[0.9] tracking-tight lg:text-8xl">
             Trust is a chain
             <br />
-            <span className="text-foreground/35">of small proofs.</span>
+            <span className="text-foreground/60">of small proofs.</span>
           </h1>
           <p className="mt-8 max-w-2xl text-[16px] leading-relaxed text-foreground/60">
             Authab holds the credentials and permissions your agents use. That makes our security model your security
@@ -65,7 +65,7 @@ export default function SecurityPage() {
           <div className="grid gap-px border border-foreground/12 bg-foreground/10 md:grid-cols-2">
             {layers.map((layer) => (
               <article key={layer.label} className="bg-background p-6 lg:p-8">
-                <p className="mono-label text-foreground/35">{layer.label}</p>
+                <p className="mono-label text-foreground/60">{layer.label}</p>
                 <h2 className="mt-4 font-display text-3xl leading-none">{layer.title}</h2>
                 <p className="mt-3 text-[13px] leading-relaxed text-foreground/60">{layer.body}</p>
               </article>
@@ -77,9 +77,9 @@ export default function SecurityPage() {
       <section className="py-16 lg:py-24">
         <div className="mx-auto max-w-[1400px] px-6 lg:px-12 grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-4">
-            <p className="mono-label text-foreground/40 mb-4">In practice</p>
+            <p className="mono-label text-foreground/60 mb-4">In practice</p>
             <h2 className="font-display text-5xl leading-[0.95]">Controls, not slogans.</h2>
-            <p className="mt-5 text-[13px] leading-relaxed text-foreground/50">
+            <p className="mt-5 text-[13px] leading-relaxed text-foreground/60">
               These are properties of the product today. Our security page in the dashboard shows the guardrails
               active in your environment, including approval expiry, rate limits and egress mode.
             </p>
@@ -91,7 +91,7 @@ export default function SecurityPage() {
             {practices.map(([title, body]) => (
               <div key={title} className="grid gap-3 py-5 sm:grid-cols-[180px_1fr]">
                 <p className="text-[13px] font-medium">{title}</p>
-                <p className="text-[13px] leading-relaxed text-foreground/55">{body}</p>
+                <p className="text-[13px] leading-relaxed text-foreground/65">{body}</p>
               </div>
             ))}
           </div>
@@ -101,22 +101,24 @@ export default function SecurityPage() {
       <section className="border-y border-foreground/10 bg-foreground/[0.015] py-16">
         <div className="mx-auto max-w-[1400px] px-6 lg:px-12 grid gap-8 lg:grid-cols-3">
           <div>
-            <p className="mono-label text-foreground/40 mb-3">Compliance</p>
+            <p className="mono-label text-foreground/60 mb-3">Compliance</p>
             <p className="text-[13px] leading-relaxed text-foreground/60">
-              We do not claim certifications we do not hold. Current audit status, subprocessors and the latest
-              penetration-test summary are available to customers under NDA. Request them at{" "}
+              We do not claim certifications we do not hold. Current audit status, penetration-test status, subprocessors
+              and the controls we run are published in the{" "}
+              <Link href="/trust" className="underline underline-offset-4">Trust Center</Link>. Requests for security
+              questionnaires go to{" "}
               <a href="mailto:security@authab.dev" className="underline underline-offset-4">security@authab.dev</a>.
             </p>
           </div>
           <div>
-            <p className="mono-label text-foreground/40 mb-3">Data residency</p>
+            <p className="mono-label text-foreground/60 mb-3">Data residency</p>
             <p className="text-[13px] leading-relaxed text-foreground/60">
               The hosted service currently runs in Singapore (ap-southeast-1) on Neon Postgres, with encrypted backups
               in the same region. Region choices for larger deployments are discussed during Enterprise onboarding.
             </p>
           </div>
           <div>
-            <p className="mono-label text-foreground/40 mb-3">Incident response</p>
+            <p className="mono-label text-foreground/60 mb-3">Incident response</p>
             <p className="text-[13px] leading-relaxed text-foreground/60">
               Confirmed customer-impacting incidents are acknowledged within one hour and updated at least every four
               hours. Post-incident reviews are written for every Sev-1 and shared with affected customers.            </p>
@@ -127,13 +129,13 @@ export default function SecurityPage() {
       <section id="disclosure" className="py-20 lg:py-28 scroll-mt-24">
         <div className="mx-auto max-w-[1400px] px-6 lg:px-12 grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-4">
-            <p className="mono-label text-foreground/40 mb-4">Responsible disclosure</p>
+            <p className="mono-label text-foreground/60 mb-4">Responsible disclosure</p>
             <h2 className="font-display text-5xl leading-[0.95]">
               Found something?
               <br />
               Tell us first.
             </h2>
-            <p className="mt-5 text-[13px] leading-relaxed text-foreground/55">
+            <p className="mt-5 text-[13px] leading-relaxed text-foreground/65">
               Email <a href="mailto:security@authab.dev" className="underline underline-offset-4">security@authab.dev</a>.
               Encrypt with our PGP key on request. Include reproduction steps, affected endpoints and the earliest
               date you intend to publish.
@@ -164,7 +166,7 @@ export default function SecurityPage() {
                 customer&apos;s data to prove a point.
               </p>
             </div>
-            <div className="border-l-2 border-[#eca8d6] pl-4 text-[13px] text-foreground/55">
+            <div className="border-l-2 border-[#eca8d6] pl-4 text-[13px] text-foreground/65">
               We operate a safe harbour for research conducted under this policy. If a third party threatens you over
               compliant research, we will confirm publicly that the work was authorised.
             </div>

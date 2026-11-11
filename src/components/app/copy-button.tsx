@@ -42,7 +42,7 @@ export function CopyButton({
       }}
       className={
         className ||
-        "border border-black/15 bg-white px-2 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-black/60 transition-colors hover:border-black hover:text-black dark:border-border dark:bg-card dark:text-muted-foreground dark:hover:text-foreground"
+        "border border-black/45 bg-white px-2 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-black/60 transition-colors hover:border-black hover:text-black dark:border-white/40 dark:bg-card dark:text-muted-foreground dark:hover:text-foreground"
       }
     >
       {copied ? "Copied" : label}

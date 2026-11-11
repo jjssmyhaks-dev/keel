@@ -30,23 +30,23 @@ export default async function OnboardingPage() {
           <Logo tone="light" className="text-2xl" />
         </Link>
         <div className="hidden lg:block">
-          <div className="mono-label text-white/30 mb-6">Setup · 01 of 02</div>
+          <div className="mono-label text-white/60 mb-6">Setup · 01 of 02</div>
           <h2 className="font-display text-4xl leading-[1.05]">
             A home for
             <br />
-            <span className="text-white/35">your agents.</span>
+            <span className="text-white/60">your agents.</span>
           </h2>
-          <p className="mt-6 text-sm text-white/45 leading-relaxed">
+          <p className="mt-6 text-sm text-white/60 leading-relaxed">
             Two environments are created automatically: development for building, production
             for the calls your customers see.
           </p>
         </div>
-        <div className="font-mono text-[10px] text-white/25">
+        <div className="font-mono text-[10px] text-white/60">
           signed in as {session.user.email}
         </div>
       </aside>
 
-      <main className="lg:col-span-8 flex items-center px-6 py-16 lg:px-20">
+      <main id="main-content" tabIndex={-1} className="lg:col-span-8 flex items-center px-6 py-16 lg:px-20">
         <div className="w-full max-w-lg">
           <div className="mono-label text-muted-foreground mb-4">Workspace</div>
           <h1 className="text-5xl font-display tracking-tight leading-[0.95] mb-3">

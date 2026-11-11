@@ -3,15 +3,13 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "./db";
 import { randomToken, sha256 } from "./crypto";
+import { ENV_COOKIE, ORG_COOKIE, PROJECT_COOKIE, SESSION_COOKIE } from "./cookies";
 
-export const SESSION_COOKIE = "authab_session";
-export const ORG_COOKIE = "authab_org";
-export const PROJECT_COOKIE = "authab_project";
-export const ENV_COOKIE = "authab_env";
+export { ENV_COOKIE, ORG_COOKIE, PROJECT_COOKIE, SESSION_COOKIE };
 
 const SESSION_TTL_DAYS = Number(process.env.SESSION_TTL_DAYS || 30);
 
-export const ROLES = ["owner", "admin", "developer", "approver", "viewer"] as const;
+export const ROLES = ["owner", "admin", "developer", "approver", "auditor", "billing", "viewer"] as const;
 export type Role = (typeof ROLES)[number];
 
 export const ROLE_META: Record<Role, { label: string; description: string }> = {
@@ -30,6 +28,14 @@ export const ROLE_META: Record<Role, { label: string; description: string }> = {
   approver: {
     label: "Approver",
     description: "Approvals inbox, activity log and read access to agents and connections.",
+  },
+  auditor: {
+    label: "Auditor",
+    description: "Read-only across agents, policy, activity and security posture. No changes, no secrets.",
+  },
+  billing: {
+    label: "Billing",
+    description: "Read the workspace and manage plan, invoices and payment details.",
   },
   viewer: {
     label: "Viewer",
@@ -51,25 +57,67 @@ export type Capability =
   | "kill_switch";
 
 const CAPABILITIES: Record<Capability, Role[]> = {
-  view: ["owner", "admin", "developer", "approver", "viewer"],
+  view: ["owner", "admin", "developer", "approver", "auditor", "billing", "viewer"],
   manage_agents: ["owner", "admin", "developer"],
   manage_credentials: ["owner", "admin", "developer"],
   manage_grants: ["owner", "admin", "developer"],
   approve: ["owner", "admin", "approver"],
   manage_team: ["owner", "admin"],
-  manage_billing: ["owner"],
+  manage_billing: ["owner", "billing"],
   delete_org: ["owner"],
   manage_security: ["owner", "admin"],
   write_production: ["owner", "admin"],
   kill_switch: ["owner", "admin", "developer"],
 };
 
+// Capabilities an owner/admin may hand to an individual membership beyond its
+// base role. delete_org and view stay role-bound.
+export const GRANTABLE_CAPABILITIES = [
+  "manage_agents",
+  "manage_credentials",
+  "manage_grants",
+  "approve",
+  "manage_team",
+  "manage_billing",
+  "manage_security",
+  "write_production",
+  "kill_switch",
+] as const satisfies readonly Capability[];
+
+export type GrantableCapability = (typeof GRANTABLE_CAPABILITIES)[number];
+
 export function can(role: string | undefined, capability: Capability) {
   if (!role) return false;
   return CAPABILITIES[capability]?.includes(role as Role) ?? false;
 }
 
-export async function createSession(userId: string, meta?: { device?: string; ip?: string; userAgent?: string }) {
+export function parseGrants(permissionsJson: string | null | undefined): GrantableCapability[] {
+  if (!permissionsJson) return [];
+  try {
+    const parsed = JSON.parse(permissionsJson) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return [...new Set(parsed.filter((entry): entry is GrantableCapability =>
+      GRANTABLE_CAPABILITIES.includes(entry as GrantableCapability),
+    ))];
+  } catch {
+    return [];
+  }
+}
+
+export function canWithGrants(
+  role: string | undefined,
+  grants: readonly GrantableCapability[],
+  capability: Capability,
+) {
+  if (can(role, capability)) return true;
+  return GRANTABLE_CAPABILITIES.includes(capability as GrantableCapability) && grants.includes(capability as GrantableCapability);
+}
+
+export async function createSession(
+  userId: string,
+  meta?: { device?: string; ip?: string; userAgent?: string },
+  options?: { authMethod?: "password" | "sso" | "magic" | "oauth" | "demo"; ssoConnectionId?: string; mfaVerifiedAt?: Date | null },
+) {
   const token = randomToken(32);
   const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
   const session = await db.session.create({
@@ -80,6 +128,9 @@ export async function createSession(userId: string, meta?: { device?: string; ip
       device: meta?.device ?? "Web browser",
       ip: meta?.ip,
       userAgent: meta?.userAgent,
+      authMethod: options?.authMethod ?? "password",
+      ssoConnectionId: options?.ssoConnectionId,
+      mfaVerifiedAt: options?.mfaVerifiedAt ?? null,
       expiresAt,
     },
   });
@@ -132,7 +183,7 @@ async function getContextInner() {
   const store = await cookies();
 
   const memberships = await db.membership.findMany({
-    where: { userId: user.id },
+    where: { userId: user.id, status: "active", org: { deletedAt: null } },
     include: { org: true },
     orderBy: { createdAt: "asc" },
   });
@@ -143,6 +194,23 @@ async function getContextInner() {
   const requestedOrg = store.get(ORG_COOKIE)?.value;
   const membership = memberships.find((m) => m.orgId === requestedOrg) ?? memberships[0];
   const org = membership.org;
+
+  if (org.requireSso) {
+    const ssoConnection = session.ssoConnectionId
+      ? await db.ssoConnection.findUnique({
+          where: { id: session.ssoConnectionId },
+          select: { orgId: true, enabled: true },
+        })
+      : null;
+    const ssoValid =
+      session.authMethod === "sso" && ssoConnection?.orgId === org.id && ssoConnection.enabled;
+    if (!ssoValid) redirect(`/sign-in?notice=sso-required&org=${encodeURIComponent(org.slug)}`);
+  }
+
+  if (org.requireMfa && !session.mfaVerifiedAt) {
+    if (!user.twoFactorEnabledAt) redirect("/mfa/enroll?required=1");
+    redirect("/mfa/verify");
+  }
 
   const projects = await db.project.findMany({
     where: { orgId: org.id, archivedAt: null },
@@ -163,6 +231,8 @@ async function getContextInner() {
 
   const plan = org.plan;
   const production = environment?.type === "production";
+  const grants = parseGrants(membership.permissionsJson);
+  const allowed = (capability: Capability) => canWithGrants(membership.role, grants, capability);
 
   return {
     user,
@@ -171,6 +241,7 @@ async function getContextInner() {
     org,
     role: membership.role as Role,
     membership,
+    permissions: grants,
     projects,
     project,
     environments,
@@ -179,16 +250,17 @@ async function getContextInner() {
     environmentType: environment?.type ?? "development",
     isProduction: production,
     plan,
+    can: allowed,
     capabilities: {
-      manageAgents: can(membership.role, "manage_agents") && (!production || can(membership.role, "write_production")),
-      manageCredentials: can(membership.role, "manage_credentials") && (!production || can(membership.role, "write_production")),
-      manageGrants: can(membership.role, "manage_grants") && (!production || can(membership.role, "write_production")),
-      approve: can(membership.role, "approve"),
-      manageTeam: can(membership.role, "manage_team"),
-      manageBilling: can(membership.role, "manage_billing"),
-      manageSecurity: can(membership.role, "manage_security"),
-      killSwitch: can(membership.role, "kill_switch"),
-      writeProduction: can(membership.role, "write_production"),
+      manageAgents: allowed("manage_agents") && (!production || allowed("write_production")),
+      manageCredentials: allowed("manage_credentials") && (!production || allowed("write_production")),
+      manageGrants: allowed("manage_grants") && (!production || allowed("write_production")),
+      approve: allowed("approve"),
+      manageTeam: allowed("manage_team"),
+      manageBilling: allowed("manage_billing"),
+      manageSecurity: allowed("manage_security"),
+      killSwitch: allowed("kill_switch"),
+      writeProduction: allowed("write_production"),
     },
   };
 }
@@ -197,7 +269,7 @@ export const getContext = cache(getContextInner);
 
 export async function requireCapability(capability: Capability) {
   const ctx = await getContext();
-  if (!can(ctx.role, capability)) throw new Error("You do not have permission to do that.");
+  if (!ctx.can(capability)) throw new Error("You do not have permission to do that.");
   return ctx;
 }
 

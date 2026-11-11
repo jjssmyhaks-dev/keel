@@ -9,38 +9,44 @@ datasource db {
 }
 
 model User {
-  id                 String         @id @default(cuid())
-  email              String         @unique
-  name               String
-  passwordHash       String?
-  avatarUrl          String?
-  timezone           String         @default("Asia/Kolkata")
-  emailVerifiedAt    DateTime?
-  twoFactorSecret    String?
-  twoFactorEnabledAt DateTime?
-  notificationPrefs  String         @default("{}")
-  isPlatformAdmin    Boolean        @default(false)
-  onboardedAt        DateTime?
-  createdAt          DateTime       @default(now())
-  deletedAt          DateTime?
-  memberships        Membership[]
-  sessions           Session[]
-  ownedAgents        Agent[]        @relation("AgentOwner")
-  notifications      Notification[]
+  id                   String         @id @default(cuid())
+  email                String         @unique
+  name                 String
+  passwordHash         String?
+  avatarUrl            String?
+  timezone             String         @default("Asia/Kolkata")
+  emailVerifiedAt      DateTime?
+  twoFactorSecret      String?
+  twoFactorDataKey     String?
+  twoFactorEnabledAt   DateTime?
+  mfaRecoveryCodesJson String         @default("[]")
+  notificationPrefs    String         @default("{}")
+  isPlatformAdmin      Boolean        @default(false)
+  onboardedAt          DateTime?
+  createdAt            DateTime       @default(now())
+  deletedAt            DateTime?
+  memberships          Membership[]
+  sessions             Session[]
+  ownedAgents          Agent[]        @relation("AgentOwner")
+  notifications        Notification[]
+  ssoIdentities        SsoIdentity[]
 }
 
 model Session {
-  id        String    @id
-  userId    String
-  tokenHash String    @unique
-  device    String?
-  ip        String?
-  userAgent String?
-  lastSeen  DateTime  @default(now())
-  expiresAt DateTime
-  revokedAt DateTime?
-  createdAt DateTime  @default(now())
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String    @id
+  userId          String
+  tokenHash       String    @unique
+  device          String?
+  ip              String?
+  userAgent       String?
+  authMethod      String    @default("password")
+  ssoConnectionId String?
+  mfaVerifiedAt   DateTime?
+  lastSeen        DateTime  @default(now())
+  expiresAt       DateTime
+  revokedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
@@ -53,6 +59,7 @@ model LoginToken {
   userId    String?
   orgId     String?
   role      String?
+  metaJson  String    @default("{}")
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
@@ -70,6 +77,16 @@ model ChallengeUse {
   @@index([usedAt])
 }
 
+model MfaUse {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  userId    String
+  usedAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([usedAt])
+}
+
 model RateLimitCounter {
   key     String   @id
   count   Int      @default(0)
@@ -79,17 +96,24 @@ model RateLimitCounter {
 }
 
 model Organization {
-  id                   String         @id @default(cuid())
+  id                   String          @id @default(cuid())
   name                 String
-  slug                 String         @unique
-  plan                 String         @default("free")
-  planStatus           String         @default("active")
-  billingCurrency      String         @default("USD")
+  slug                 String          @unique
+  plan                 String          @default("free")
+  planStatus           String          @default("active")
+  billingCurrency      String          @default("USD")
   billingEmail         String?
-  stripeCustomerId     String?        @unique
+  billingAddressJson   String          @default("{}")
+  taxId                String?
+  trialEndsAt          DateTime?
+  dunningStartedAt     DateTime?
+  requireMfa           Boolean         @default(false)
+  requireSso           Boolean         @default(false)
+  ssoDefaultRole       String          @default("developer")
+  stripeCustomerId     String?         @unique
   stripeSubscriptionId String?
   logoUrl              String?
-  createdAt            DateTime       @default(now())
+  createdAt            DateTime        @default(now())
   deletedAt            DateTime?
   memberships          Membership[]
   projects             Project[]
@@ -97,18 +121,166 @@ model Organization {
   usageRecords         UsageRecord[]
   invoices             Invoice[]
   notifications        Notification[]
+  ssoConnections       SsoConnection[]
+  scimTokens           ScimToken[]
+  auditSinks           AuditSink[]
+  errorEvents          ErrorEvent[]
 }
 
 model Membership {
-  id        String       @id @default(cuid())
-  orgId     String
-  userId    String
-  role      String
-  createdAt DateTime     @default(now())
-  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String       @id @default(cuid())
+  orgId           String
+  userId          String
+  role            String
+  permissionsJson String       @default("[]")
+  status          String       @default("active")
+  scimExternalId  String?
+  deactivatedAt   DateTime?
+  createdAt       DateTime     @default(now())
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([orgId, userId])
+  @@index([scimExternalId])
+}
+
+model SsoConnection {
+  id               String        @id @default(cuid())
+  orgId            String
+  name             String
+  type             String
+  domainsJson      String        @default("[]")
+  defaultRole      String        @default("developer")
+  groupMappingJson String        @default("{}")
+  configEncrypted  String
+  configDataKey    String
+  enabled          Boolean       @default(true)
+  enforced         Boolean       @default(false)
+  createdBy        String?
+  lastLoginAt      DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  org              Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  identities       SsoIdentity[]
+
+  @@index([orgId])
+}
+
+model SsoIdentity {
+  id           String        @id @default(cuid())
+  connectionId String
+  userId       String
+  subject      String
+  email        String
+  createdAt    DateTime      @default(now())
+  lastLoginAt  DateTime      @default(now())
+  connection   SsoConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, subject])
+  @@index([userId])
+}
+
+model ScimToken {
+  id         String       @id @default(cuid())
+  orgId      String
+  name       String
+  tokenHash  String       @unique
+  prefix     String
+  createdBy  String?
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime     @default(now())
+  org        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+}
+
+model AuditSink {
+  id              String              @id @default(cuid())
+  orgId           String
+  name            String
+  type            String
+  url             String
+  secretEncrypted String?
+  secretDataKey   String?
+  enabled         Boolean             @default(true)
+  lastDeliveryAt  DateTime?
+  failureCount    Int                 @default(0)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  org             Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  deliveries      AuditSinkDelivery[]
+
+  @@index([orgId])
+}
+
+model AuditSinkDelivery {
+  id            String    @id @default(cuid())
+  sinkId        String
+  eventId       String
+  environmentId String
+  seq           Int
+  statusCode    Int?
+  attempt       Int       @default(1)
+  nextRetryAt   DateTime?
+  deliveredAt   DateTime?
+  error         String?
+  createdAt     DateTime  @default(now())
+  sink          AuditSink @relation(fields: [sinkId], references: [id], onDelete: Cascade)
+
+  @@unique([sinkId, eventId])
+  @@index([sinkId, environmentId, seq])
+  @@index([nextRetryAt])
+}
+
+model Incident {
+  id         String           @id @default(cuid())
+  title      String
+  component  String
+  impact     String           @default("minor")
+  status     String           @default("investigating")
+  body       String
+  startedAt  DateTime         @default(now())
+  resolvedAt DateTime?
+  createdBy  String?
+  createdAt  DateTime         @default(now())
+  updates    IncidentUpdate[]
+
+  @@index([startedAt])
+}
+
+model IncidentUpdate {
+  id         String   @id @default(cuid())
+  incidentId String
+  status     String
+  body       String
+  createdAt  DateTime @default(now())
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId])
+}
+
+model ErrorEvent {
+  id            String        @id @default(cuid())
+  orgId         String?
+  environmentId String?
+  requestId     String
+  traceId       String?
+  route         String
+  method        String?
+  message       String
+  digest        String?
+  stack         String?
+  userAgent     String?
+  ip            String?
+  userId        String?
+  resolvedAt    DateTime?
+  createdAt     DateTime      @default(now())
+  org           Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([orgId, createdAt])
 }
 
 model Invitation {
@@ -574,6 +746,9 @@ model Invoice {
   currency   String
   status     String
   providerId String?
+  hostedUrl  String?
+  pdfUrl     String?
+  paidAt     DateTime?
   issuedAt   DateTime     @default(now())
   org        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 

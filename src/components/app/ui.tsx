@@ -15,10 +15,10 @@ export function PageHeader({
   return (
     <div className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-black/10 pb-6 dark:border-border">
       <div className="max-w-2xl">
-        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-black/40 dark:text-muted-foreground">{eyebrow}</p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-black/60 dark:text-muted-foreground">{eyebrow}</p>
         <h1 className="mt-2 font-display text-[clamp(2rem,3.4vw,2.9rem)] leading-[1.02] tracking-tight">{title}</h1>
         {description ? (
-          <p className="mt-2 text-[13px] leading-relaxed text-black/55 dark:text-muted-foreground">{description}</p>
+          <p className="mt-2 text-[13px] leading-relaxed text-black/65 dark:text-muted-foreground">{description}</p>
         ) : null}
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
@@ -43,12 +43,12 @@ export function Stat({
         accent ? "bg-black text-white dark:bg-foreground dark:text-background" : "bg-white dark:bg-card"
       }`}
     >
-      <p className={`font-mono text-[9px] uppercase tracking-[0.2em] ${accent ? "text-white/55" : "text-black/40 dark:text-muted-foreground"}`}>
+      <p className={`font-mono text-[9px] uppercase tracking-[0.2em] ${accent ? "opacity-80" : "text-black/60 dark:text-muted-foreground"}`}>
         {label}
       </p>
       <p className="mt-2 font-display text-3xl leading-none tracking-tight">{value}</p>
       {detail ? (
-        <p className={`mt-1.5 text-[11px] ${accent ? "text-white/55" : "text-black/45 dark:text-muted-foreground"}`}>{detail}</p>
+        <p className={`mt-1.5 text-[11px] ${accent ? "opacity-80" : "text-black/60 dark:text-muted-foreground"}`}>{detail}</p>
       ) : null}
     </div>
   );
@@ -56,6 +56,10 @@ export function Stat({
 
 const STATUS_STYLE: Record<string, { dot: string; label: string }> = {
   active: { dot: "bg-[#2f7d5c]", label: "Active" },
+  trialing: { dot: "bg-[#25567a]", label: "Trialing" },
+  past_due: { dot: "bg-[#a56b18]", label: "Past due" },
+  unpaid: { dot: "bg-[#b3402f]", label: "Unpaid" },
+  canceled: { dot: "bg-black/30", label: "Canceled" },
   paused: { dot: "bg-[#a56b18]", label: "Paused" },
   suspended: { dot: "bg-[#b3402f]", label: "Suspended" },
   revoked: { dot: "bg-black/30", label: "Revoked" },
@@ -71,6 +75,11 @@ const STATUS_STYLE: Record<string, { dot: string; label: string }> = {
   allowed: { dot: "bg-[#2f7d5c]", label: "Allowed" },
   error: { dot: "bg-[#b3402f]", label: "Error" },
   recorded: { dot: "bg-black/40", label: "Recorded" },
+  resolved: { dot: "bg-[#2f7d5c]", label: "Resolved" },
+  open: { dot: "bg-[#b3402f]", label: "Open" },
+  "at-risk": { dot: "bg-[#a56b18]", label: "At risk" },
+  breaching: { dot: "bg-[#b3402f]", label: "Breaching" },
+  "no-data": { dot: "bg-black/30", label: "No data" },
 };
 
 export function StatusBadge({ status }: { status: string }) {
@@ -84,11 +93,11 @@ export function StatusBadge({ status }: { status: string }) {
 }
 
 const RISK_STYLE: Record<Risk, string> = {
-  read: "border-[#2f7d5c]/30 text-[#2f7d5c]",
-  write: "border-[#a56b18]/35 text-[#a56b18]",
-  destructive: "border-[#b3402f]/35 text-[#b3402f]",
-  financial: "border-[#7a3db8]/35 text-[#7a3db8]",
-  admin: "border-[#25567a]/35 text-[#25567a]",
+  read: "border-[#2f7d5c]/30 text-[#276a4e] dark:text-[#7fd1ab]",
+  write: "border-[#a56b18]/35 text-[#8a5600] dark:text-[#e8b26a]",
+  destructive: "border-[#b3402f]/35 text-[#b3402f] dark:text-[#f09486]",
+  financial: "border-[#7a3db8]/35 text-[#7a3db8] dark:text-[#c9a6f5]",
+  admin: "border-[#25567a]/35 text-[#25567a] dark:text-[#93c5e8]",
 };
 
 export function RiskBadge({ risk }: { risk: string }) {
@@ -121,7 +130,7 @@ export function Panel({
         <header className="flex flex-wrap items-center justify-between gap-2 border-b border-black/10 px-4 py-3 dark:border-border">
           <div>
             <h2 className="text-[13px] font-medium">{title}</h2>
-            {hint ? <p className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-black/40 dark:text-muted-foreground">{hint}</p> : null}
+            {hint ? <p className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-black/60 dark:text-muted-foreground">{hint}</p> : null}
           </div>
           {actions}
         </header>
@@ -142,11 +151,11 @@ export function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center border border-dashed border-black/15 px-6 py-14 text-center dark:border-border">
-      <div className="flex size-9 items-center justify-center border border-black/15 font-mono text-xs text-black/40 dark:border-border">
+      <div className="flex size-9 items-center justify-center border border-black/45 font-mono text-xs text-black/60 dark:border-white/40 dark:text-muted-foreground">
         ✳
       </div>
       <p className="mt-4 font-display text-xl tracking-tight">{title}</p>
-      <p className="mt-1 max-w-sm text-[12px] leading-relaxed text-black/50 dark:text-muted-foreground">{description}</p>
+      <p className="mt-1 max-w-sm text-[12px] leading-relaxed text-black/60 dark:text-muted-foreground">{description}</p>
       {action ? <div className="mt-4">{action}</div> : null}
     </div>
   );
@@ -167,14 +176,15 @@ export function TabLinks({
           <Link
             key={item.href}
             href={item.href}
-            className={`border px-2.5 py-1 text-[11px] transition-colors ${
+            aria-current={active ? "page" : undefined}
+            className={`border px-2.5 py-1.5 text-[11px] transition-colors ${
               active
                 ? "border-black bg-black text-white dark:border-foreground dark:bg-foreground dark:text-background"
-                : "border-transparent text-black/55 hover:border-black/15 hover:text-black dark:text-muted-foreground dark:hover:text-foreground"
+                : "border-transparent text-black/65 hover:border-black/15 hover:text-black dark:text-muted-foreground dark:hover:text-foreground"
             }`}
           >
             {item.label}
-            {typeof item.count === "number" ? <span className="ml-1.5 opacity-60">{item.count}</span> : null}
+            {typeof item.count === "number" ? <span className="ml-1.5">{item.count}</span> : null}
           </Link>
         );
       })}
@@ -187,10 +197,10 @@ export function Notice({ kind, children }: { kind: "ok" | "info" | "error"; chil
     <div
       className={`mb-6 border px-3 py-2 text-[12px] ${
         kind === "ok"
-          ? "border-[#2f7d5c]/30 bg-[#2f7d5c]/[0.06] text-[#245f47]"
+          ? "border-[#2f7d5c]/30 bg-[#2f7d5c]/[0.06] text-[#245f47] dark:text-[#7fd1ab]"
           : kind === "info"
             ? "border-black/15 bg-[#faf9f6] text-black/60 dark:border-border dark:bg-card dark:text-muted-foreground"
-            : "border-[#b3402f]/30 bg-[#b3402f]/[0.06] text-[#8c3225]"
+            : "border-[#b3402f]/30 bg-[#b3402f]/[0.06] text-[#8c3225] dark:text-[#f0a396]"
       }`}
     >
       {children}

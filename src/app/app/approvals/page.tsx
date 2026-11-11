@@ -57,7 +57,7 @@ export default async function ApprovalsPage({
         title="Nothing moves without a name."
         description="Every gated call waits here until a person decides. Approving executes the exact payload that was requested — no edits, no substitutions."
         actions={
-          <Link href="/app/security" className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card">
+          <Link href="/app/security" className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
             Approval settings
           </Link>
         }
@@ -101,7 +101,7 @@ export default async function ApprovalsPage({
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px]">{approval.summary}</p>
-                    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[9px] uppercase tracking-[0.1em] text-black/40 dark:text-muted-foreground">
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[9px] uppercase tracking-[0.1em] text-black/60 dark:text-muted-foreground">
                       <span>{approval.agent.name}</span>
                       <span>·</span>
                       {approval.kind === "grant" ? (
@@ -112,13 +112,13 @@ export default async function ApprovalsPage({
                       ) : null}
                       <span>{relativeTime(approval.createdAt)}</span>
                       <span>·</span>
-                      <span className={open ? "text-[#8c5a12]" : ""}>
+                      <span className={open ? "text-[#8c5a12] dark:text-[#e8b26a]" : ""}>
                         {open ? `expires ${relativeTime(approval.expiresAt)}` : `decided ${formatDate(approval.decidedAt)}`}
                       </span>
                       {open && approval.slaDueAt ? (
                         <>
                           <span>·</span>
-                          <span className={approval.escalatedAt ? "text-[#8c3225]" : "text-[#8c5a12]"}>
+                          <span className={approval.escalatedAt ? "text-[#8c3225] dark:text-[#f0a396]" : "text-[#8c5a12] dark:text-[#e8b26a]"}>
                             {approval.escalatedAt ? "escalated" : `SLA ${relativeTime(approval.slaDueAt)}`}
                           </span>
                         </>
@@ -127,7 +127,7 @@ export default async function ApprovalsPage({
                   </div>
                   <RiskBadge risk={approval.risk} />
                   <StatusBadge status={approval.status} />
-                  {open ? <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-black/45 dark:text-muted-foreground">Review →</span> : null}
+                  {open ? <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-black/60 dark:text-muted-foreground">Review →</span> : null}
                 </Link>
               );
             })}
@@ -151,7 +151,7 @@ export default async function ApprovalsPage({
         )}
       </div>
 
-      <p className="mt-6 font-mono text-[9px] uppercase tracking-[0.16em] text-black/35 dark:text-muted-foreground">
+      <p className="mt-6 font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
         Approvers can also sign off from a signed email link · decisions are written to the audit chain
       </p>
     </div>

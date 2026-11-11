@@ -15,6 +15,16 @@ const notices: Record<string, string> = {
   "demo-disabled": "The demo workspace is disabled on this deployment.",
   "demo-unavailable": "The demo workspace is not seeded yet. Run npm run db:seed.",
   "magic-expired": "That sign-in link is invalid or has expired.",
+  "sso-required": "Your organization requires SSO. Sign in with your identity provider.",
+  "sso-disabled": "That SSO connection is disabled. Ask an owner to enable it.",
+  "sso-domain": "That email domain is not allowed for this SSO connection.",
+  "sso-suspended": "Your SSO account is suspended in this workspace. Contact an owner.",
+  "sso-limit": "This workspace has reached its member limit. Ask an owner to upgrade the plan.",
+  "sso-state": "That SSO sign-in could not be verified. Start again from the sign-in page.",
+  "sso-config": "That SSO connection is misconfigured. Ask an owner to check the provider settings.",
+  "sso-cancelled": "SSO sign-in was cancelled at the identity provider.",
+  "sso-failed": "We could not complete SSO sign-in. If this keeps happening, ask an owner to check the connection.",
+  "mfa-required": "Your organization requires multi-factor authentication. Sign in, then enroll to continue.",
 };
 
 export default async function SignInPage({

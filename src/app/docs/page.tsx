@@ -69,10 +69,10 @@ export default function DocsOverviewPage() {
             href={pillar.href}
             className="group bg-background p-5 transition-colors hover:bg-foreground/[0.03]"
           >
-            <p className="mono-label text-foreground/35">{pillar.label}</p>
+            <p className="mono-label text-foreground/60">{pillar.label}</p>
             <p className="mt-3 font-display text-2xl leading-none">{pillar.title}</p>
             <p className="mt-3 text-[13px] leading-relaxed text-foreground/60">{pillar.body}</p>
-            <span className="mt-4 inline-flex items-center gap-1 text-[11px] text-foreground/45 group-hover:text-foreground">
+            <span className="mt-4 inline-flex items-center gap-1 text-[11px] text-foreground/60 group-hover:text-foreground">
               Read <ArrowUpRight className="size-3" />
             </span>
           </Link>
@@ -136,7 +136,7 @@ export default function DocsOverviewPage() {
         {paths.map((path) => (
           <Link key={path.name} href={path.href} className="group bg-background p-5 hover:bg-foreground/[0.03]">
             <p className="text-[14px] font-medium">{path.name}</p>
-            <p className="mt-1 text-[12px] leading-relaxed text-foreground/55">{path.detail}</p>
+            <p className="mt-1 text-[12px] leading-relaxed text-foreground/65">{path.detail}</p>
           </Link>
         ))}
       </div>

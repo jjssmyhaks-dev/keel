@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
-import { getContext, ROLE_META, ROLES } from "@/lib/session";
-import { inviteMemberAction, changeRoleAction, removeMemberAction, cancelInvitationAction } from "@/app/app/actions";
+import { getContext, ROLE_META, ROLES, GRANTABLE_CAPABILITIES, parseGrants } from "@/lib/session";
+import { inviteMemberAction, changeRoleAction, changePermissionsAction, removeMemberAction, cancelInvitationAction } from "@/app/app/actions";
 import { ConfirmButton } from "@/components/app/confirm-button";
 import { PageHeader, Panel, Stat, Notice, EmptyState, relativeTime, formatDate } from "@/components/app/ui";
 
@@ -81,6 +81,7 @@ export default async function TeamPage({
         )
       ) : null}
       {query.saved ? <Notice kind="ok">Role updated.</Notice> : null}
+      {query.permissions_saved ? <Notice kind="ok">Permissions updated. They apply on the member&apos;s next request.</Notice> : null}
       {query.removed ? <Notice kind="ok">Member removed from the organization.</Notice> : null}
       {query.cancelled ? <Notice kind="ok">Invitation cancelled.</Notice> : null}
 
@@ -108,16 +109,21 @@ export default async function TeamPage({
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[12px] font-medium">
                       {membership.user.name}
-                      {membership.user.id === ctx.user.id ? <span className="ml-1.5 font-mono text-[9px] text-black/35 dark:text-muted-foreground">(you)</span> : null}
+                      {membership.user.id === ctx.user.id ? <span className="ml-1.5 font-mono text-[9px] text-black/60 dark:text-muted-foreground">(you)</span> : null}
                     </p>
-                    <p className="truncate font-mono text-[9px] text-black/40 dark:text-muted-foreground">{membership.user.email}</p>
+                    <p className="truncate font-mono text-[9px] text-black/60 dark:text-muted-foreground">{membership.user.email}</p>
                   </div>
                   {membership.user.emailVerifiedAt ? (
-                    <span className="font-mono text-[8px] uppercase tracking-[0.1em] text-[#2f7d5c]">verified</span>
+                    <span className="font-mono text-[8px] uppercase tracking-[0.1em] text-[#276a4e] dark:text-[#7fd1ab]">verified</span>
                   ) : (
-                    <span className="font-mono text-[8px] uppercase tracking-[0.1em] text-[#8c5a12]">unverified</span>
+                    <span className="font-mono text-[8px] uppercase tracking-[0.1em] text-[#8c5a12] dark:text-[#e8b26a]">unverified</span>
                   )}
-                  <span className="hidden font-mono text-[9px] text-black/35 dark:text-muted-foreground sm:block">
+                  {membership.status !== "active" ? (
+                    <span className="border border-[#8c5a12]/30 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-[#8c5a12] dark:text-[#e8b26a]">
+                      suspended
+                    </span>
+                  ) : null}
+                  <span className="hidden font-mono text-[9px] text-black/60 dark:text-muted-foreground sm:block">
                     joined {formatDate(membership.createdAt)}
                   </span>
                   {canManage ? (
@@ -128,7 +134,7 @@ export default async function TeamPage({
                           name="role"
                           defaultValue={membership.role}
                           disabled={membership.role === "owner" && ctx.role !== "owner"}
-                          className="border border-black/15 bg-white px-1.5 py-1 font-mono text-[9px] uppercase tracking-[0.08em] outline-none dark:border-border dark:bg-card"
+                          className="border border-black/45 bg-white px-1.5 py-1 font-mono text-[9px] uppercase tracking-[0.08em] outline-none dark:border-white/40 dark:bg-card"
                         >
                           {ROLES.map((role) => (
                             <option key={role} value={role}>
@@ -136,7 +142,7 @@ export default async function TeamPage({
                             </option>
                           ))}
                         </select>
-                        <button className="border border-black/15 px-1.5 py-1 font-mono text-[9px] uppercase tracking-[0.08em] hover:border-black dark:border-border">
+                        <button className="border border-black/45 px-1.5 py-1 font-mono text-[9px] uppercase tracking-[0.08em] hover:border-black dark:border-white/40">
                           Save
                         </button>
                       </form>
@@ -145,7 +151,7 @@ export default async function TeamPage({
                           <input type="hidden" name="userId" value={membership.user.id} />
                           <ConfirmButton
                             message={`Remove ${membership.user.name} from ${ctx.org.name}? Their sessions stay valid for other organizations.`}
-                            className="px-1 font-mono text-[9px] text-[#8c3225] underline-offset-2 hover:underline"
+                            className="px-1 font-mono text-[9px] text-[#8c3225] dark:text-[#f0a396] underline-offset-2 hover:underline"
                           >
                             Remove
                           </ConfirmButton>
@@ -153,8 +159,39 @@ export default async function TeamPage({
                       ) : null}
                     </div>
                   ) : (
-                    <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/45 dark:text-muted-foreground">{membership.role}</span>
+                    <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/60 dark:text-muted-foreground">{membership.role}</span>
                   )}
+                  {canManage && membership.role !== "owner" ? (
+                    <details className="w-full">
+                      <summary className="cursor-pointer font-mono text-[9px] uppercase tracking-[0.1em] text-black/60 hover:text-black dark:text-muted-foreground dark:hover:text-foreground">
+                        Extra permissions ({parseGrants(membership.permissionsJson).length})
+                      </summary>
+                      <form
+                        action={changePermissionsAction}
+                        className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 border border-black/10 bg-[#faf9f6] p-2.5 dark:border-border dark:bg-background"
+                      >
+                        <input type="hidden" name="userId" value={membership.user.id} />
+                        {GRANTABLE_CAPABILITIES.map((capability) => (
+                          <label
+                            key={capability}
+                            className="flex items-center gap-1.5 font-mono text-[9px] text-black/60 dark:text-muted-foreground"
+                          >
+                            <input
+                              type="checkbox"
+                              name="permissions"
+                              value={capability}
+                              defaultChecked={parseGrants(membership.permissionsJson).includes(capability)}
+                              className="size-3.5 accent-black"
+                            />
+                            {capability.replace(/_/g, " ")}
+                          </label>
+                        ))}
+                        <button className="border border-black/45 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.08em] hover:border-black dark:border-white/40">
+                          Save permissions
+                        </button>
+                      </form>
+                    </details>
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -167,14 +204,14 @@ export default async function TeamPage({
                   <div key={invitation.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5">
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[12px]">{invitation.email}</p>
-                      <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/35 dark:text-muted-foreground">
+                      <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/60 dark:text-muted-foreground">
                         {invitation.role} · sent {relativeTime(invitation.createdAt)} · expires {formatDate(invitation.expiresAt)}
                       </p>
                     </div>
                     {canManage ? (
                       <form action={cancelInvitationAction}>
                         <input type="hidden" name="invitationId" value={invitation.id} />
-                        <button className="font-mono text-[9px] uppercase tracking-[0.1em] text-[#8c3225] underline-offset-2 hover:underline">
+                        <button className="font-mono text-[9px] uppercase tracking-[0.1em] text-[#8c3225] dark:text-[#f0a396] underline-offset-2 hover:underline">
                           Cancel
                         </button>
                       </form>
@@ -183,7 +220,7 @@ export default async function TeamPage({
                 ))}
               </div>
             ) : (
-              <p className="px-4 py-5 text-[11px] text-black/45 dark:text-muted-foreground">No open invitations.</p>
+              <p className="px-4 py-5 text-[11px] text-black/60 dark:text-muted-foreground">No open invitations.</p>
             )}
           </Panel>
         </div>
@@ -193,7 +230,7 @@ export default async function TeamPage({
             {canManage ? (
               <form action={inviteMemberAction} className="space-y-3" id="invite">
                 <div>
-                  <label htmlFor="email" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                  <label htmlFor="email" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                     Email
                   </label>
                   <input
@@ -202,20 +239,20 @@ export default async function TeamPage({
                     type="email"
                     required
                     placeholder="teammate@company.com"
-                    className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-2 text-[12px] outline-none focus:border-black dark:border-border dark:bg-background"
+                    className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-2 text-[12px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                   />
                 </div>
                 <div>
-                  <label htmlFor="role" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                  <label htmlFor="role" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                     Role
                   </label>
                   <select
                     id="role"
                     name="role"
                     defaultValue="developer"
-                    className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-2 text-[12px] outline-none focus:border-black dark:border-border dark:bg-background"
+                    className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-2 text-[12px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                   >
-                    {["admin", "developer", "approver", "viewer"].map((role) => (
+                    {["admin", "developer", "approver", "auditor", "billing", "viewer"].map((role) => (
                       <option key={role} value={role}>
                         {ROLE_META[role as keyof typeof ROLE_META].label} — {ROLE_META[role as keyof typeof ROLE_META].description}
                       </option>
@@ -227,7 +264,7 @@ export default async function TeamPage({
                 </button>
               </form>
             ) : (
-              <p className="text-[12px] leading-relaxed text-black/50 dark:text-muted-foreground">
+              <p className="text-[12px] leading-relaxed text-black/60 dark:text-muted-foreground">
                 Only owners and admins can invite people. Ask an admin if you need access for someone.
               </p>
             )}
@@ -240,12 +277,12 @@ export default async function TeamPage({
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[12px] font-medium">{ROLE_META[role].label}</p>
                     {role === ctx.role ? (
-                      <span className="border border-black/10 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-black/45 dark:border-border dark:text-muted-foreground">
+                      <span className="border border-black/10 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-black/60 dark:border-border dark:text-muted-foreground">
                         you
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-0.5 text-[11px] leading-relaxed text-black/50 dark:text-muted-foreground">{ROLE_META[role].description}</p>
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-black/60 dark:text-muted-foreground">{ROLE_META[role].description}</p>
                 </div>
               ))}
             </div>

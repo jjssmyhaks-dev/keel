@@ -163,7 +163,7 @@ function Row({ label, value, mono }: { label: string; value: string; mono?: bool
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-screen bg-[var(--paper)] text-black">
+    <main id="main-content" tabIndex={-1} className="min-h-screen bg-[var(--paper)] text-black">
       <header className="border-b border-black/10">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-5">
           <Link href="/" aria-label="Authab home">

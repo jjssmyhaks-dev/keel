@@ -27,7 +27,7 @@ export function Logo({
         </svg>
       )}
       <span className="font-display text-[1.35em] leading-none tracking-tight">AUTHAB</span>
-      <span className="font-mono text-[9px] leading-none opacity-50 -translate-y-1.5">TM</span>
+      <span className="font-mono text-[9px] leading-none opacity-70 -translate-y-1.5">TM</span>
     </span>
   );
 }

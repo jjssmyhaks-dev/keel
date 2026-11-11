@@ -15,11 +15,11 @@ export function ApiKeyCreator({ isProduction }: { isProduction: boolean }) {
             name="name"
             maxLength={60}
             placeholder="Key name — e.g. billing-service"
-            className="border border-black/15 bg-[#faf9f6] px-2.5 py-1.5 text-[12px] outline-none focus:border-black dark:border-border dark:bg-background"
+            className="border border-black/45 bg-[#faf9f6] px-2.5 py-1.5 text-[12px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
           />
           <select
             name="type"
-            className="border border-black/15 bg-[#faf9f6] px-2.5 py-1.5 text-[12px] outline-none focus:border-black dark:border-border dark:bg-background"
+            className="border border-black/45 bg-[#faf9f6] px-2.5 py-1.5 text-[12px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
           >
             <option value="secret">Secret key</option>
             <option value="publishable">Publishable key</option>
@@ -32,14 +32,14 @@ export function ApiKeyCreator({ isProduction }: { isProduction: boolean }) {
             {pending ? "Generating…" : "Create key"}
           </button>
         </div>
-        <p className="text-[10px] leading-relaxed text-black/40 dark:text-muted-foreground">
+        <p className="text-[10px] leading-relaxed text-black/60 dark:text-muted-foreground">
           {isProduction
             ? "Production secret keys can read and change live traffic. Owners and admins only."
             : "Development keys only work against this environment. They cannot touch production resources."}
         </p>
       </form>
 
-      {state?.error ? <p className="mt-2 text-[12px] text-[#8c3225]">{state.error}</p> : null}
+      {state?.error ? <p className="mt-2 text-[12px] text-[#8c3225] dark:text-[#f0a396]">{state.error}</p> : null}
       {state?.key ? (
         <div className="mt-3 border border-[#2f7d5c]/30 bg-[#2f7d5c]/[0.06] p-3">
           <div className="flex items-center justify-between gap-3">

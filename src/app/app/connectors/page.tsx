@@ -67,13 +67,13 @@ export default async function ConnectorsPage({
           <>
             <Link
               href="/app/vault/new"
-              className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card"
+              className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card"
             >
               Vault
             </Link>
             <Link
               href="/docs/connectors"
-              className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card"
+              className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card"
             >
               Connector docs
             </Link>
@@ -117,37 +117,37 @@ export default async function ConnectorsPage({
                     </span>
                     <div className="min-w-0">
                       <p className="text-[13px] font-medium">{row.name}</p>
-                      <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-black/35 dark:text-muted-foreground">
+                      <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-black/60 dark:text-muted-foreground">
                         {row.slug} · v{row.version} · {row.specVersion ?? "OpenAPI"} · {def.actions.length} actions
                       </p>
                     </div>
                     <div className="ml-auto flex flex-wrap items-center gap-2">
-                      <span className="border border-black/10 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-black/45 dark:border-border dark:text-muted-foreground">
+                      <span className="border border-black/10 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-black/60 dark:border-border dark:text-muted-foreground">
                         {archived ? "archived" : countFor(row.slug)} credential{countFor(row.slug) === 1 ? "" : "s"}
                       </span>
-                      <span className="border border-black/10 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-black/45 dark:border-border dark:text-muted-foreground">
+                      <span className="border border-black/10 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-black/60 dark:border-border dark:text-muted-foreground">
                         {def.auth.type}
                       </span>
                     </div>
                   </header>
 
                   <div className="space-y-3 px-4 py-3">
-                    <p className="text-[11px] leading-relaxed text-black/55 dark:text-muted-foreground">{row.description}</p>
-                    <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/35 dark:text-muted-foreground">
+                    <p className="text-[11px] leading-relaxed text-black/65 dark:text-muted-foreground">{row.description}</p>
+                    <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/60 dark:text-muted-foreground">
                       hosts {def.hosts.join(" · ")}
                     </p>
                     <div className="flex flex-wrap gap-1">
                       {def.actions.slice(0, 10).map((action) => (
                         <span
                           key={action.name}
-                          className="flex items-center gap-1 border border-black/10 px-1.5 py-0.5 font-mono text-[9px] text-black/55 dark:border-border dark:text-muted-foreground"
+                          className="flex items-center gap-1 border border-black/10 px-1.5 py-0.5 font-mono text-[9px] text-black/65 dark:border-border dark:text-muted-foreground"
                         >
                           {action.name}
                           <RiskBadge risk={action.risk} />
                         </span>
                       ))}
                       {def.actions.length > 10 ? (
-                        <span className="px-1.5 py-0.5 font-mono text-[9px] text-black/35 dark:text-muted-foreground">
+                        <span className="px-1.5 py-0.5 font-mono text-[9px] text-black/60 dark:text-muted-foreground">
                           +{def.actions.length - 10} more
                         </span>
                       ) : null}
@@ -159,26 +159,26 @@ export default async function ConnectorsPage({
                           <input type="hidden" name="slug" value={row.slug} />
                           <ConfirmButton
                             message={`Archive ${row.slug}? Credentials using it stop resolving and calls fail closed.`}
-                            className="border border-[#b3402f]/35 px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[0.12em] text-[#8c3225] hover:bg-[#b3402f] hover:text-white"
+                            className="border border-[#b3402f]/35 px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[0.12em] text-[#8c3225] dark:text-[#f0a396] hover:bg-[#b3402f] hover:text-white"
                           >
                             Archive
                           </ConfirmButton>
                         </form>
-                        <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/35 dark:text-muted-foreground">
+                        <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/60 dark:text-muted-foreground">
                           updated {relativeTime(row.updatedAt)}
                         </span>
                       </div>
                     ) : null}
 
                     <details className="border-t border-black/10 pt-2 dark:border-border">
-                      <summary className="cursor-pointer font-mono text-[9px] uppercase tracking-[0.12em] text-black/40 dark:text-muted-foreground">
+                      <summary className="cursor-pointer font-mono text-[9px] uppercase tracking-[0.12em] text-black/60 dark:text-muted-foreground">
                         Version history ({row.versions.length})
                       </summary>
                       <dl className="mt-2 divide-y divide-black/10 dark:divide-border">
                         {row.versions.map((version) => (
                           <div key={version.version} className="flex flex-wrap items-center gap-2 py-1.5 text-[11px]">
                             <span className="font-mono text-[10px]">v{version.version}</span>
-                            <span className="font-mono text-[9px] text-black/35 dark:text-muted-foreground">
+                            <span className="font-mono text-[9px] text-black/60 dark:text-muted-foreground">
                               {version.specVersion ?? "spec"} · {formatDate(version.createdAt)}
                             </span>
                             {canManage && version.version !== row.version && !archived ? (
@@ -187,7 +187,7 @@ export default async function ConnectorsPage({
                                 <input type="hidden" name="version" value={version.version} />
                                 <ConfirmButton
                                   message={`Restore ${row.slug} to v${version.version}? This creates v${row.version + 1} with the old definition.`}
-                                  className="border border-black/15 px-2 py-1 font-mono text-[8px] uppercase tracking-[0.1em] hover:border-black dark:border-border"
+                                  className="border border-black/45 px-2 py-1 font-mono text-[8px] uppercase tracking-[0.1em] hover:border-black dark:border-white/40"
                                 >
                                   Restore
                                 </ConfirmButton>
@@ -224,7 +224,7 @@ export default async function ConnectorsPage({
             {canManage && access.allowed ? (
               <form action={importCustomConnectorAction} className="space-y-3">
                 <div>
-                  <label htmlFor="spec" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                  <label htmlFor="spec" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                     Document
                   </label>
                   <textarea
@@ -234,56 +234,56 @@ export default async function ConnectorsPage({
                     rows={12}
                     spellCheck={false}
                     placeholder={"openapi: 3.0.3\ninfo:\n  title: Ledger API\n  version: 1.0.0\nservers:\n  - url: https://api.example.com/v1\nsecurity:\n  - bearerAuth: []\npaths:\n  /accounts/{id}:\n    get:\n      operationId: getAccount\n      …"}
-                    className="mt-1 w-full resize-y border border-black/15 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] leading-relaxed outline-none focus:border-black dark:border-border dark:bg-background"
+                    className="mt-1 w-full resize-y border border-black/45 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] leading-relaxed outline-none focus:border-black dark:border-white/40 dark:bg-background"
                   />
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <label htmlFor="slug" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
-                      Slug <span className="normal-case tracking-normal text-black/30 dark:text-muted-foreground">optional</span>
+                    <label htmlFor="slug" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
+                      Slug <span className="normal-case tracking-normal text-black/60 dark:text-muted-foreground">optional</span>
                     </label>
                     <input
                       id="slug"
                       name="slug"
                       placeholder="ledger"
-                      className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                      className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                     />
                   </div>
                   <div>
-                    <label htmlFor="category" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
-                      Category <span className="normal-case tracking-normal text-black/30 dark:text-muted-foreground">optional</span>
+                    <label htmlFor="category" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
+                      Category <span className="normal-case tracking-normal text-black/60 dark:text-muted-foreground">optional</span>
                     </label>
                     <input
                       id="category"
                       name="category"
                       placeholder="Custom"
-                      className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-2 text-[12px] outline-none focus:border-black dark:border-border dark:bg-background"
+                      className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-2 text-[12px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                     />
                   </div>
                   <div>
-                    <label htmlFor="baseUrl" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
-                      Base URL override <span className="normal-case tracking-normal text-black/30 dark:text-muted-foreground">optional</span>
+                    <label htmlFor="baseUrl" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
+                      Base URL override <span className="normal-case tracking-normal text-black/60 dark:text-muted-foreground">optional</span>
                     </label>
                     <input
                       id="baseUrl"
                       name="baseUrl"
                       placeholder="https://api.example.com/v1"
-                      className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                      className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                     />
                   </div>
                   <div>
-                    <label htmlFor="authScheme" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
-                      Auth scheme <span className="normal-case tracking-normal text-black/30 dark:text-muted-foreground">optional</span>
+                    <label htmlFor="authScheme" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
+                      Auth scheme <span className="normal-case tracking-normal text-black/60 dark:text-muted-foreground">optional</span>
                     </label>
                     <input
                       id="authScheme"
                       name="authScheme"
                       placeholder="bearerAuth"
-                      className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                      className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-2 font-mono text-[11px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                     />
                   </div>
                 </div>
-                <p className="text-[10px] leading-relaxed text-black/40 dark:text-muted-foreground">
+                <p className="text-[10px] leading-relaxed text-black/60 dark:text-muted-foreground">
                   Local <span className="font-mono">$ref</span> pointers resolve automatically. OAuth2-only specs are rejected —
                   bearer, API key and basic schemes are proxied. Re-importing a changed spec creates a new version; an identical
                   spec is a no-op.
@@ -297,7 +297,7 @@ export default async function ConnectorsPage({
               </form>
             ) : (
               <div>
-                <p className="text-[12px] leading-relaxed text-black/55 dark:text-muted-foreground">
+                <p className="text-[12px] leading-relaxed text-black/65 dark:text-muted-foreground">
                   {canManage
                     ? access.message
                     : "Your role can view connectors but not import them. Owners and admins manage the connector catalogue."}
@@ -315,10 +315,10 @@ export default async function ConnectorsPage({
           </Panel>
 
           <div className="border border-black/10 bg-white p-4 dark:border-border dark:bg-card">
-            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/40 dark:text-muted-foreground">
+            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
               What the compiler does
             </p>
-            <ul className="mt-2 space-y-1.5 text-[11px] leading-relaxed text-black/55 dark:text-muted-foreground">
+            <ul className="mt-2 space-y-1.5 text-[11px] leading-relaxed text-black/65 dark:text-muted-foreground">
               <li>Every operation becomes an action with a stable name</li>
               <li>Risk is inferred from method and verb, or set with <span className="font-mono">x-authab-risk</span></li>
               <li>Hosts stay allowlisted to the servers in the spec</li>
@@ -326,7 +326,7 @@ export default async function ConnectorsPage({
               <li>One safe GET becomes the credential health probe</li>
               <li>Agents still need a grant before any action runs</li>
             </ul>
-            <p className="mt-3 border-t border-black/10 pt-2 text-[10px] leading-relaxed text-black/35 dark:border-border dark:text-muted-foreground">
+            <p className="mt-3 border-t border-black/10 pt-2 text-[10px] leading-relaxed text-black/60 dark:border-border dark:text-muted-foreground">
               Custom connectors are scoped to this environment. The development and production catalogues are independent.
             </p>
           </div>

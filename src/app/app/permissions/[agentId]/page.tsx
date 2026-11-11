@@ -67,10 +67,10 @@ export default async function PermissionEditorPage({
         description="Tick the actions the agent may run, narrow the resource pattern and decide whether a human has to sign off. Everything else stays denied."
         actions={
           <>
-            <Link href="/app/permissions" className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card">
+            <Link href="/app/permissions" className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
               Matrix
             </Link>
-            <Link href={`/app/agents/${agent.id}`} className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card">
+            <Link href={`/app/agents/${agent.id}`} className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
               Agent
             </Link>
           </>
@@ -84,17 +84,17 @@ export default async function PermissionEditorPage({
 
       <div className="mb-6 flex flex-wrap items-center gap-3 border border-black/10 bg-white px-4 py-3 dark:border-border dark:bg-card">
         <StatusBadge status={agent.status} />
-        <span className="font-mono text-[10px] text-black/40 dark:text-muted-foreground">
+        <span className="font-mono text-[10px] text-black/60 dark:text-muted-foreground">
           {grants.length} connection{grants.length === 1 ? "" : "s"} granted
         </span>
-        <span className="font-mono text-[10px] text-black/30 dark:text-muted-foreground">·</span>
-        <span className="font-mono text-[10px] text-black/40 dark:text-muted-foreground">{actionCount} actions allowed</span>
-        <span className="font-mono text-[10px] text-black/30 dark:text-muted-foreground">·</span>
-        <span className="font-mono text-[10px] text-black/40 dark:text-muted-foreground capitalize">
+        <span className="font-mono text-[10px] text-black/60 dark:text-muted-foreground">·</span>
+        <span className="font-mono text-[10px] text-black/60 dark:text-muted-foreground">{actionCount} actions allowed</span>
+        <span className="font-mono text-[10px] text-black/60 dark:text-muted-foreground">·</span>
+        <span className="font-mono text-[10px] text-black/60 dark:text-muted-foreground capitalize">
           {ctx.environment.type} defaults apply
         </span>
         {agent.safeLaunchUntil && agent.safeLaunchUntil > new Date() ? (
-          <span className="ml-auto border border-[#a56b18]/35 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-[#8c5a12]">
+          <span className="ml-auto border border-[#a56b18]/35 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-[#8c5a12] dark:text-[#e8b26a]">
             safe launch until {formatDate(agent.safeLaunchUntil)}
           </span>
         ) : null}
@@ -120,17 +120,17 @@ export default async function PermissionEditorPage({
                     </span>
                     <div className="min-w-0">
                       <p className="text-[12px] font-medium">{def.name}</p>
-                      <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-black/35 dark:text-muted-foreground">
+                      <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-black/60 dark:text-muted-foreground">
                         {credential.name} · {credential.maskedHint || "••••"}
                       </p>
                     </div>
                     <div className="ml-auto flex items-center gap-2">
                       {grant ? (
-                        <span className="border border-[#2f7d5c]/30 bg-[#2f7d5c]/[0.06] px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-[#245f47]">
+                        <span className="border border-[#2f7d5c]/30 bg-[#2f7d5c]/[0.06] px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-[#245f47] dark:text-[#7fd1ab]">
                           granted
                         </span>
                       ) : (
-                        <span className="border border-black/10 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-black/35 dark:border-border dark:text-muted-foreground">
+                        <span className="border border-black/10 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-black/60 dark:border-border dark:text-muted-foreground">
                           no access
                         </span>
                       )}
@@ -139,7 +139,7 @@ export default async function PermissionEditorPage({
                           className={`border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] ${
                             grant.activatedAt
                               ? "border-[#2f7d5c]/30 bg-[#2f7d5c]/[0.06] text-[#245f47]"
-                              : "border-[#a56b18]/35 bg-[#a56b18]/[0.06] text-[#8c5a12]"
+                              : "border-[#a56b18]/35 bg-[#a56b18]/[0.06] text-[#8c5a12] dark:text-[#e8b26a]"
                           }`}
                         >
                           {grant.activatedAt ? "JIT active" : "JIT inactive"}
@@ -157,10 +157,10 @@ export default async function PermissionEditorPage({
 
                     <div>
                       <div className="flex items-center justify-between">
-                        <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                        <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                           Actions
                         </p>
-                        <p className="font-mono text-[9px] text-black/30 dark:text-muted-foreground">
+                        <p className="font-mono text-[9px] text-black/60 dark:text-muted-foreground">
                           {grantedActions.length} of {def.actions.length} named
                         </p>
                       </div>
@@ -181,16 +181,16 @@ export default async function PermissionEditorPage({
                               <span className="flex flex-wrap items-center gap-1.5">
                                 <span className="text-[12px]">{action.label}</span>
                                 <RiskBadge risk={action.risk} />
-                                <span className="font-mono text-[9px] text-black/30 dark:text-muted-foreground">{action.method}</span>
+                                <span className="font-mono text-[9px] text-black/60 dark:text-muted-foreground">{action.method}</span>
                               </span>
-                              <span className="mt-0.5 block text-[11px] leading-relaxed text-black/45 dark:text-muted-foreground">
+                              <span className="mt-0.5 block text-[11px] leading-relaxed text-black/60 dark:text-muted-foreground">
                                 {action.description}
                               </span>
                             </span>
                           </label>
                         ))}
                       </div>
-                      <label className="mt-2 flex items-start gap-2 text-[11px] leading-relaxed text-black/55 dark:text-muted-foreground">
+                      <label className="mt-2 flex items-start gap-2 text-[11px] leading-relaxed text-black/65 dark:text-muted-foreground">
                         <input
                           type="checkbox"
                           name="actions"
@@ -204,27 +204,27 @@ export default async function PermissionEditorPage({
 
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div>
-                        <label className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                        <label className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                           {def.resourceLabel} pattern
                         </label>
                         <input
                           name="resourcePattern"
                           defaultValue={grant?.resourcePattern ?? "*"}
                           placeholder={def.resourcePlaceholder}
-                          className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                          className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[11px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                         />
-                        <p className="mt-1 text-[10px] text-black/40 dark:text-muted-foreground">
+                        <p className="mt-1 text-[10px] text-black/60 dark:text-muted-foreground">
                           Glob or comma list. Example: {def.resourcePlaceholder}
                         </p>
                       </div>
                       <div>
-                        <label className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                        <label className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                           Approval
                         </label>
                         <select
                           name="approvalMode"
                           defaultValue={grant?.approvalMode ?? ""}
-                          className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-1.5 text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                          className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-1.5 text-[11px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                         >
                           {APPROVAL_OPTIONS.map((option) => (
                             <option key={option.value} value={option.value}>
@@ -234,30 +234,30 @@ export default async function PermissionEditorPage({
                         </select>
                       </div>
                       <div>
-                        <label className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                        <label className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                           Expires
                         </label>
                         <input
                           type="date"
                           name="expiresAt"
                           defaultValue={grant?.expiresAt ? grant.expiresAt.toISOString().slice(0, 10) : ""}
-                          className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                          className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[11px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                         />
                       </div>
                       <div>
-                        <label className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                        <label className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                           Purpose
                         </label>
                         <input
                           name="purpose"
                           defaultValue={grant?.purpose ?? ""}
                           placeholder="Why does it need this?"
-                          className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-1.5 text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                          className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-1.5 text-[11px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                         />
                       </div>
                     </div>
 
-                    <label className="flex items-start gap-2 border border-black/10 p-3 text-[11px] leading-relaxed text-black/55 dark:border-border dark:text-muted-foreground">
+                    <label className="flex items-start gap-2 border border-black/10 p-3 text-[11px] leading-relaxed text-black/65 dark:border-border dark:text-muted-foreground">
                       <input
                         type="checkbox"
                         name="justInTime"
@@ -277,7 +277,7 @@ export default async function PermissionEditorPage({
                     </label>
 
                     <details className="border border-black/10 dark:border-border" open={Boolean(conditions)}>
-                      <summary className="cursor-pointer px-3 py-2 font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                      <summary className="cursor-pointer px-3 py-2 font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                         Conditions (JSON) {conditions ? "· configured" : ""}
                       </summary>
                       <div className="border-t border-black/10 p-3 dark:border-border">
@@ -289,7 +289,7 @@ export default async function PermissionEditorPage({
                           spellCheck={false}
                           className="w-full resize-none border border-black/15 bg-[#0b0b0b] px-2.5 py-2 font-mono text-[10px] leading-relaxed text-[#e8e6e1] outline-none focus:border-black"
                         />
-                        <p className="mt-1.5 font-mono text-[9px] leading-relaxed text-black/40 dark:text-muted-foreground">
+                        <p className="mt-1.5 font-mono text-[9px] leading-relaxed text-black/60 dark:text-muted-foreground">
                           Supported keys: maxCallsPerPeriod, periodHours, timeWindowStart, timeWindowEnd, timezone,
                           allowedDays, allowedIps (CIDR), maxAmount, approvalAboveAmount, amountField. Missing or invalid
                           condition data fails closed.
@@ -306,11 +306,11 @@ export default async function PermissionEditorPage({
                       </button>
                     </div>
                     {grant ? (
-                      <p className="font-mono text-[9px] text-black/35 dark:text-muted-foreground">
+                      <p className="font-mono text-[9px] text-black/60 dark:text-muted-foreground">
                         Updated {formatDate(grant.createdAt)} · expires {grant.expiresAt ? formatDate(grant.expiresAt) : "never"}
                       </p>
                     ) : (
-                      <p className="font-mono text-[9px] text-black/35 dark:text-muted-foreground">
+                      <p className="font-mono text-[9px] text-black/60 dark:text-muted-foreground">
                         Submitting with no actions selected removes the grant.
                       </p>
                     )}
@@ -325,7 +325,7 @@ export default async function PermissionEditorPage({
                       >
                         Activate for 60 minutes
                       </button>
-                      <span className="text-[10px] leading-relaxed text-black/40 dark:text-muted-foreground">
+                      <span className="text-[10px] leading-relaxed text-black/60 dark:text-muted-foreground">
                         Or let the agent request activation so the reason and approval are on the record.
                       </span>
                     </form>
@@ -336,7 +336,7 @@ export default async function PermissionEditorPage({
                       <input type="hidden" name="credentialId" value={credential.id} />
                       <ConfirmButton
                         message={`Remove ${agent.name}'s access to ${credential.name}? Calls will be denied immediately.`}
-                        className="font-mono text-[9px] uppercase tracking-[0.12em] text-[#8c3225] underline-offset-2 hover:underline"
+                        className="font-mono text-[9px] uppercase tracking-[0.12em] text-[#8c3225] dark:text-[#f0a396] underline-offset-2 hover:underline"
                       >
                         Remove this grant
                       </ConfirmButton>
@@ -347,7 +347,7 @@ export default async function PermissionEditorPage({
             })
           ) : (
             <Panel title="No connections" hint="The vault is empty" bodyClassName="p-6">
-              <p className="text-[12px] leading-relaxed text-black/55 dark:text-muted-foreground">
+              <p className="text-[12px] leading-relaxed text-black/65 dark:text-muted-foreground">
                 Store a connection first. Grants reference a connection, so there is nothing to scope yet.
               </p>
               <Link href="/app/vault/new" className="mt-3 inline-block border border-black bg-black px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white">
@@ -370,7 +370,7 @@ export default async function PermissionEditorPage({
                 "Approval mode decides: allow, require approval, or deny.",
               ].map((step, index) => (
                 <li key={step} className="flex gap-2">
-                  <span className="font-mono text-[9px] text-black/30 dark:text-muted-foreground">{String(index + 1).padStart(2, "0")}</span>
+                  <span className="font-mono text-[9px] text-black/60 dark:text-muted-foreground">{String(index + 1).padStart(2, "0")}</span>
                   <span>{step}</span>
                 </li>
               ))}
@@ -384,7 +384,7 @@ export default async function PermissionEditorPage({
                   <div key={policy.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
                     <div className="min-w-0">
                       <p className="truncate font-mono text-[11px]">{policy.actionPattern}</p>
-                      <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/35 dark:text-muted-foreground">
+                      <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/60 dark:text-muted-foreground">
                         {policy.agentId ? "this agent" : "environment-wide"}
                       </p>
                     </div>
@@ -393,11 +393,11 @@ export default async function PermissionEditorPage({
                 ))}
               </div>
             ) : (
-              <p className="px-4 py-4 text-[11px] leading-relaxed text-black/45 dark:text-muted-foreground">
+              <p className="px-4 py-4 text-[11px] leading-relaxed text-black/60 dark:text-muted-foreground">
                 No pattern policies. Risk defaults apply — reads allowed, everything else needs approval in production.
               </p>
             )}
-            <p className="border-t border-black/10 px-4 py-2.5 text-[10px] leading-relaxed text-black/40 dark:border-border dark:text-muted-foreground">
+            <p className="border-t border-black/10 px-4 py-2.5 text-[10px] leading-relaxed text-black/60 dark:border-border dark:text-muted-foreground">
               A grant-level approval mode overrides these policies for that connection.
             </p>
           </Panel>
@@ -411,9 +411,9 @@ export default async function PermissionEditorPage({
                     <div key={change.id} className="px-4 py-2.5">
                       <div className="flex items-center justify-between gap-3">
                         <p className="text-[11px]">{change.change}</p>
-                        <span className="font-mono text-[9px] text-black/35 dark:text-muted-foreground">{relativeTime(change.createdAt)}</span>
+                        <span className="font-mono text-[9px] text-black/60 dark:text-muted-foreground">{relativeTime(change.createdAt)}</span>
                       </div>
-                      <p className="mt-0.5 font-mono text-[9px] text-black/40 dark:text-muted-foreground">
+                      <p className="mt-0.5 font-mono text-[9px] text-black/60 dark:text-muted-foreground">
                         {change.actorName}
                         {after.actions ? ` · ${after.actions.length} action(s)` : ""}
                         {after.approvalMode ? ` · ${after.approvalMode}` : ""}
@@ -423,7 +423,7 @@ export default async function PermissionEditorPage({
                 })}
               </div>
             ) : (
-              <p className="px-4 py-4 text-[11px] text-black/45 dark:text-muted-foreground">No permission changes recorded yet.</p>
+              <p className="px-4 py-4 text-[11px] text-black/60 dark:text-muted-foreground">No permission changes recorded yet.</p>
             )}
           </Panel>
         </div>

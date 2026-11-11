@@ -43,7 +43,7 @@ export default async function AgentsPage({
         description="Every agent gets an Ed25519 identity, short-lived tokens and an allow-list of actions. Nothing runs anonymously."
         actions={
           <>
-            <Link href="/app/permissions" className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card">
+            <Link href="/app/permissions" className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
               Permission matrix
             </Link>
             <Link href="/app/agents/new" className="border border-black bg-black px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white hover:bg-[#eca8d6] hover:text-black">
@@ -72,9 +72,9 @@ export default async function AgentsPage({
             name="q"
             defaultValue={q}
             placeholder="Search agents…"
-            className="w-48 border border-black/15 bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-black dark:border-border dark:bg-card"
+            className="w-48 border border-black/45 bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-black dark:border-white/40 dark:bg-card"
           />
-          <button className="border border-black/15 bg-white px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[0.14em] hover:border-black dark:border-border dark:bg-card">
+          <button className="border border-black/45 bg-white px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[0.14em] hover:border-black dark:border-white/40 dark:bg-card">
             Search
           </button>
         </form>
@@ -85,7 +85,7 @@ export default async function AgentsPage({
           <div className="overflow-x-auto">
             <table className="w-full min-w-[820px] text-left">
               <thead>
-                <tr className="border-b border-black/10 font-mono text-[9px] uppercase tracking-[0.16em] text-black/40 dark:border-border dark:text-muted-foreground">
+                <tr className="border-b border-black/10 font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:border-border dark:text-muted-foreground">
                   <th className="px-4 py-2.5 font-normal">Agent</th>
                   <th className="px-4 py-2.5 font-normal">Status</th>
                   <th className="px-4 py-2.5 font-normal">Grants</th>
@@ -102,7 +102,7 @@ export default async function AgentsPage({
                     <tr key={agent.id} className="group transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
                       <td className="px-4 py-3">
                         <Link href={`/app/agents/${agent.id}`} className="flex items-center gap-2.5">
-                          <span className="flex size-7 shrink-0 items-center justify-center border border-black/15 bg-[#faf9f6] font-mono text-[9px] dark:border-border dark:bg-background">
+                          <span className="flex size-7 shrink-0 items-center justify-center border border-black/45 bg-[#faf9f6] font-mono text-[9px] dark:border-white/40 dark:bg-background">
                             {agent.name.slice(0, 2).toUpperCase()}
                           </span>
                           <span className="min-w-0">
@@ -114,7 +114,7 @@ export default async function AgentsPage({
                                 </span>
                               ) : null}
                             </span>
-                            <span className="block truncate font-mono text-[9px] uppercase tracking-[0.1em] text-black/35 dark:text-muted-foreground">
+                            <span className="block truncate font-mono text-[9px] uppercase tracking-[0.1em] text-black/60 dark:text-muted-foreground">
                               {connectors.length ? connectors.join(" · ") : "no connections"}
                             </span>
                           </span>
@@ -124,17 +124,17 @@ export default async function AgentsPage({
                         <StatusBadge status={agent.status} />
                       </td>
                       <td className="px-4 py-3 font-mono text-[11px]">{agent.grants.length}</td>
-                      <td className="px-4 py-3 text-[11px] text-black/55 dark:text-muted-foreground">
+                      <td className="px-4 py-3 text-[11px] text-black/65 dark:text-muted-foreground">
                         {agent.owner?.name ?? "Unassigned"}
                       </td>
-                      <td className="px-4 py-3 font-mono text-[10px] text-black/45 dark:text-muted-foreground">
+                      <td className="px-4 py-3 font-mono text-[10px] text-black/60 dark:text-muted-foreground">
                         {agent.lastActiveAt ? relativeTime(agent.lastActiveAt) : "—"}
                       </td>
-                      <td className="px-4 py-3 font-mono text-[10px] text-black/45 dark:text-muted-foreground">
+                      <td className="px-4 py-3 font-mono text-[10px] text-black/60 dark:text-muted-foreground">
                         {relativeTime(agent.createdAt)}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <Link href={`/app/agents/${agent.id}`} className="font-mono text-[10px] text-black/35 group-hover:text-black dark:text-muted-foreground dark:group-hover:text-foreground">
+                        <Link href={`/app/agents/${agent.id}`} className="font-mono text-[10px] text-black/60 group-hover:text-black dark:text-muted-foreground dark:group-hover:text-foreground">
                           Open →
                         </Link>
                       </td>

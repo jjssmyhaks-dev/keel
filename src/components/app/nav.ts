@@ -5,13 +5,16 @@ import {
   Code2,
   CreditCard,
   FlaskConical,
+  Gauge,
   Inbox,
   KeyRound,
   LayoutDashboard,
   Link2,
   Lock,
+  Play,
   Settings,
   ShieldCheck,
+  Siren,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -22,6 +25,7 @@ export type NavItem = {
   icon: LucideIcon;
   exact?: boolean;
   badge?: string;
+  adminOnly?: boolean;
 };
 
 export type NavGroup = {
@@ -45,6 +49,7 @@ export const NAV: NavGroup[] = [
   {
     label: "Build",
     items: [
+      { href: "/app/playground", label: "Playground", icon: Play },
       { href: "/app/developers", label: "Developers", icon: Code2 },
       { href: "/app/connectors", label: "Connectors", icon: Blocks },
     ],
@@ -56,7 +61,14 @@ export const NAV: NavGroup[] = [
       { href: "/app/billing", label: "Billing", icon: CreditCard },
       { href: "/app/connect", label: "OAuth apps", icon: Link2 },
       { href: "/app/security", label: "Security", icon: Lock },
+      { href: "/app/observability", label: "Observability", icon: Gauge },
       { href: "/app/settings", label: "Settings", icon: Settings },
+    ],
+  },
+  {
+    label: "Operate",
+    items: [
+      { href: "/app/admin/status", label: "Status page", icon: Siren, adminOnly: true },
     ],
   },
 ];

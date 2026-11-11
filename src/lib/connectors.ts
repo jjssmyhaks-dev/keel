@@ -82,6 +82,7 @@ export type Connector = {
   version: string;
   redactedFields: string[];
   source?: "builtin" | "custom";
+  sandbox?: boolean;
 };
 
 const base = "https://authab.dev/docs/connectors";
@@ -718,6 +719,129 @@ export const CONNECTORS: Connector[] = [
 ];
 
 export const CONNECTOR_MAP = Object.fromEntries(CONNECTORS.map((c) => [c.slug, c]));
+
+/**
+ * The sandbox connector runs the real proxy pipeline but keeps every call in
+ * process: no credential is read, no host is contacted. Keep it out of
+ * CONNECTORS so it never appears in the public catalogue or marketing counts.
+ */
+export const SANDBOX_CONNECTOR: Connector = {
+  slug: "sandbox",
+  name: "Sandbox",
+  category: "Testing",
+  description:
+    "Exercise the full proxy pipeline — agent auth, grants, scopes, policy, approvals, rate limits and audit — with no provider, no secret and no network egress.",
+  color: "#25567A",
+  mark: "SB",
+  docsUrl: "/app/playground",
+  authMethods: [],
+  defaultAuth: "api_key",
+  hosts: [],
+  injection: { type: "header", name: "Authorization", prefix: "Bearer " },
+  scopes: [
+    { value: "sandbox.echo", label: "Echo a request (read)" },
+    { value: "sandbox.create_ticket", label: "Create a ticket (write)" },
+    { value: "sandbox.charge_card", label: "Charge a card (financial)" },
+    { value: "sandbox.delete_workspace", label: "Delete a workspace (destructive)" },
+    { value: "sandbox.grant_role", label: "Grant a role (admin)" },
+  ],
+  resourceLabel: "Sandbox resource",
+  resourcePlaceholder: "demo/checkout",
+  status: "stable",
+  version: "1.0.0",
+  redactedFields: ["token", "authorization", "password", "secret", "card", "number"],
+  source: "builtin",
+  sandbox: true,
+  actions: [
+    {
+      name: "sandbox.echo",
+      label: "Echo a request",
+      description: "Round-trip a read request through auth, grant, scope and policy checks.",
+      method: "GET",
+      path: "/sandbox/echo",
+      risk: "read",
+      resourceLabel: "Sandbox resource",
+      fields: [{ key: "message", label: "Message", placeholder: "Summarize the last five tickets" }],
+      sample: {
+        ok: true,
+        object: "list",
+        matched: 3,
+        items: [
+          { id: "tkt_1001", title: "Refund status", state: "open" },
+          { id: "tkt_1002", title: "Login loop", state: "open" },
+          { id: "tkt_1003", title: "Webhook retries", state: "pending" },
+        ],
+      },
+    },
+    {
+      name: "sandbox.create_ticket",
+      label: "Create ticket",
+      description: "Write a ticket and get a synthetic identifier back.",
+      method: "POST",
+      path: "/sandbox/tickets",
+      risk: "write",
+      resourceLabel: "Queue",
+      fields: [
+        { key: "subject", label: "Subject", placeholder: "Checkout latency spike", required: true },
+        { key: "priority", label: "Priority", placeholder: "high" },
+      ],
+      sample: {
+        id: "tkt_sandbox_1042",
+        object: "ticket",
+        state: "open",
+        subject: "Checkout latency spike",
+        priority: "high",
+        assignee: null,
+      },
+    },
+    {
+      name: "sandbox.charge_card",
+      label: "Charge card",
+      description: "A financial action. Approval policy applies exactly as it does for Stripe.",
+      method: "POST",
+      path: "/sandbox/charges",
+      risk: "financial",
+      resourceLabel: "Account",
+      fields: [
+        { key: "amount", label: "Amount (minor units)", placeholder: "4200", required: true },
+        { key: "currency", label: "Currency", placeholder: "usd" },
+        { key: "customer", label: "Customer", placeholder: "cus_sandbox_1" },
+      ],
+      sample: {
+        id: "ch_sandbox_3Qx9a2",
+        object: "charge",
+        status: "succeeded",
+        amount: 4200,
+        currency: "usd",
+      },
+    },
+    {
+      name: "sandbox.delete_workspace",
+      label: "Delete workspace",
+      description: "A destructive action. Use it to prove approvals and kill switches work.",
+      method: "DELETE",
+      path: "/sandbox/workspaces/{workspace}",
+      risk: "destructive",
+      resourceLabel: "Workspace",
+      fields: [{ key: "workspace", label: "Workspace", placeholder: "demo-staging", required: true }],
+      sample: { deleted: true, workspace: "demo-staging", object: "workspace" },
+    },
+    {
+      name: "sandbox.grant_role",
+      label: "Grant role",
+      description: "An admin action. Approval policy applies before any change is recorded.",
+      method: "POST",
+      path: "/sandbox/roles",
+      risk: "admin",
+      resourceLabel: "Workspace",
+      fields: [
+        { key: "user", label: "User", placeholder: "contractor@example.com", required: true },
+        { key: "role", label: "Role", placeholder: "admin" },
+      ],
+      sample: { ok: true, user: "contractor@example.com", role: "admin", object: "role_grant" },
+    },
+  ],
+};
 
 export const RISK_META: Record<Risk, { label: string; description: string; color: string }> = {
   read: { label: "Read", description: "Read-only access. Auto-allowed by default.", color: "#2F7D5C" },

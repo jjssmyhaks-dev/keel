@@ -56,9 +56,17 @@ export default async function SecurityPage({
         title="Assume the agent is compromised."
         description="These settings decide what happens after a bad token: how fast approvals expire, how hard calls are rate-limited and who can act."
         actions={
-          <Link href="/app/activity" className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card">
-            Activity log
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/app/security/sso" className="border border-black bg-black px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white hover:bg-[#eca8d6] hover:text-black">
+              SSO & MFA
+            </Link>
+            <Link href="/app/security/streaming" className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
+              Audit streaming
+            </Link>
+            <Link href="/app/activity" className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
+              Activity log
+            </Link>
+          </div>
         }
       />
 
@@ -94,7 +102,7 @@ export default async function SecurityPage({
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
         <div className="space-y-6">
           <Panel title="Proxy guardrails" hint="Enforced on every call" bodyClassName="p-4">
-            <p className="mb-4 border border-black/10 bg-[#faf9f6] p-3 text-[11px] leading-relaxed text-black/55 dark:border-border dark:bg-background dark:text-muted-foreground">
+            <p className="mb-4 border border-black/10 bg-[#faf9f6] p-3 text-[11px] leading-relaxed text-black/65 dark:border-border dark:bg-background dark:text-muted-foreground">
               Provider calls are live. Every request is evaluated against grants, risk class, rate limits and approvals
               before Authab decrypts a credential and calls the provider. Responses are capped at 2 MB and redirects must
               stay on the credential&apos;s own origin.
@@ -103,7 +111,7 @@ export default async function SecurityPage({
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="approvalExpiryMinutes" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                  <label htmlFor="approvalExpiryMinutes" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                     Approval expiry (minutes)
                   </label>
                   <input
@@ -113,11 +121,11 @@ export default async function SecurityPage({
                     min={5}
                     max={1440}
                     defaultValue={settings.approvalExpiryMinutes ?? 60}
-                    className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[12px] outline-none focus:border-black dark:border-border dark:bg-background"
+                    className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[12px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                   />
                 </div>
                 <div>
-                  <label htmlFor="agentRateLimitPerMinute" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                  <label htmlFor="agentRateLimitPerMinute" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                     Per-agent calls / minute
                   </label>
                   <input
@@ -127,13 +135,13 @@ export default async function SecurityPage({
                     min={10}
                     max={5000}
                     defaultValue={settings.agentRateLimitPerMinute ?? 120}
-                    className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[12px] outline-none focus:border-black dark:border-border dark:bg-background"
+                    className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[12px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="allowedDomains" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                <label htmlFor="allowedDomains" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                   Outbound domain allow-list
                 </label>
                 <input
@@ -141,15 +149,15 @@ export default async function SecurityPage({
                   name="allowedDomains"
                   defaultValue={allowedDomains}
                   placeholder="api.stripe.com, slack.com"
-                  className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                  className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[11px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                 />
-                <p className="mt-1 text-[10px] text-black/40 dark:text-muted-foreground">
+                <p className="mt-1 text-[10px] text-black/60 dark:text-muted-foreground">
                   Empty means only the connector&apos;s documented hosts. Anything else is refused before execution.
                 </p>
               </div>
 
               <div>
-                <label htmlFor="ipAllowlist" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                <label htmlFor="ipAllowlist" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                   Inbound IP allow-list
                 </label>
                 <input
@@ -157,15 +165,15 @@ export default async function SecurityPage({
                   name="ipAllowlist"
                   defaultValue={ipAllowlist}
                   placeholder="203.0.113., 10.0.0."
-                  className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                  className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[11px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                 />
-                <p className="mt-1 text-[10px] text-black/40 dark:text-muted-foreground">
+                <p className="mt-1 text-[10px] text-black/60 dark:text-muted-foreground">
                   Prefix match on the client IP. Leave blank unless agents run from a fixed egress range.
                 </p>
               </div>
 
               <div>
-                <label htmlFor="slackWebhookUrl" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/45 dark:text-muted-foreground">
+                <label htmlFor="slackWebhookUrl" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                   Slack webhook for alerts
                 </label>
                 <input
@@ -173,9 +181,9 @@ export default async function SecurityPage({
                   name="slackWebhookUrl"
                   defaultValue={settings.slackWebhookUrl ?? ""}
                   placeholder="https://hooks.slack.com/services/…"
-                  className="mt-1 w-full border border-black/15 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[11px] outline-none focus:border-black dark:border-border dark:bg-background"
+                  className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-1.5 font-mono text-[11px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                 />
-                <p className="mt-1 text-[10px] text-black/40 dark:text-muted-foreground">
+                <p className="mt-1 text-[10px] text-black/60 dark:text-muted-foreground">
                   Used only by alert rules that select the Slack channel. Leave blank to disable Slack delivery.
                 </p>
               </div>
@@ -195,12 +203,12 @@ export default async function SecurityPage({
             actions={
               canManage ? (
                 <form action={runAlertChecksAction}>
-                  <button className="border border-black/15 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em] hover:border-black dark:border-border">
+                  <button className="border border-black/45 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em] hover:border-black dark:border-white/40">
                     Run checks now
                   </button>
                 </form>
               ) : (
-                <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-black/35 dark:text-muted-foreground">
+                <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-black/60 dark:text-muted-foreground">
                   {alerts.length} configured
                 </span>
               )
@@ -218,7 +226,7 @@ export default async function SecurityPage({
                       <StatusBadge status={alert.enabled ? "active" : "paused"} />
                       <div className="min-w-0 flex-1">
                         <p className="text-[12px]">{meta?.label ?? alert.type}</p>
-                        <p className="font-mono text-[9px] text-black/40 dark:text-muted-foreground">
+                        <p className="font-mono text-[9px] text-black/60 dark:text-muted-foreground">
                           {config.threshold ? `> ${config.threshold} in ${config.windowMinutes ?? 60}m` : "default threshold"} ·{" "}
                           {channels.join(", ") || "no channels"} · created {formatDate(alert.createdAt)}
                           {alert.lastFiredAt ? ` · last fired ${formatDate(alert.lastFiredAt)}` : ""}
@@ -227,7 +235,7 @@ export default async function SecurityPage({
                       {canManage ? (
                         <form action={toggleAlertRuleAction}>
                           <input type="hidden" name="ruleId" value={alert.id} />
-                          <button className="border border-black/15 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em] hover:border-black dark:border-border">
+                          <button className="border border-black/45 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em] hover:border-black dark:border-white/40">
                             {alert.enabled ? "Disable" : "Enable"}
                           </button>
                         </form>
@@ -237,15 +245,15 @@ export default async function SecurityPage({
                 })}
               </div>
             ) : (
-              <p className="px-4 py-5 text-[11px] leading-relaxed text-black/45 dark:text-muted-foreground">
+              <p className="px-4 py-5 text-[11px] leading-relaxed text-black/60 dark:text-muted-foreground">
                 No alert rules. Denials and approval timeouts are always audited, but nothing will page a human.
               </p>
             )}
             {canManage ? (
               <form action={addAlertRuleAction} className="flex flex-wrap items-end gap-2 border-t border-black/10 px-4 py-3 dark:border-border">
                 <div>
-                  <label className="font-mono text-[8px] uppercase tracking-[0.16em] text-black/40 dark:text-muted-foreground">Signal</label>
-                  <select name="type" className="mt-1 block border border-black/15 bg-white px-2 py-1 text-[11px] dark:border-border dark:bg-card">
+                  <label className="font-mono text-[8px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">Signal</label>
+                  <select name="type" className="mt-1 block border border-black/45 bg-white px-2 py-1 text-[11px] dark:border-white/40 dark:bg-card">
                     {ALERT_TYPES.map((type) => (
                       <option key={type.value} value={type.value}>
                         {type.label}
@@ -254,27 +262,27 @@ export default async function SecurityPage({
                   </select>
                 </div>
                 <div>
-                  <label className="font-mono text-[8px] uppercase tracking-[0.16em] text-black/40 dark:text-muted-foreground">Threshold</label>
+                  <label className="font-mono text-[8px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">Threshold</label>
                   <input
                     name="threshold"
                     type="number"
                     min={1}
                     defaultValue={3}
-                    className="mt-1 block w-20 border border-black/15 bg-white px-2 py-1 font-mono text-[11px] dark:border-border dark:bg-card"
+                    className="mt-1 block w-20 border border-black/45 bg-white px-2 py-1 font-mono text-[11px] dark:border-white/40 dark:bg-card"
                   />
                 </div>
                 <div>
-                  <label className="font-mono text-[8px] uppercase tracking-[0.16em] text-black/40 dark:text-muted-foreground">Window (min)</label>
+                  <label className="font-mono text-[8px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">Window (min)</label>
                   <input
                     name="windowMinutes"
                     type="number"
                     min={5}
                     defaultValue={60}
-                    className="mt-1 block w-20 border border-black/15 bg-white px-2 py-1 font-mono text-[11px] dark:border-border dark:bg-card"
+                    className="mt-1 block w-20 border border-black/45 bg-white px-2 py-1 font-mono text-[11px] dark:border-white/40 dark:bg-card"
                   />
                 </div>
                 <div>
-                  <label className="font-mono text-[8px] uppercase tracking-[0.16em] text-black/40 dark:text-muted-foreground">Channels</label>
+                  <label className="font-mono text-[8px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">Channels</label>
                   <div className="mt-1.5 flex items-center gap-3 text-[11px]">
                     <label className="flex items-center gap-1">
                       <input type="checkbox" name="channels" value="email" defaultChecked className="size-3.5 accent-black" />
@@ -296,7 +304,7 @@ export default async function SecurityPage({
 
         <div className="space-y-6">
           <Panel title="Audit integrity" hint="Hash chain, per environment" bodyClassName="p-4">
-            <p className="text-[11px] leading-relaxed text-black/50 dark:text-muted-foreground">
+            <p className="text-[11px] leading-relaxed text-black/60 dark:text-muted-foreground">
               {lastVerified
                 ? `Last verification ${formatDate(lastVerified.timestamp)} by ${lastVerified.actorName}.`
                 : "This environment has not been verified since it was created."}
@@ -307,7 +315,7 @@ export default async function SecurityPage({
                 Verify now
               </button>
             </form>
-            <div className="mt-3 space-y-1.5 border-t border-black/10 pt-3 font-mono text-[9px] text-black/45 dark:border-border dark:text-muted-foreground">
+            <div className="mt-3 space-y-1.5 border-t border-black/10 pt-3 font-mono text-[9px] text-black/60 dark:border-border dark:text-muted-foreground">
               <p>{auditCount} events in chain</p>
               <p>SHA-256 · prev-hash chained</p>
               <p>
@@ -335,7 +343,7 @@ export default async function SecurityPage({
               ].map((row) => (
                 <div key={row.label} className="flex items-center justify-between gap-3 px-4 py-2">
                   <span>{row.label}</span>
-                  <span className="font-mono text-[9px] uppercase tracking-[0.08em] text-black/45 dark:text-muted-foreground">{row.roles}</span>
+                  <span className="font-mono text-[9px] uppercase tracking-[0.08em] text-black/60 dark:text-muted-foreground">{row.roles}</span>
                 </div>
               ))}
             </div>
@@ -347,7 +355,7 @@ export default async function SecurityPage({
           </Panel>
 
           <Panel title="Secrets handling" hint="Envelope encryption" bodyClassName="p-4">
-            <ul className="space-y-2 text-[11px] leading-relaxed text-black/55 dark:text-muted-foreground">
+            <ul className="space-y-2 text-[11px] leading-relaxed text-black/65 dark:text-muted-foreground">
               <li>Master key → project key → per-credential data key.</li>
               <li>AES-256-GCM with authenticated encryption on every payload.</li>
               <li>Secrets are injected inside the proxy; agent processes never receive them.</li>

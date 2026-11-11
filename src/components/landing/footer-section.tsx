@@ -21,6 +21,7 @@ const footerLinks = {
   Company: [
     { name: "About", href: "/about" },
     { name: "Security", href: "/security" },
+    { name: "Trust center", href: "/trust" },
     { name: "Blog", href: "/blog" },
     { name: "Contact", href: "/contact" },
   ],
@@ -128,7 +129,7 @@ export function FooterSection() {
               <Link href="/" className="inline-flex items-center gap-2 mb-6">
                 <Logo tone="light" />
               </Link>
-              <p className="text-white/45 leading-relaxed mb-8 max-w-[280px] text-sm">
+              <p className="text-white/60 leading-relaxed mb-8 max-w-[280px] text-sm">
                 Identity, vault and governance for AI agents. Built for teams that ship
                 agents to real customers.
               </p>
@@ -139,7 +140,7 @@ export function FooterSection() {
                     href={s.href}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-sm text-white/40 hover:text-white transition-colors flex items-center gap-1 group"
+                    className="text-sm text-white/60 hover:text-white transition-colors flex items-center gap-1 group"
                   >
                     {s.name}
                     <ArrowUpRight className="w-3 h-3 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
@@ -156,7 +157,7 @@ export function FooterSection() {
                     <li key={link.name}>
                       <Link
                         href={link.href}
-                        className="text-sm text-white/40 hover:text-white transition-colors inline-flex items-center gap-2"
+                        className="text-sm text-white/60 hover:text-white transition-colors inline-flex items-center gap-2"
                       >
                         {link.name}
                       </Link>
@@ -169,8 +170,8 @@ export function FooterSection() {
         </div>
 
         <div className="py-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-white/30">© {new Date().getFullYear()} Authab Systems. All rights reserved.</p>
-          <div className="flex flex-wrap items-center gap-6 text-sm text-white/30">
+          <p className="text-sm text-white/60">© {new Date().getFullYear()} Authab Systems. All rights reserved.</p>
+          <div className="flex flex-wrap items-center gap-6 text-sm text-white/60">
             <Link href="/status" className="hover:text-white transition-colors">
               Live status
             </Link>

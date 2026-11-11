@@ -46,19 +46,19 @@ export default function ConnectorsPage() {
                 <span className="min-w-0">
                   <span className="flex items-center gap-2">
                     <span className="text-[14px] font-medium">{connector.name}</span>
-                    <span className="mono-label text-foreground/30">{connector.version}</span>
+                    <span className="mono-label text-foreground/60">{connector.version}</span>
                     {connector.status === "beta" ? (
                       <span className="border border-[#eca8d6] px-1 py-0.5 font-mono text-[8px] uppercase tracking-[0.14em]">
                         Beta
                       </span>
                     ) : null}
                   </span>
-                  <span className="mt-1 block text-[12px] leading-relaxed text-foreground/55">{connector.description}</span>
-                  <span className="mt-2 block font-mono text-[9px] uppercase tracking-[0.14em] text-foreground/35">
+                  <span className="mt-1 block text-[12px] leading-relaxed text-foreground/65">{connector.description}</span>
+                  <span className="mt-2 block font-mono text-[9px] uppercase tracking-[0.14em] text-foreground/60">
                     {connector.actions.length} actions · {connector.authMethods[0]?.label ?? "API key"}
                   </span>
                 </span>
-                <ArrowUpRight className="ml-auto size-3.5 shrink-0 text-foreground/25 group-hover:text-foreground" />
+                <ArrowUpRight className="ml-auto size-3.5 shrink-0 text-foreground/60 group-hover:text-foreground" />
               </Link>
             ))}
           </div>

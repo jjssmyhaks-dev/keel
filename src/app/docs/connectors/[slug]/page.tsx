@@ -42,17 +42,17 @@ export default async function ConnectorDetailPage({ params }: { params: Promise<
     >
       <div className="not-prose my-8 grid gap-px border border-foreground/12 bg-foreground/10 sm:grid-cols-3">
         <div className="bg-background p-4">
-          <p className="mono-label text-foreground/35">Hosts</p>
+          <p className="mono-label text-foreground/60">Hosts</p>
           <p className="mt-2 font-mono text-[11px] leading-relaxed">{def.hosts.join(", ")}</p>
         </div>
         <div className="bg-background p-4">
-          <p className="mono-label text-foreground/35">Credential injection</p>
+          <p className="mono-label text-foreground/60">Credential injection</p>
           <p className="mt-2 font-mono text-[11px] leading-relaxed">
             {def.injection.name}: {def.injection.prefix ?? ""}…
           </p>
         </div>
         <div className="bg-background p-4">
-          <p className="mono-label text-foreground/35">Auth</p>
+          <p className="mono-label text-foreground/60">Auth</p>
           <p className="mt-2 text-[12px] leading-relaxed">{def.authMethods.map((method) => method.label).join(" · ")}</p>
         </div>
       </div>

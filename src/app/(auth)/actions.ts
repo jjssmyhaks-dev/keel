@@ -5,6 +5,7 @@ import { cookies, headers } from "next/headers";
 import { db } from "@/lib/db";
 import { hashPassword, randomToken, sha256, verifyPassword } from "@/lib/crypto";
 import { createSession, destroySession, getSession } from "@/lib/session";
+import { beginLogin } from "@/lib/login";
 import { provisionOrganization, completeOnboarding } from "@/lib/provisioning";
 import { sendEmail, emailLayout, appUrl } from "@/lib/email";
 import { auditEvent } from "@/lib/audit";
@@ -149,6 +150,24 @@ export async function signInAction(_prev: FormState, formData: FormData): Promis
   }
 
   const user = await db.user.findUnique({ where: { email } });
+
+  const domain = email.split("@")[1];
+  if (domain) {
+    const ssoConnection = await db.ssoConnection.findFirst({
+      where: {
+        enabled: true,
+        domainsJson: { contains: `"${domain}"` },
+        org: { deletedAt: null },
+      },
+      select: { id: true },
+    });
+    if (ssoConnection) {
+      redirect(
+        `/sso/${ssoConnection.id}/start?email=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}`,
+      );
+    }
+  }
+
   if (!user || !user.passwordHash || !verifyPassword(password, user.passwordHash)) {
     return { error: "Email or password is incorrect." };
   }
@@ -159,7 +178,8 @@ export async function signInAction(_prev: FormState, formData: FormData): Promis
     return { error: "This account is scheduled for deletion. Contact support to restore it." };
   }
 
-  await createSession(user.id, m);
+  const outcome = await beginLogin(user, m, { next, authMethod: "password" });
+  if (outcome.kind === "challenge") redirect(`/mfa?token=${encodeURIComponent(outcome.token)}`);
   await db.session.updateMany({
     where: { userId: user.id, revokedAt: null },
     data: { lastSeen: new Date() },
@@ -183,6 +203,7 @@ export async function signInAction(_prev: FormState, formData: FormData): Promis
     });
   }
 
+  if (outcome.kind === "enroll") redirect("/mfa/enroll?required=1");
   if (!user.onboardedAt) redirect(next || "/onboarding");
   redirect(next || "/app");
 }
@@ -192,7 +213,9 @@ export async function signInDemoAction(): Promise<void> {
   const user = await db.user.findUnique({ where: { email: "demo@authab.dev" } });
   if (!user) redirect("/sign-in?notice=demo-unavailable");
   const m = await meta();
-  await createSession(user.id, m);
+  const outcome = await beginLogin(user, m, { authMethod: "demo" });
+  if (outcome.kind === "challenge") redirect(`/mfa?token=${encodeURIComponent(outcome.token)}`);
+  if (outcome.kind === "enroll") redirect("/mfa/enroll?required=1");
   redirect("/app");
 }
 

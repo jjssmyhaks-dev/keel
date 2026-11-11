@@ -6,7 +6,8 @@ import { auditEvent } from "./audit";
 import { dispatchEvent } from "./webhooks";
 import { notifyApprovers, notify } from "./notifications";
 import { envSettings, approvalSlaFor } from "./policy";
-import { executeAction, redact } from "./proxy";
+import { executeAction } from "./proxy";
+import { redact } from "./redaction";
 import { emailLayout, sendEmail } from "./email";
 import { checkPlanLimit, productionAccess } from "./limits";
 import { approvalUrlFor } from "./signed-links";
@@ -416,6 +417,13 @@ export async function decideApproval(opts: {
             requestId: approval.requestId,
             ip: opts.ip,
             approvalId: approval.id,
+            decision: {
+              effect: "allow",
+              risk: approval.risk,
+              source: "approval",
+              reason: `Approved by ${opts.userName}${opts.note ? `: ${opts.note}` : "."}`,
+              grantId: approval.grantId,
+            },
           });
         } catch (error) {
           status = "failed";

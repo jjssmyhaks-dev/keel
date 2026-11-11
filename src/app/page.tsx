@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 
 export default function LandingPage() {
   return (
-    <main className="relative">
+    <main id="main-content" tabIndex={-1} className="relative">
       <Navigation overlay />
       <HeroSection />
       <CapabilitiesSection />

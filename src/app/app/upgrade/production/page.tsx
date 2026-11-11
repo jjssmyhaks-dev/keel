@@ -103,7 +103,7 @@ export default async function ProductionUpgradePage() {
                   </span>
                   <div>
                     <p className="text-[12px] font-medium">{item.title}</p>
-                    <p className="mt-0.5 text-[11px] leading-relaxed text-black/50 dark:text-muted-foreground">{item.detail}</p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-black/60 dark:text-muted-foreground">{item.detail}</p>
                   </div>
                 </div>
               ))}
@@ -114,13 +114,13 @@ export default async function ProductionUpgradePage() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-[13px] font-medium">{subscribed.name}</p>
-                <p className="mt-0.5 max-w-xs text-[11px] leading-relaxed text-black/50 dark:text-muted-foreground">
+                <p className="mt-0.5 max-w-xs text-[11px] leading-relaxed text-black/60 dark:text-muted-foreground">
                   {suspended ? `Billing ${ctx.org.planStatus}. Paid limits are paused.` : access.message}
                 </p>
               </div>
               <Link
                 href="/pricing"
-                className="border border-black/15 bg-white px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] hover:border-black dark:border-border dark:bg-card"
+                className="border border-black/45 bg-white px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] hover:border-black dark:border-white/40 dark:bg-card"
               >
                 Compare plans
               </Link>
@@ -162,11 +162,11 @@ export default async function ProductionUpgradePage() {
                     >
                       <div className="min-w-0 flex-1">
                         <p className="text-[13px] font-medium">{candidate.name}</p>
-                        <p className="mt-0.5 text-[11px] leading-relaxed text-black/50 dark:text-muted-foreground">
+                        <p className="mt-0.5 text-[11px] leading-relaxed text-black/60 dark:text-muted-foreground">
                           Custom volume, retention and procurement.
                         </p>
                       </div>
-                      <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/45 dark:text-muted-foreground">
+                      <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/60 dark:text-muted-foreground">
                         Talk to sales →
                       </span>
                     </Link>
@@ -178,7 +178,7 @@ export default async function ProductionUpgradePage() {
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div>
                         <p className="text-[13px] font-medium">{candidate.name}</p>
-                        <p className="mt-0.5 text-[11px] leading-relaxed text-black/50 dark:text-muted-foreground">
+                        <p className="mt-0.5 text-[11px] leading-relaxed text-black/60 dark:text-muted-foreground">
                           {candidate.description}
                         </p>
                       </div>
@@ -190,7 +190,7 @@ export default async function ProductionUpgradePage() {
                     </div>
                     <p className="mt-3 font-display text-2xl leading-none tracking-tight">
                       {formatPrice(candidate, currency)}
-                      <span className="ml-1 font-sans text-[11px] tracking-normal text-black/45 dark:text-muted-foreground">/ month</span>
+                      <span className="ml-1 font-sans text-[11px] tracking-normal text-black/60 dark:text-muted-foreground">/ month</span>
                     </p>
                     <ul className="mt-3 space-y-1">
                       {candidate.features.slice(0, 3).map((feature) => (
@@ -209,13 +209,13 @@ export default async function ProductionUpgradePage() {
                           {candidate.cta}
                         </button>
                         {!checkoutReady ? (
-                          <p className="mt-2 text-[10px] text-black/40 dark:text-muted-foreground">
+                          <p className="mt-2 text-[10px] text-black/60 dark:text-muted-foreground">
                             Billing confirms payment before the plan activates. No card is charged here.
                           </p>
                         ) : null}
                       </>
                     ) : (
-                      <p className="mt-4 border border-dashed border-black/15 px-3 py-2 text-center font-mono text-[9px] uppercase tracking-[0.12em] text-black/40 dark:border-border dark:text-muted-foreground">
+                      <p className="mt-4 border border-dashed border-black/15 px-3 py-2 text-center font-mono text-[9px] uppercase tracking-[0.12em] text-black/60 dark:border-border dark:text-muted-foreground">
                         Owner approval required
                       </p>
                     )}

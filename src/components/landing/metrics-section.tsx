@@ -164,7 +164,7 @@ export function MetricsSection() {
         <div className="grid lg:grid-cols-12 gap-8 mb-16">
           <div className="lg:col-span-8">
             <div className="flex items-center gap-4 mb-6">
-              <span className="flex items-center gap-2 px-3 py-1 bg-[#eca8d6]/15 text-[#8c3f72] text-[10px] font-mono uppercase tracking-widest">
+              <span className="flex items-center gap-2 px-3 py-1 bg-[#eca8d6]/15 text-[#8c3f72] dark:text-[#f0bfdc] text-[10px] font-mono uppercase tracking-widest">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#b0568f]" />
                 by the numbers
               </span>

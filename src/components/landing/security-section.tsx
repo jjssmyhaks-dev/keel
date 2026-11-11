@@ -75,10 +75,10 @@ export function SecuritySection() {
             <div className="absolute -right-6 -bottom-6 w-40 h-40 rounded-full border border-white/[0.08]" />
             <div className="absolute right-12 bottom-12 w-20 h-20 rounded-full border border-[#eca8d6]/20" />
 
-            <span className="font-mono text-xs text-white/40">Active protection</span>
+            <span className="font-mono text-xs text-white/60">Active protection</span>
             <div className="mt-10">
               <span className="text-7xl lg:text-8xl font-display">0</span>
-              <span className="block text-white/40 mt-2 text-sm">secrets exposed to an agent process</span>
+              <span className="block text-white/60 mt-2 text-sm">secrets exposed to an agent process</span>
             </div>
 
             <div className="relative z-10 mt-14 transition-opacity duration-500">
@@ -91,7 +91,7 @@ export function SecuritySection() {
               {controls.map((c, i) => (
                 <span
                   key={c}
-                  className={`px-3 py-1 border border-white/15 text-[10px] font-mono text-white/45 transition-all duration-500 ${
+                  className={`px-3 py-1 border border-white/15 text-[10px] font-mono text-white/60 transition-all duration-500 ${
                     visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
                   }`}
                   style={{ transitionDelay: `${i * 100 + 300}ms` }}
@@ -118,7 +118,7 @@ export function SecuritySection() {
                 >
                   <Icon
                     className={`w-5 h-5 mb-6 transition-colors ${
-                      active === i ? "text-[#b0568f]" : "text-muted-foreground/50"
+                      active === i ? "text-[#b0568f] dark:text-[#e59ec9]" : "text-muted-foreground"
                     }`}
                   />
                   <h3 className="text-xl font-display mb-2">{f.title}</h3>
@@ -135,11 +135,11 @@ export function SecuritySection() {
           }`}
         >
           <span className="flex items-center gap-2">
-            <Lock className="w-4 h-4 text-[#b0568f]" />
+            <Lock className="w-4 h-4 text-[#b0568f] dark:text-[#e59ec9]" />
             Dedicated security page and responsible disclosure at /security
           </span>
           <span className="flex items-center gap-2 font-mono text-[11px]">
-            <ShieldCheck className="w-4 h-4 text-[#b0568f]" />
+            <ShieldCheck className="w-4 h-4 text-[#b0568f] dark:text-[#e59ec9]" />
             status page · live checks
           </span>
         </div>

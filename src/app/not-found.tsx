@@ -3,13 +3,13 @@ import { Logo } from "@/components/logo";
 
 export default function NotFound() {
   return (
-    <main className="min-h-screen bg-background text-foreground flex flex-col">
+    <main id="main-content" tabIndex={-1} className="min-h-screen bg-background text-foreground flex flex-col">
       <header className="border-b border-foreground/10">
         <div className="mx-auto flex h-16 w-full max-w-[1400px] items-center justify-between px-6 lg:px-12">
           <Link href="/" aria-label="Authab home">
             <Logo />
           </Link>
-          <div className="flex items-center gap-5 font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/50">
+          <div className="flex items-center gap-5 font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/60">
             <Link href="/docs" className="hover:text-foreground">Docs</Link>
             <Link href="/status" className="hover:text-foreground">Status</Link>
           </div>
@@ -17,11 +17,11 @@ export default function NotFound() {
       </header>
 
       <section className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col justify-center px-6 py-24 lg:px-12">
-        <p className="mono-label text-foreground/40 mb-6">404 · Not found</p>
+        <p className="mono-label text-foreground/60 mb-6">404 · Not found</p>
         <h1 className="font-display text-6xl leading-[0.9] tracking-tight lg:text-8xl">
           This route has
           <br />
-          <span className="text-foreground/35">no identity.</span>
+          <span className="text-foreground/60">no identity.</span>
         </h1>
         <p className="mt-8 max-w-xl text-[16px] leading-relaxed text-foreground/60">
           The page may have moved, been revoked, or never existed. Nothing was executed and no credential was touched.
@@ -43,7 +43,7 @@ export default function NotFound() {
       </section>
 
       <footer className="border-t border-foreground/10 px-6 py-6 lg:px-12">
-        <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/35">
+        <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/60">
           <span>Authab Systems</span>
           <Link href="/status" className="hover:text-foreground">All systems monitored</Link>
         </div>

@@ -26,11 +26,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         <div className="relative z-10 max-w-md">
-          <div className="mono-label text-white/35 mb-6">The agent control plane</div>
+          <div className="mono-label text-white/60 mb-6">The agent control plane</div>
           <p className="font-display text-4xl xl:text-5xl leading-[1.02] text-white">
             Every agent gets an identity, a boundary and a paper trail.
           </p>
-          <ul className="mt-12 space-y-4 font-mono text-[11px] text-white/45">
+          <ul className="mt-12 space-y-4 font-mono text-[11px] text-white/60">
             <li className="flex items-center gap-3">
               <span className="w-1 h-1 rounded-full bg-[#eca8d6]" />
               Ed25519 identities · 5-minute tokens
@@ -46,7 +46,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </ul>
         </div>
 
-        <div className="relative z-10 flex items-center justify-between font-mono text-[10px] text-white/25">
+        <div className="relative z-10 flex items-center justify-between font-mono text-[10px] text-white/60">
           <span>© {new Date().getFullYear()} Authab Systems</span>
           <Link href="/status" className="flex items-center gap-2 hover:text-white/60 transition-colors">
             <span className="w-1.5 h-1.5 rounded-full bg-[#eca8d6]" />
@@ -64,10 +64,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             Sign in
           </Link>
         </header>
-        <div className="flex-1 flex items-center justify-center px-6 py-12">
+        <main id="main-content" tabIndex={-1} className="flex-1 flex items-center justify-center px-6 py-12">
           <div className="w-full max-w-[400px]">{children}</div>
-        </div>
-        <footer className="px-6 py-6 text-center font-mono text-[10px] text-muted-foreground/60">
+        </main>
+        <footer className="px-6 py-6 text-center font-mono text-[10px] text-muted-foreground">
           <Link href="/legal/terms" className="hover:text-foreground">Terms</Link>
           <span className="mx-3">·</span>
           <Link href="/legal/privacy" className="hover:text-foreground">Privacy</Link>

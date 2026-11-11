@@ -5,6 +5,7 @@ import { db } from "./db";
 import { auditEvent } from "./audit";
 import {
   CONNECTOR_MAP,
+  SANDBOX_CONNECTOR,
   connector as builtinConnector,
   type AuthMethod,
   type Connector,
@@ -678,6 +679,7 @@ export function invalidateConnectorCache(environmentId: string, slug?: string) {
 }
 
 export async function resolveConnector(slug: string, environmentId: string): Promise<Connector | null> {
+  if (slug === SANDBOX_CONNECTOR.slug) return SANDBOX_CONNECTOR;
   const builtin = builtinConnector(slug);
   if (builtin) return builtin;
   const key = `${environmentId}:${slug}`;
@@ -703,6 +705,7 @@ export async function resolveConnector(slug: string, environmentId: string): Pro
 
 export async function loadConnectorMap(environmentId: string): Promise<Map<string, Connector>> {
   const map = new Map<string, Connector>(Object.entries(CONNECTOR_MAP));
+  map.set(SANDBOX_CONNECTOR.slug, SANDBOX_CONNECTOR);
   const environment = await db.environment.findUnique({
     where: { id: environmentId },
     select: { project: { select: { org: { select: { plan: true, planStatus: true } } } } },

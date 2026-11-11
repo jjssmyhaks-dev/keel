@@ -83,7 +83,7 @@ export function ConnectorsSection() {
           {[...Array(2)].map((_, dup) => (
             <div key={dup} className="flex gap-10" aria-hidden={dup === 1}>
               {[...slugs, ...slugs].map((slug, index) => (
-                <span key={`${dup}-${index}-${slug}`} className="font-mono text-[11px] text-muted-foreground/50 flex items-center gap-2">
+                <span key={`${dup}-${index}-${slug}`} className="font-mono text-[11px] text-muted-foreground flex items-center gap-2">
                   <span className="w-1 h-1 rounded-full bg-[#eca8d6]/60" />
                   {slug}
                 </span>
@@ -110,7 +110,7 @@ export function ConnectorsSection() {
               }`}
             >
               {item}
-              <span className={`ml-2 ${category === item ? "text-background/60" : "text-muted-foreground/60"}`}>
+              <span className={`ml-2 ${category === item ? "text-background/60" : "text-muted-foreground"}`}>
                 {item === "All" ? CONNECTORS.length : CONNECTORS.filter((c) => c.category === item).length}
               </span>
             </button>
@@ -164,7 +164,7 @@ export function ConnectorsSection() {
               }`}
               style={{ transitionDelay: `${i * 90 + 400}ms` }}
             >
-              <div className="mono-label text-[#b0568f] mb-5">{mode.tag}</div>
+              <div className="mono-label text-[#b0568f] dark:text-[#e59ec9] mb-5">{mode.tag}</div>
               <h3 className="text-2xl font-display mb-3">{mode.title}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed mb-6">{mode.body}</p>
               <code className="block border border-foreground/10 bg-foreground/[0.03] px-3 py-2.5 text-[11px] font-mono text-muted-foreground truncate">

@@ -43,7 +43,7 @@ export default async function NotificationsPage() {
               </button>
             </form>
           ) : (
-            <Link href="/app/approvals" className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card">
+            <Link href="/app/approvals" className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
               Approvals
             </Link>
           )
@@ -64,14 +64,14 @@ export default async function NotificationsPage() {
                 <span className={`mt-1.5 size-1.5 shrink-0 rounded-full ${notification.readAt ? "bg-black/15 dark:bg-white/20" : "bg-[#eca8d6]"}`} />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="border border-black/10 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-black/45 dark:border-border dark:text-muted-foreground">
+                    <span className="border border-black/10 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-black/60 dark:border-border dark:text-muted-foreground">
                       {TYPE_LABEL[notification.type] ?? notification.type}
                     </span>
                     <p className="text-[12px] font-medium">{notification.title}</p>
                   </div>
-                  <p className="mt-0.5 text-[11px] leading-relaxed text-black/55 dark:text-muted-foreground">{notification.body}</p>
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-black/65 dark:text-muted-foreground">{notification.body}</p>
                 </div>
-                <span className="shrink-0 font-mono text-[9px] text-black/35 dark:text-muted-foreground">
+                <span className="shrink-0 font-mono text-[9px] text-black/60 dark:text-muted-foreground">
                   {relativeTime(notification.createdAt)}
                 </span>
               </Link>

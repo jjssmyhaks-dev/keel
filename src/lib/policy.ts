@@ -347,7 +347,7 @@ async function callsInPeriod(agentId: string, actionName: string, hours: number,
   const rows = await db.$queryRaw<{ count: bigint | number }[]>`
     SELECT COUNT(*) AS count FROM "AuditEvent"
     WHERE "agentId" = ${agentId}
-      AND action = 'proxy.call'
+      AND action IN ('proxy.call', 'sandbox.call')
       AND timestamp >= ${since}
       AND outcome IN ('allowed', 'approved')
       AND (COALESCE(NULLIF("payloadSummary", ''), '{}')::jsonb ->> 'action') = ${actionName}

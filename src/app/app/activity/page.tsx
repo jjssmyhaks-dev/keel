@@ -89,13 +89,13 @@ export default async function ActivityPage({
             </form>
             <a
               href={`/app/activity/export?format=csv${filterQS ? `&${filterQS}` : ""}`}
-              className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card"
+              className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card"
             >
               CSV
             </a>
             <a
               href={`/app/activity/export?format=jsonl${filterQS ? `&${filterQS}` : ""}`}
-              className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card"
+              className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card"
             >
               JSONL
             </a>
@@ -120,11 +120,11 @@ export default async function ActivityPage({
       <div className="mt-6 flex flex-wrap items-end gap-2 border-b border-black/10 pb-3 dark:border-border">
         <form method="get" className="flex flex-wrap items-end gap-2">
           <div>
-            <label className="font-mono text-[8px] uppercase tracking-[0.16em] text-black/40 dark:text-muted-foreground">Agent</label>
+            <label className="font-mono text-[8px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">Agent</label>
             <select
               name="agentId"
               defaultValue={agentId ?? ""}
-              className="mt-1 block border border-black/15 bg-white px-2 py-1 text-[11px] dark:border-border dark:bg-card"
+              className="mt-1 block border border-black/45 bg-white px-2 py-1 text-[11px] dark:border-white/40 dark:bg-card"
             >
               <option value="">All agents</option>
               {agents.map((agent) => (
@@ -135,11 +135,11 @@ export default async function ActivityPage({
             </select>
           </div>
           <div>
-            <label className="font-mono text-[8px] uppercase tracking-[0.16em] text-black/40 dark:text-muted-foreground">Action</label>
+            <label className="font-mono text-[8px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">Action</label>
             <select
               name="action"
               defaultValue={action ?? ""}
-              className="mt-1 block border border-black/15 bg-white px-2 py-1 text-[11px] dark:border-border dark:bg-card"
+              className="mt-1 block border border-black/45 bg-white px-2 py-1 text-[11px] dark:border-white/40 dark:bg-card"
             >
               <option value="">All actions</option>
               {uniqueActions
@@ -152,11 +152,11 @@ export default async function ActivityPage({
             </select>
           </div>
           <div>
-            <label className="font-mono text-[8px] uppercase tracking-[0.16em] text-black/40 dark:text-muted-foreground">Outcome</label>
+            <label className="font-mono text-[8px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">Outcome</label>
             <select
               name="outcome"
               defaultValue={outcome ?? ""}
-              className="mt-1 block border border-black/15 bg-white px-2 py-1 text-[11px] dark:border-border dark:bg-card"
+              className="mt-1 block border border-black/45 bg-white px-2 py-1 text-[11px] dark:border-white/40 dark:bg-card"
             >
               <option value="">Any outcome</option>
               {["allowed", "approved", "denied", "error", "recorded"].map((value) => (
@@ -181,9 +181,9 @@ export default async function ActivityPage({
               <Link
                 key={row.action}
                 href={`/app/activity?action=${row.action}`}
-                className="border border-black/10 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em] text-black/45 hover:border-black dark:border-border dark:text-muted-foreground"
+                className="border border-black/10 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em] text-black/60 hover:border-black dark:border-border dark:text-muted-foreground"
               >
-                {actionLabel(row.action)} <span className="opacity-50">{row._count._all}</span>
+                {actionLabel(row.action)} <span>{row._count._all}</span>
               </Link>
             ))}
           </div>
@@ -193,7 +193,7 @@ export default async function ActivityPage({
       <div className="mt-5">
         {rows.length ? (
           <div className="border border-black/10 bg-white dark:border-border dark:bg-card">
-            <div className="hidden grid-cols-[80px_1fr_150px_110px_120px] gap-3 border-b border-black/10 px-4 py-2 font-mono text-[8px] uppercase tracking-[0.16em] text-black/35 dark:border-border dark:text-muted-foreground md:grid">
+            <div className="hidden grid-cols-[80px_1fr_150px_110px_120px] gap-3 border-b border-black/10 px-4 py-2 font-mono text-[8px] uppercase tracking-[0.16em] text-black/60 dark:border-border dark:text-muted-foreground md:grid">
               <span>Seq</span>
               <span>Event</span>
               <span>Actor</span>
@@ -222,39 +222,39 @@ export default async function ActivityPage({
                 return (
                   <details key={event.id} className="group">
                     <summary className="grid cursor-pointer grid-cols-1 gap-1.5 px-4 py-2.5 transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.02] md:grid-cols-[80px_1fr_150px_110px_120px] md:items-center md:gap-3">
-                      <span className="font-mono text-[9px] text-black/35 dark:text-muted-foreground">#{event.seq}</span>
+                      <span className="font-mono text-[9px] text-black/60 dark:text-muted-foreground">#{event.seq}</span>
                       <span className="flex min-w-0 flex-wrap items-center gap-1.5">
                         <span className="text-[12px]">{actionLabel(event.action)}</span>
                         {summary ? (
-                          <span className="truncate font-mono text-[9px] text-black/40 dark:text-muted-foreground">{summary}</span>
+                          <span className="truncate font-mono text-[9px] text-black/60 dark:text-muted-foreground">{summary}</span>
                         ) : null}
                         {risk ? <RiskBadge risk={risk} /> : null}
                         {resource ? (
-                          <span className="hidden max-w-[180px] truncate font-mono text-[9px] text-black/30 dark:text-muted-foreground lg:inline">
+                          <span className="hidden max-w-[180px] truncate font-mono text-[9px] text-black/60 dark:text-muted-foreground lg:inline">
                             {resource}
                           </span>
                         ) : null}
                       </span>
-                      <span className="flex items-center gap-1.5 font-mono text-[9px] text-black/45 dark:text-muted-foreground">
+                      <span className="flex items-center gap-1.5 font-mono text-[9px] text-black/60 dark:text-muted-foreground">
                         <span className="border border-black/10 px-1 uppercase tracking-[0.08em] dark:border-border">{event.actorType}</span>
                         <span className="truncate">{event.actorName}</span>
                       </span>
                       <span>
                         <StatusBadge status={event.outcome} />
                       </span>
-                      <span className="text-left font-mono text-[9px] text-black/35 dark:text-muted-foreground md:text-right">
+                      <span className="text-left font-mono text-[9px] text-black/60 dark:text-muted-foreground md:text-right">
                         {formatDate(event.timestamp)}
                       </span>
                     </summary>
                     <div className="border-t border-black/10 bg-[#faf9f6] px-4 py-3 dark:border-border dark:bg-background">
                       <div className="grid gap-3 md:grid-cols-2">
                         <div>
-                          <p className="font-mono text-[8px] uppercase tracking-[0.16em] text-black/35 dark:text-muted-foreground">Payload</p>
+                          <p className="font-mono text-[8px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">Payload</p>
                           <pre className="mt-1 max-h-40 overflow-auto border border-black/10 bg-[#0b0b0b] p-2.5 font-mono text-[10px] leading-relaxed text-[#e8e6e1]">
                             {JSON.stringify(payload, null, 2)}
                           </pre>
                         </div>
-                        <dl className="space-y-1.5 font-mono text-[9px] text-black/50 dark:text-muted-foreground">
+                        <dl className="space-y-1.5 font-mono text-[9px] text-black/60 dark:text-muted-foreground">
                           <div className="flex justify-between gap-3">
                             <dt>Request</dt>
                             <dd className="truncate text-right">{event.requestId}</dd>
@@ -289,6 +289,14 @@ export default async function ActivityPage({
                             </div>
                           ) : null}
                         </dl>
+                        <Link
+                          href={`/app/activity/${event.id}`}
+                          className="mt-3 inline-block border border-black bg-black px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.14em] text-white hover:bg-[#eca8d6] hover:text-black"
+                        >
+                          {event.action === "proxy.call" || event.action === "sandbox.call"
+                            ? "Call trust view"
+                            : "Event detail"}
+                        </Link>
                       </div>
                     </div>
                   </details>
@@ -312,11 +320,11 @@ export default async function ActivityPage({
       </div>
 
       <div className="mt-4 flex items-center justify-between">
-        <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/35 dark:text-muted-foreground">
+        <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-black/60 dark:text-muted-foreground">
           Showing {rows.length} event{rows.length === 1 ? "" : "s"} · newest first
         </p>
         {hasMore ? (
-          <Link href={nextHref} className="border border-black/15 bg-white px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.14em] hover:border-black dark:border-border dark:bg-card">
+          <Link href={nextHref} className="border border-black/45 bg-white px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.14em] hover:border-black dark:border-white/40 dark:bg-card">
             Older →
           </Link>
         ) : null}

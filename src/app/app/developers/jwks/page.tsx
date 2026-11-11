@@ -35,13 +35,13 @@ export default async function JwksPage() {
           <>
             <Link
               href="/app/developers"
-              className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card"
+              className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card"
             >
               Developers
             </Link>
             <Link
               href="/docs/api"
-              className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card"
+              className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card"
             >
               API docs
             </Link>
@@ -64,11 +64,11 @@ export default async function JwksPage() {
           { label: "Key ID", value: kid, detail: "matches the JWT header kid" },
         ].map((stat) => (
           <div key={stat.label} className="border border-black/10 bg-white p-4 dark:border-border dark:bg-card">
-            <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-black/40 dark:text-muted-foreground">
+            <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-black/60 dark:text-muted-foreground">
               {stat.label}
             </p>
             <p className="mt-2 truncate font-mono text-[13px] leading-none tracking-tight">{stat.value}</p>
-            <p className="mt-1.5 font-mono text-[10px] text-black/40 dark:text-muted-foreground">{stat.detail}</p>
+            <p className="mt-1.5 font-mono text-[10px] text-black/60 dark:text-muted-foreground">{stat.detail}</p>
           </div>
         ))}
       </div>
@@ -87,7 +87,7 @@ export default async function JwksPage() {
                 ] as [string, unknown][]
               ).map(([label, value]) => (
                 <div key={label} className="flex items-center justify-between gap-3 border-b border-black/10 py-1.5 last:border-b-0 dark:border-border">
-                  <dt className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/40 dark:text-muted-foreground">
+                  <dt className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                     {label}
                   </dt>
                   <dd className="font-mono text-[11px]">{typeof value === "string" ? value : "—"}</dd>
@@ -96,7 +96,7 @@ export default async function JwksPage() {
             </dl>
             <div className="mt-3">
               <div className="flex items-center justify-between gap-2">
-                <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/40 dark:text-muted-foreground">
+                <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                   x — public key
                 </p>
                 <CopyButton value={typeof primary?.x === "string" ? primary.x : ""} label="Copy x" />
@@ -128,7 +128,7 @@ export default async function JwksPage() {
               ].map((endpoint) => (
                 <div key={endpoint.path} className="px-4 py-3">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/40 dark:text-muted-foreground">
+                    <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
                       {endpoint.label}
                     </p>
                     <CopyButton value={endpoint.url} label="Copy" />
@@ -138,14 +138,14 @@ export default async function JwksPage() {
                     href={endpoint.path}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-1 inline-block font-mono text-[9px] uppercase tracking-[0.12em] text-black/40 underline-offset-2 hover:underline dark:text-muted-foreground"
+                    className="mt-1 inline-block font-mono text-[9px] uppercase tracking-[0.12em] text-black/60 underline-offset-2 hover:underline dark:text-muted-foreground"
                   >
                     Open raw ↗
                   </a>
                 </div>
               ))}
             </div>
-            <p className="border-t border-black/10 px-4 py-2.5 text-[10px] leading-relaxed text-black/45 dark:border-border dark:text-muted-foreground">
+            <p className="border-t border-black/10 px-4 py-2.5 text-[10px] leading-relaxed text-black/60 dark:border-border dark:text-muted-foreground">
               Responses are cacheable for five minutes. Refetch on a <span className="font-mono">kid</span> miss instead of
               polling.
             </p>
@@ -164,7 +164,7 @@ const { payload } = await jwtVerify(token, jwks, {
   algorithms: ["EdDSA"],
 });`}</pre>
             <div className="flex items-center justify-between gap-2 px-4 py-2.5">
-              <p className="text-[10px] text-black/45 dark:text-muted-foreground">
+              <p className="text-[10px] text-black/60 dark:text-muted-foreground">
                 Then check <span className="font-mono">payload.env</span> and{" "}
                 <span className="font-mono">payload.scopes</span>.
               </p>

@@ -24,11 +24,11 @@ type PathItem = Partial<Record<"get" | "post" | "patch" | "put" | "delete", Oper
 const METHOD_ORDER = ["get", "post", "patch", "put", "delete"] as const;
 
 const METHOD_STYLE: Record<string, string> = {
-  GET: "border-[#2f7d5c]/35 text-[#2f7d5c]",
+  GET: "border-[#2f7d5c]/35 text-[#276a4e] dark:text-[#7fd1ab]",
   POST: "border-black/70 text-black dark:border-foreground/70 dark:text-foreground",
-  PATCH: "border-[#a56b18]/40 text-[#a56b18]",
-  PUT: "border-[#a56b18]/40 text-[#a56b18]",
-  DELETE: "border-[#b3402f]/40 text-[#b3402f]",
+  PATCH: "border-[#a56b18]/40 text-[#8a5600] dark:text-[#e8b26a]",
+  PUT: "border-[#a56b18]/40 text-[#8a5600] dark:text-[#e8b26a]",
+  DELETE: "border-[#b3402f]/40 text-[#b3402f] dark:text-[#f09486]",
 };
 
 function authFor(security: unknown): string {
@@ -83,13 +83,13 @@ export default async function OpenApiPage() {
           <>
             <Link
               href="/app/developers"
-              className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card"
+              className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card"
             >
               Developers
             </Link>
             <Link
               href="/docs/api"
-              className="border border-black/15 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-border dark:bg-card"
+              className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card"
             >
               API docs
             </Link>
@@ -112,11 +112,11 @@ export default async function OpenApiPage() {
           { label: "Operations", value: String(operations.length), detail: `${tags.length} groups` },
         ].map((stat) => (
           <div key={stat.label} className="border border-black/10 bg-white p-4 dark:border-border dark:bg-card">
-            <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-black/40 dark:text-muted-foreground">
+            <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-black/60 dark:text-muted-foreground">
               {stat.label}
             </p>
             <p className="mt-2 font-display text-2xl leading-none tracking-tight">{stat.value}</p>
-            <p className="mt-1.5 font-mono text-[10px] text-black/40 dark:text-muted-foreground">{stat.detail}</p>
+            <p className="mt-1.5 font-mono text-[10px] text-black/60 dark:text-muted-foreground">{stat.detail}</p>
           </div>
         ))}
       </div>
@@ -127,10 +127,10 @@ export default async function OpenApiPage() {
             {tags.map((tag) => (
               <section key={tag} className="border-b border-black/10 last:border-b-0 dark:border-border">
                 <header className="flex items-center justify-between bg-[#faf9f6] px-4 py-2 dark:bg-background">
-                  <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-black/55 dark:text-muted-foreground">
+                  <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-black/65 dark:text-muted-foreground">
                     {tag}
                   </h3>
-                  <span className="font-mono text-[9px] text-black/35 dark:text-muted-foreground">
+                  <span className="font-mono text-[9px] text-black/60 dark:text-muted-foreground">
                     {operations.filter((operation) => operation.tags.includes(tag)).length}
                   </span>
                 </header>
@@ -149,11 +149,11 @@ export default async function OpenApiPage() {
                         </span>
                         <div className="min-w-0 flex-1">
                           <p className="break-all font-mono text-[11px]">{operation.path}</p>
-                          <p className="mt-0.5 text-[11px] leading-relaxed text-black/50 dark:text-muted-foreground">
+                          <p className="mt-0.5 text-[11px] leading-relaxed text-black/60 dark:text-muted-foreground">
                             {operation.summary}
                           </p>
                         </div>
-                        <span className="mt-0.5 font-mono text-[8px] uppercase tracking-[0.12em] text-black/35 dark:text-muted-foreground">
+                        <span className="mt-0.5 font-mono text-[8px] uppercase tracking-[0.12em] text-black/60 dark:text-muted-foreground">
                           {operation.auth}
                         </span>
                       </div>
@@ -172,7 +172,7 @@ export default async function OpenApiPage() {
               </code>
               <CopyButton value={rawUrl} label="Copy" />
             </div>
-            <p className="mt-2 text-[11px] leading-relaxed text-black/45 dark:text-muted-foreground">
+            <p className="mt-2 text-[11px] leading-relaxed text-black/60 dark:text-muted-foreground">
               Callers authenticate with <span className="font-mono">Authorization: Bearer sk_…</span>. The proxy also
               accepts short-lived agent JWTs.
             </p>
@@ -183,7 +183,7 @@ export default async function OpenApiPage() {
               {Object.entries(spec.components.securitySchemes).map(([name, scheme]) => (
                 <div key={name} className="px-4 py-3">
                   <p className="font-mono text-[10px]">{name}</p>
-                  <p className="mt-1 text-[11px] leading-relaxed text-black/50 dark:text-muted-foreground">
+                  <p className="mt-1 text-[11px] leading-relaxed text-black/60 dark:text-muted-foreground">
                     {scheme.description}
                   </p>
                 </div>
@@ -199,7 +199,7 @@ export default async function OpenApiPage() {
 // Or generate a typed client
 // npx openapi-typescript "${rawUrl}" -o api.d.ts`}</pre>
             <div className="flex items-center justify-between gap-2 px-4 py-2.5">
-              <p className="text-[10px] text-black/45 dark:text-muted-foreground">
+              <p className="text-[10px] text-black/60 dark:text-muted-foreground">
                 Public endpoint. No key required to read the schema.
               </p>
               <CopyButton value={rawUrl} label="Copy URL" />

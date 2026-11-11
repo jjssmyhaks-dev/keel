@@ -109,7 +109,7 @@ export function DevelopersSection() {
               ))}
             </div>
             <div className="mt-10 border border-foreground/10 p-4 font-mono text-[11px] text-muted-foreground flex items-center gap-3">
-              <span className="text-[#b0568f]">$</span>
+              <span className="text-[#b0568f] dark:text-[#e59ec9]">$</span>
               npx @authab/cli init
             </div>
           </div>
@@ -128,7 +128,7 @@ export function DevelopersSection() {
                     className={`px-4 py-3.5 font-mono text-[11px] transition-colors border-b-2 -mb-px ${
                       lang === l
                         ? "text-white border-[#eca8d6]"
-                        : "text-white/40 border-transparent hover:text-white/70"
+                        : "text-white/60 border-transparent hover:text-white/70"
                     }`}
                   >
                     {l}
@@ -137,7 +137,7 @@ export function DevelopersSection() {
               </div>
               <button
                 onClick={copy}
-                className="inline-flex items-center gap-2 font-mono text-[10px] text-white/40 hover:text-white transition-colors"
+                className="inline-flex items-center gap-2 font-mono text-[10px] text-white/60 hover:text-white transition-colors"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-[#eca8d6]" /> : <Copy className="w-3.5 h-3.5" />}
                 {copied ? "copied" : "copy"}
@@ -146,7 +146,7 @@ export function DevelopersSection() {
             <pre className="p-6 lg:p-8 overflow-x-auto text-[12.5px] leading-[1.85] text-white/75 font-mono min-h-[540px]">
               <code>{snippets[lang]}</code>
             </pre>
-            <div className="border-t border-white/10 px-6 py-4 flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-[10px] text-white/30">
+            <div className="border-t border-white/10 px-6 py-4 flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-[10px] text-white/60">
               <span>npm i @authab/sdk</span>
               <span>openapi 3.1</span>
               <span className="text-[#eca8d6]/70">typed errors · retries</span>

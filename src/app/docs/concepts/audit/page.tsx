@@ -13,12 +13,13 @@ export default function AuditPage() {
       eyebrow="Concepts"
       title="Audit trail"
       intro="Every meaningful action in an environment — token issuance, credential rotation, grant edits, proxy calls, denials, approvals — is appended to a hash chain. You can prove the log was not edited after the fact, and export the whole thing without losing the proof."
-      updated="31 October 2026"
+      updated="11 November 2026"
       aside={
         <DocsAside
           links={[
             { href: "#chain", name: "How the chain works" },
             { href: "#events", name: "Event shape" },
+            { href: "#trust", name: "Per-call trust view" },
             { href: "#coverage", name: "What is recorded" },
             { href: "#verify", name: "Verification" },
             { href: "#export", name: "Export and streaming" },
@@ -70,6 +71,46 @@ body = {
         <code>denied</code> (human), <code>error</code> or <code>pending</code> depending on the event family. Payloads
         are summaries, never full secrets or full provider bodies.
       </p>
+
+      <h2 id="trust">Per-call trust view</h2>
+      <p>
+        Every allowed proxy or sandbox call stores a <code>trust</code> block next to the decision that allowed it.
+        Open the event from <Link href="/app/activity">Activity</Link> to see, on one page: which credential was used
+        and where it was injected, which request fields were redacted, whether the request left the platform, the
+        upstream status and latency, the policy decision, and the hash-chain check for that exact event.
+      </p>
+      <pre>{`"trust": {
+  "egress": true,
+  "request": { "method": "POST", "target": "https://slack.com/api/chat.postMessage" },
+  "injection": { "location": "header", "name": "Authorization", "scheme": "Bearer",
+                 "source": "OAuth access token" },
+  "injectedHeaders": ["Authorization"],
+  "injectedParams": [], "injectedBodyFields": [],
+  "redactions": ["token"],
+  "responseRedactions": 1,
+  "responseStatus": 200,
+  "latencyMs": 184,
+  "truncated": false,
+  "billable": true,
+  "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+}`}</pre>
+      <p>
+        Injection records the location, name, scheme and source of the credential — never its value. Request fields
+        named in the connector&apos;s redacted list, or matching token/secret/password/authorization keys at any
+        depth, are replaced with <code>[redacted]</code> in the stored payload. <code>responseRedactions</code> counts
+        exact credential-string replacements made in the provider response before it reached the agent.
+      </p>
+      <p>
+        Denied calls carry the same block with <code>egress: false</code> and a source of “Denied before execution —
+        no credential was decrypted or injected”, so a refused call is as inspectable as an executed one. Calls
+        stopped for an approval show the pending request and its decision; the executed call later appears as a
+        separate event with the same request ID.
+      </p>
+      <Callout tone="warning" title="Trust view, not a packet capture">
+        The trust view reports what the proxy did. It does not store request or response bodies beyond the redacted
+        input summary, and response scanning is exact-string matching — a provider that transforms, splits or encodes
+        a credential can evade it.
+      </Callout>
 
       <h2 id="coverage">What is recorded</h2>
       <table>

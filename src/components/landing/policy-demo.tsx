@@ -50,9 +50,9 @@ const actions = [
 ] as const;
 
 const riskColor: Record<string, string> = {
-  read: "text-emerald-400 border-emerald-400/30 bg-emerald-400/10",
-  write: "text-amber-300 border-amber-300/30 bg-amber-300/10",
-  financial: "text-[#eca8d6] border-[#eca8d6]/30 bg-[#eca8d6]/10",
+  read: "text-emerald-700 border-emerald-600/30 bg-emerald-400/10 dark:text-emerald-400 dark:border-emerald-400/30",
+  write: "text-amber-700 border-amber-600/30 bg-amber-400/10 dark:text-amber-300 dark:border-amber-300/30",
+  financial: "text-[#8a3d78] border-[#8a3d78]/30 bg-[#eca8d6]/10 dark:text-[#eca8d6] dark:border-[#eca8d6]/30",
 };
 
 export function PolicyDemo() {
@@ -142,10 +142,10 @@ export function PolicyDemo() {
     decision === "allow" ? "Allowed" : decision === "approve" ? "Awaiting approval" : "Denied";
   const decisionColor =
     decision === "allow"
-      ? "text-emerald-400"
+      ? "text-emerald-700 dark:text-emerald-400"
       : decision === "approve"
-        ? "text-amber-300"
-        : "text-red-400";
+        ? "text-amber-700 dark:text-amber-300"
+        : "text-red-700 dark:text-red-400";
 
   return (
     <section id="policy" ref={ref} className="relative py-24 lg:py-32 overflow-hidden">
@@ -219,7 +219,7 @@ export function PolicyDemo() {
 
             <div className="p-5 lg:p-7 grid sm:grid-cols-2 gap-4">
               <label className="block">
-                <span className="mono-label text-muted-foreground/70 block mb-2">Agent</span>
+                <span className="mono-label text-muted-foreground block mb-2">Agent</span>
                 <select
                   value={agentId}
                   onChange={(e) => {
@@ -236,7 +236,7 @@ export function PolicyDemo() {
                 </select>
               </label>
               <label className="block">
-                <span className="mono-label text-muted-foreground/70 block mb-2">Action</span>
+                <span className="mono-label text-muted-foreground block mb-2">Action</span>
                 <select
                   value={actionId}
                   onChange={(e) => {
@@ -273,9 +273,7 @@ export function PolicyDemo() {
                 return (
                   <div
                     key={check.label}
-                    className={`flex items-start justify-between gap-4 px-4 py-3 border-b last:border-b-0 border-foreground/10 transition-all duration-300 ${
-                      shown ? "opacity-100" : "opacity-30"
-                    }`}
+                    className="flex items-start justify-between gap-4 px-4 py-3 border-b last:border-b-0 border-foreground/10 transition-colors duration-300"
                   >
                     <div className="flex items-start gap-3 min-w-0">
                       <span
@@ -304,8 +302,8 @@ export function PolicyDemo() {
 
             <div className="mx-5 lg:mx-7 mb-6 flex flex-wrap items-center justify-between gap-4 border border-foreground/10 px-4 py-3.5 bg-foreground/[0.02]">
               <div>
-                <div className="mono-label text-muted-foreground/70 mb-1">Decision</div>
-                <div className={`text-xl font-display ${stage >= 3 ? decisionColor : "text-muted-foreground/40"}`}>
+                <div className="mono-label text-muted-foreground mb-1">Decision</div>
+                <div className={`text-xl font-display ${stage >= 3 ? decisionColor : "text-muted-foreground"}`}>
                   {stage >= 3 ? decisionLabel : "—"}
                 </div>
               </div>

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { getContext, destroySession, setActiveEnvironment, requestMeta } from "@/lib/session";
+import { getContext, destroySession, setActiveEnvironment, requestMeta, ROLES, GRANTABLE_CAPABILITIES } from "@/lib/session";
 import { encryptSecret, decryptSecret, generateAgentIdentity, generateApiKey, randomToken, sha256 } from "@/lib/crypto";
 import { auditEvent } from "@/lib/audit";
 import { dispatchEvent } from "@/lib/webhooks";
@@ -27,7 +27,9 @@ import {
   ensureStripeCustomer,
   priceIdFor,
   stripeConfigured,
+  updateStripeCustomerBilling,
 } from "@/lib/stripe";
+import { TRIAL_DAYS, parseBillingAddress, trialEligible } from "@/lib/billing-rules";
 
 function str(form: FormData, key: string) {
   return String(form.get(key) ?? "").trim();
@@ -756,7 +758,7 @@ export async function inviteMemberAction(formData: FormData) {
   const email = str(formData, "email").toLowerCase();
   const role = str(formData, "role") || "developer";
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) redirect("/app/team?error=email");
-  if (!["admin", "developer", "approver", "viewer"].includes(role)) redirect("/app/team?error=role");
+  if (!["admin", "developer", "approver", "auditor", "billing", "viewer"].includes(role)) redirect("/app/team?error=role");
 
   const existing = await db.user.findUnique({ where: { email } });
   if (existing) {
@@ -810,7 +812,7 @@ export async function changeRoleAction(formData: FormData) {
   if (!ctx.capabilities.manageTeam) redirect("/app/team?error=permission");
   const userId = str(formData, "userId");
   const role = str(formData, "role");
-  if (!["owner", "admin", "developer", "approver", "viewer"].includes(role)) redirect("/app/team?error=role");
+  if (!ROLES.includes(role as (typeof ROLES)[number])) redirect("/app/team?error=role");
   const membership = await db.membership.findUnique({
     where: { orgId_userId: { orgId: ctx.org.id, userId } },
   });
@@ -838,6 +840,49 @@ export async function changeRoleAction(formData: FormData) {
   });
   revalidatePath("/app/team");
   redirect("/app/team?saved=1");
+}
+
+export async function changePermissionsAction(formData: FormData) {
+  const ctx = await getContext();
+  if (!ctx.capabilities.manageTeam) redirect("/app/team?error=permission");
+  const userId = str(formData, "userId");
+  const membership = await db.membership.findUnique({
+    where: { orgId_userId: { orgId: ctx.org.id, userId } },
+  });
+  if (!membership) redirect("/app/team?error=missing");
+  if (membership.role === "owner") redirect("/app/team?error=owner");
+
+  const requested = formData
+    .getAll("permissions")
+    .map(String)
+    .filter((capability) => GRANTABLE_CAPABILITIES.includes(capability as (typeof GRANTABLE_CAPABILITIES)[number]));
+  // Nobody can hand out a capability they do not hold themselves.
+  const granted = [...new Set(requested.filter((capability) => ctx.can(capability as Parameters<typeof ctx.can>[0])))];
+
+  await db.membership.update({
+    where: { id: membership.id },
+    data: { permissionsJson: JSON.stringify(granted) },
+  });
+  const meta = await orgActor(ctx);
+  await auditEvent({
+    environmentId: ctx.environment.id,
+    actorType: "human",
+    actorId: meta.actorId,
+    actorName: meta.actorName,
+    action: "member.permissions_changed",
+    resourceType: "membership",
+    resourceId: membership.id,
+    outcome: "recorded",
+    ip: meta.ip,
+    payloadSummary: {
+      userId,
+      role: membership.role,
+      before: membership.permissionsJson,
+      after: granted,
+    },
+  });
+  revalidatePath("/app/team");
+  redirect("/app/team?permissions_saved=1");
 }
 
 export async function removeMemberAction(formData: FormData) {
@@ -1022,17 +1067,38 @@ export async function updateOrganizationAction(formData: FormData) {
   const name = str(formData, "name").slice(0, 80);
   const billingEmail = str(formData, "billingEmail").toLowerCase();
   const currency = str(formData, "currency") === "INR" ? "INR" : "USD";
+  const taxId = str(formData, "taxId").slice(0, 40);
+  const address = {
+    line1: str(formData, "billingLine1").slice(0, 120),
+    city: str(formData, "billingCity").slice(0, 80),
+    postalCode: str(formData, "billingPostalCode").slice(0, 20),
+    country: str(formData, "billingCountry").toUpperCase().slice(0, 2),
+  };
   if (!name) redirect("/app/settings?error=name");
   if (billingEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(billingEmail)) redirect("/app/settings?error=email");
+  if (address.country && !/^[A-Z]{2}$/.test(address.country)) redirect("/app/settings?error=country");
 
   const billingFields = ctx.capabilities.manageBilling
-    ? { billingEmail: billingEmail || null, billingCurrency: currency }
+    ? {
+        billingEmail: billingEmail || null,
+        billingCurrency: currency,
+        taxId: taxId || null,
+        billingAddressJson: JSON.stringify(address),
+      }
     : {};
 
   await db.organization.update({
     where: { id: ctx.org.id },
     data: { name, ...billingFields },
   });
+  if (ctx.capabilities.manageBilling && stripeConfigured() && ctx.org.stripeCustomerId) {
+    await updateStripeCustomerBilling({
+      customerId: ctx.org.stripeCustomerId,
+      orgName: name,
+      email: billingEmail || undefined,
+      address,
+    }).catch(() => null);
+  }
   const meta = await orgActor(ctx);
   await auditEvent({
     environmentId: ctx.environment.id,
@@ -1044,7 +1110,10 @@ export async function updateOrganizationAction(formData: FormData) {
     resourceId: ctx.org.id,
     outcome: "recorded",
     ip: meta.ip,
-    payloadSummary: { name, ...(ctx.capabilities.manageBilling ? { billingEmail, currency } : {}) },
+    payloadSummary: {
+      name,
+      ...(ctx.capabilities.manageBilling ? { billingEmail, currency, taxId, address } : {}),
+    },
   });
   revalidatePath("/app", "layout");
   redirect("/app/settings?saved=1");
@@ -1112,6 +1181,7 @@ export async function startCheckoutAction(formData: FormData) {
       orgName: ctx.org.name,
       email: ctx.org.billingEmail || ctx.user.email,
       existingCustomerId: ctx.org.stripeCustomerId,
+      address: parseBillingAddress(ctx.org.billingAddressJson),
     });
     const session = await createCheckoutSession({
       orgId: ctx.org.id,
@@ -1120,6 +1190,7 @@ export async function startCheckoutAction(formData: FormData) {
       customerId,
       successUrl: appUrl("/app/billing?checkout=success"),
       cancelUrl: appUrl("/app/billing?checkout=cancelled"),
+      trialPeriodDays: trialEligible(ctx.org) ? TRIAL_DAYS : 0,
     });
     checkoutUrl = session.url;
   } catch (error) {

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { Logo } from "@/components/logo";
-import { getSession, can } from "@/lib/session";
+import { getSession, canWithGrants, parseGrants } from "@/lib/session";
 import { RISK_META } from "@/lib/connectors";
 import { resolveConnector } from "@/lib/custom-connectors";
 import { verifyApprovalLink } from "@/lib/signed-links";
@@ -66,7 +66,7 @@ export default async function ApprovePage({
         where: { orgId_userId: { orgId: approval.environment.project.orgId, userId: session.user.id } },
       })
     : null;
-  const canDecide = Boolean(membership && can(membership.role, "approve"));
+  const canDecide = Boolean(membership && canWithGrants(membership.role, parseGrants(membership.permissionsJson), "approve"));
   const pending = approval.status === "pending" && approval.expiresAt > new Date();
   const connectorDef = await resolveConnector(approval.credential?.connectorSlug ?? "", approval.environmentId);
   const risk = RISK_META[(approval.risk as keyof typeof RISK_META) ?? "write"] ?? RISK_META.write;
@@ -223,7 +223,7 @@ function Row({ label, value, mono }: { label: string; value: string; mono?: bool
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-screen bg-[var(--paper)] text-black">
+    <main id="main-content" tabIndex={-1} className="min-h-screen bg-[var(--paper)] text-black">
       <header className="border-b border-black/10">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-5">
           <Link href="/" aria-label="Authab home">

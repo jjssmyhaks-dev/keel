@@ -26,15 +26,15 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const next = POSTS[(index + 1) % POSTS.length];
 
   return (
-    <main className="relative">
+    <main id="main-content" tabIndex={-1} className="relative">
       <Navigation />
       <article className="pt-28 lg:pt-36 pb-20">
         <div className="mx-auto max-w-[820px] px-6 lg:px-12">
-          <Link href="/blog" className="inline-flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.16em] text-foreground/40 hover:text-foreground">
+          <Link href="/blog" className="inline-flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.16em] text-foreground/60 hover:text-foreground">
             <ArrowLeft className="size-3" /> All writing
           </Link>
           <header className="mt-10 border-b border-foreground/10 pb-10">
-            <div className="flex flex-wrap items-center gap-3 font-mono text-[9px] uppercase tracking-[0.16em] text-foreground/40">
+            <div className="flex flex-wrap items-center gap-3 font-mono text-[9px] uppercase tracking-[0.16em] text-foreground/60">
               <span>{item.kicker}</span>
               <span>·</span>
               <span>{item.displayDate}</span>
@@ -49,7 +49,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               </span>
               <div>
                 <p className="text-[12px]">{item.author}</p>
-                <p className="text-[10px] text-foreground/40">Authab Systems</p>
+                <p className="text-[10px] text-foreground/60">Authab Systems</p>
               </div>
             </div>
           </header>
@@ -71,7 +71,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           </div>
 
           <div className="mt-16 flex flex-wrap items-center justify-between gap-4 border-t border-foreground/10 pt-6">
-            <p className="text-[12px] text-foreground/40">Discuss this with us: hello@authab.dev</p>
+            <p className="text-[12px] text-foreground/60">Discuss this with us: hello@authab.dev</p>
             <Link href="/docs/quickstart" className="font-mono text-[9px] uppercase tracking-[0.16em] underline underline-offset-4">
               Start building
             </Link>
@@ -81,12 +81,12 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
       <section className="border-t border-foreground/10 py-12">
         <div className="mx-auto max-w-[820px] px-6 lg:px-12">
-          <p className="mono-label text-foreground/35 mb-3">Next</p>
+          <p className="mono-label text-foreground/60 mb-3">Next</p>
           <Link href={`/blog/${next.slug}`} className="group flex items-end justify-between gap-6">
             <h2 className="font-display text-3xl leading-none tracking-tight group-hover:text-foreground/70 lg:text-4xl">
               {next.title}
             </h2>
-            <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.16em] text-foreground/40 group-hover:text-foreground">
+            <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.16em] text-foreground/60 group-hover:text-foreground">
               Read →
             </span>
           </Link>

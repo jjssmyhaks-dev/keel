@@ -83,11 +83,11 @@ export function open(key: Buffer, payload: string, aad = "authab") {
 }
 
 export function wrapKey(key: Buffer) {
-  return seal(masterKeyBytes(), key, "authab:key-wrap");
+  return seal(masterKeyBytes(), key.toString("base64"), "authab:key-wrap");
 }
 
 export function unwrapKey(payload: string) {
-  return Buffer.from(open(masterKeyBytes(), payload, "authab:key-wrap"), "utf8");
+  return Buffer.from(open(masterKeyBytes(), payload, "authab:key-wrap"), "base64");
 }
 
 async function projectKey(projectId: string) {

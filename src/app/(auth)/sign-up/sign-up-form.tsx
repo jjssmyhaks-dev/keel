@@ -63,7 +63,7 @@ export function SignUpForm({
           <Input id="email" name="email" type="email" autoComplete="email" required placeholder="you@company.com" className="h-11 rounded-none" />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="orgName" className="text-xs">Workspace name <span className="text-muted-foreground/60">(optional)</span></Label>
+          <Label htmlFor="orgName" className="text-xs">Workspace name <span className="text-muted-foreground">(optional)</span></Label>
           <Input id="orgName" name="orgName" autoComplete="organization" placeholder="Northwind Labs" className="h-11 rounded-none" />
         </div>
         <div className="space-y-2">

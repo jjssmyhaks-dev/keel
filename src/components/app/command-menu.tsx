@@ -88,11 +88,11 @@ export function CommandMenu({ search }: { search: CommandSearch }) {
         onClick={() => setOpen(true)}
         aria-label="Search (Control K)"
         aria-keyshortcuts="Control+K Meta+K"
-        className="flex items-center gap-2 border border-black/10 bg-white px-2.5 py-1.5 text-[11px] text-black/55 transition-colors hover:border-black/25 hover:text-black dark:border-border dark:bg-card dark:text-muted-foreground dark:hover:text-foreground"
+        className="flex items-center gap-2 border border-black/10 bg-white px-2.5 py-1.5 text-[11px] text-black/65 transition-colors hover:border-black/25 hover:text-black dark:border-border dark:bg-card dark:text-muted-foreground dark:hover:text-foreground"
       >
         <Search className="size-3.5" strokeWidth={1.7} />
         <span className="hidden sm:inline">Search</span>
-        <Kbd className="hidden border border-black/10 bg-[#f0efeb] font-mono text-[9px] text-black/45 sm:inline-flex dark:border-border dark:bg-background dark:text-muted-foreground">
+        <Kbd className="hidden border border-black/10 bg-[#f0efeb] font-mono text-[9px] text-black/60 sm:inline-flex dark:border-border dark:bg-background dark:text-muted-foreground">
           {shortcut}
         </Kbd>
       </button>
@@ -106,10 +106,10 @@ export function CommandMenu({ search }: { search: CommandSearch }) {
             <DialogTitle>Search Authab</DialogTitle>
             <DialogDescription>Jump to a page, agent, connection or approval.</DialogDescription>
           </DialogHeader>
-          <Command filter={filterItems} className="bg-transparent [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:text-[9px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.18em] [&_[cmdk-group-heading]]:text-black/40 dark:[&_[cmdk-group-heading]]:text-muted-foreground [&_[data-slot=command-input-wrapper]]:h-12 [&_[data-slot=command-input-wrapper]]:border-black/10 dark:[&_[data-slot=command-input-wrapper]]:border-border">
+          <Command filter={filterItems} className="bg-transparent [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:text-[9px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.18em] [&_[cmdk-group-heading]]:text-black/60 dark:[&_[cmdk-group-heading]]:text-muted-foreground [&_[data-slot=command-input-wrapper]]:h-12 [&_[data-slot=command-input-wrapper]]:border-black/10 dark:[&_[data-slot=command-input-wrapper]]:border-border">
           <CommandInput placeholder="Search pages, agents, connections…" className="h-12 text-[14px]" />
           <CommandList className="max-h-[min(380px,calc(100dvh-260px))] px-2 py-2">
-            <CommandEmpty className="py-8 text-[13px] text-black/50 dark:text-muted-foreground">
+            <CommandEmpty className="py-8 text-[13px] text-black/60 dark:text-muted-foreground">
               No matches. Try an agent, connection or page name.
             </CommandEmpty>
 
@@ -199,7 +199,7 @@ export function CommandMenu({ search }: { search: CommandSearch }) {
             )}
           </CommandList>
 
-          <div className="flex items-center justify-between border-t border-black/10 px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-black/35 dark:border-border dark:text-muted-foreground">
+          <div className="flex items-center justify-between border-t border-black/10 px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-black/60 dark:border-border dark:text-muted-foreground">
             <span>↑↓ navigate · ↵ open</span>
             <span>esc close</span>
           </div>

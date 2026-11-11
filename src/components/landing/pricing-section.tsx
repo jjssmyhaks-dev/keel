@@ -137,7 +137,7 @@ export function PricingSection({ standalone = false }: { standalone?: boolean })
                   <ul className="space-y-2.5">
                     {plan.features.map((feature) => (
                       <li key={feature} className="flex items-start gap-2.5">
-                        <Check className="w-3.5 h-3.5 text-[#b0568f] mt-0.5 shrink-0" />
+                        <Check className="w-3.5 h-3.5 text-[#b0568f] dark:text-[#e59ec9] mt-0.5 shrink-0" />
                         <span className="text-[13px] text-muted-foreground leading-snug">{feature}</span>
                       </li>
                     ))}
@@ -168,19 +168,19 @@ export function PricingSection({ standalone = false }: { standalone?: boolean })
         >
           <div className="flex flex-wrap gap-x-8 gap-y-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-2">
-              <Check className="w-3.5 h-3.5 text-[#b0568f]" />
+              <Check className="w-3.5 h-3.5 text-[#b0568f] dark:text-[#e59ec9]" />
               Limits enforced, no surprise overage
             </span>
             <span className="flex items-center gap-2">
-              <Check className="w-3.5 h-3.5 text-[#b0568f]" />
+              <Check className="w-3.5 h-3.5 text-[#b0568f] dark:text-[#e59ec9]" />
               USD and INR billing
             </span>
             <span className="flex items-center gap-2">
-              <Check className="w-3.5 h-3.5 text-[#b0568f]" />
+              <Check className="w-3.5 h-3.5 text-[#b0568f] dark:text-[#e59ec9]" />
               Invoices in Billing
             </span>
             <span className="flex items-center gap-2">
-              <Check className="w-3.5 h-3.5 text-[#b0568f]" />
+              <Check className="w-3.5 h-3.5 text-[#b0568f] dark:text-[#e59ec9]" />
               Cancel anytime
             </span>
           </div>

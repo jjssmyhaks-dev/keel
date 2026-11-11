@@ -25,6 +25,7 @@ const staticPaths = [
   "/blog",
   "/contact",
   "/security",
+  "/trust",
   "/status",
   "/legal/privacy",
   "/legal/terms",

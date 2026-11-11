@@ -189,7 +189,7 @@ export function CapabilitiesSection() {
           >
             <OrbitVisualization />
             <div className="relative z-10 p-8 lg:p-12 max-w-md">
-              <span className="font-mono text-sm text-white/40">{capabilities[0].number}</span>
+              <span className="font-mono text-sm text-white/60">{capabilities[0].number}</span>
               <h3 className="text-3xl lg:text-4xl font-display text-white mt-4 mb-6">
                 {capabilities[0].title}
               </h3>
@@ -198,7 +198,7 @@ export function CapabilitiesSection() {
               </p>
               <span className="mono-label text-[#eca8d6]">{capabilities[0].detail}</span>
             </div>
-            <div className="absolute right-8 bottom-8 z-10 hidden lg:flex flex-col items-end gap-2 font-mono text-[10px] text-white/30">
+            <div className="absolute right-8 bottom-8 z-10 hidden lg:flex flex-col items-end gap-2 font-mono text-[10px] text-white/60">
               <span>pub 9f2c:4a71:…:c81e</span>
               <span>alg EdDSA · crv Ed25519</span>
             </div>
@@ -220,13 +220,13 @@ export function CapabilitiesSection() {
                     <span className="font-mono text-xs text-muted-foreground">{item.number}</span>
                     <Icon
                       className={`w-5 h-5 transition-colors ${
-                        active === index + 1 ? "text-[#eca8d6]" : "text-muted-foreground/60"
+                        active === index + 1 ? "text-[#eca8d6]" : "text-muted-foreground"
                       }`}
                     />
                   </div>
                   <h3 className="text-2xl lg:text-3xl font-display mb-3">{item.title}</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed mb-6">{item.description}</p>
-                  <span className="mono-label text-muted-foreground/70">{item.detail}</span>
+                  <span className="mono-label text-muted-foreground">{item.detail}</span>
                 </div>
               );
             })}
