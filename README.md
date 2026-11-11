@@ -2,7 +2,7 @@
 
 Identity, vault and governance for AI agents. Keel gives every agent a verifiable Ed25519 identity, keeps provider credentials out of agent code, evaluates every outbound call against grants and policy, routes risky calls to a human, and records the whole thing in a tamper-evident audit chain.
 
-This repository contains the hosted product, the marketing site and documentation, plus the SDK, CLI and MCP server.
+This repository contains the hosted product, the marketing site and documentation, plus TypeScript and Python SDKs, framework integrations, the CLI, the MCP stdio server and the hosted MCP gateway.
 
 ## What is here
 
@@ -10,9 +10,11 @@ This repository contains the hosted product, the marketing site and documentatio
 | --- | --- |
 | `src/` | Next.js 16 app: landing site, docs, dashboard, and the `/api/v1` platform API |
 | `prisma/` | Postgres schema and demo seed (Northwind Labs) |
-| `sdk/` | `@keel/sdk` — server-side TypeScript client |
+| `sdk/` | `@keel/sdk` — server-side TypeScript client, AI SDK tools and framework-neutral tool specs |
+| `python/` | `keel-sdk` — zero-dependency Python client with LangChain/LangGraph, CrewAI and OpenAI Agents adapters |
 | `cli/` | `@keel/cli` — terminal client (`keel`) |
 | `mcp/` | `@keel/mcp` — MCP stdio server with governed tools |
+| `src/app/api/mcp/` | Hosted MCP gateway (Streamable HTTP) and public registry manifest |
 | `.keel/` | Local runtime state (dev secrets, dev server log); never commit |
 
 The app and docs are at `/`, `/docs`, `/pricing`, `/security`, `/status`, `/blog`, `/legal/*`. The dashboard is at `/app`; the platform API is at `/api/v1`.
@@ -104,30 +106,42 @@ Every environment calls providers for real. Policy, approvals, rate limits and a
 | Proxy | `POST /proxy/:connector` (agent JWT; `Idempotency-Key` supported) |
 | Audit | `GET /audit`, `GET /audit/verify`, `GET /audit/export` |
 | Webhooks | `GET/POST /webhooks`, `GET/PATCH/DELETE /webhooks/:id` |
-| Public | `GET /jwks`, `GET /openapi`, `GET /api/status` |
+| Public | `GET /jwks`, `GET /openapi`, `GET /api/status`, `POST /api/mcp`, `GET /api/mcp/registry` |
 
 Secret keys are environment-scoped and required for management endpoints. Agent tokens are required for the proxy. Responses use `{ error: { code, message, details, requestId } }` on failure; `x-request-id` is always present.
 
-## SDK, CLI and MCP
+## SDKs, CLI and MCP
 
 ```bash
-# SDK
+# TypeScript SDK
 cd sdk && npm run build
 npm install ../sdk          # or publish @keel/sdk
+
+# Python SDK
+pip install -e ./python
+python -m unittest discover -s python/tests -v
 
 # CLI
 cd cli && npm run build
 ./dist/keel.js --help
 KEEL_API_KEY=sk_dev_... KEEL_BASE_URL=http://localhost:3000/api/v1 ./dist/keel.js agents list
 
-# MCP
+# MCP stdio server
 cd mcp && npm run build
 KEEL_API_KEY=sk_dev_... KEEL_AGENT_ID=agt_atlas KEEL_BASE_URL=http://localhost:3000/api/v1 node dist/server.js
+
+# Hosted MCP gateway
+curl -s http://localhost:3000/api/mcp/registry
+curl -s http://localhost:3000/api/mcp \
+  -H "Authorization: Bearer $KEEL_AGENT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
 
-- [SDK usage](sdk/README.md)
+- [TypeScript SDK and AI SDK tools](sdk/README.md)
+- [Python SDK and framework integrations](python/README.md)
 - [CLI usage](cli/README.md)
-- [MCP server](mcp/README.md)
+- [MCP server and gateway](mcp/README.md)
 
 ## Security properties
 
@@ -149,13 +163,14 @@ npm run dev             # Next dev server
 npm run build           # prisma generate + next build
 npm run start           # production server
 npm run typecheck       # next typegen + tsc --noEmit (npm run lint runs this)
-npm test                # unit tests for plan limits, policy, invites and signed approvals
+npm test                # unit tests for plan limits, policy, invites, approvals, connectors and the MCP gateway
 npm run connectors:check # validate connector manifests, action names, risks, hosts and samples
 npm run db:seed         # reseed demo workspace (blocked in production unless ALLOW_DEMO_SEED=1)
 npm run db:migrate      # apply pending Prisma migrations to Neon
 npm run db:reset        # destructive: reset schema and reseed
 npm run sdk:build       # compile the SDK
-npm run sdk:test        # SDK crypto and webhook signature checks
+npm run sdk:test        # SDK crypto, webhook signature and AI SDK tool-loop checks
+npm run python:test     # Python SDK and framework integration tests
 npm run cli:build       # bundle the CLI into cli/dist
 npm run mcp:build       # bundle the MCP server into mcp/dist
 npm run cli:typecheck   # typecheck CLI against SDK source

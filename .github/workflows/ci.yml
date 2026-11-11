@@ -37,7 +37,7 @@ jobs:
         run: npm run typecheck
 
       - name: SDK
-        run: npm run sdk:build && npm run sdk:test
+        run: npm run sdk:build && npm --prefix sdk ci && npm run sdk:test
 
       - name: CLI
         run: npm run cli:typecheck && npm run cli:build
@@ -47,3 +47,16 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+  python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Python SDK and integration tests
+        run: python -m unittest discover -s python/tests -v

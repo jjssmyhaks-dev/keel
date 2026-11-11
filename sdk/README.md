@@ -102,6 +102,32 @@ else console.log(result.approval.id, result.approvalUrl);
 
 A pending approval is a normal return value. A policy denial throws `KeelError` with `code: "policy_denied"` and `details.decision`.
 
+## Vercel AI SDK
+
+`@keel/sdk/ai` builds a `ToolSet` from the agent's grants: one tool per granted action, with a JSON schema derived from the connector's fields. Every tool executes through the Keel proxy with the agent's identity; the model never sees a provider token. `ai` is an optional peer dependency (`>=5`).
+
+```bash
+npm install @keel/sdk ai
+```
+
+```ts
+import { generateText, stepCountIs } from "ai";
+import { Keel } from "@keel/sdk";
+import { keelAiTools } from "@keel/sdk/ai";
+
+const keel = new Keel({ apiKey: process.env.KEEL_API_KEY! });
+const tools = await keelAiTools({ keel, agentId: "agt_atlas" });
+
+const result = await generateText({
+  model: yourModel,
+  tools,
+  stopWhen: stepCountIs(5),
+  prompt: "Summarise #research-launch and post the brief.",
+});
+```
+
+Pass `connector: "slack"` to narrow the tools to one provider. Restricted grants add a required `resource` argument, and a token-scoped call sees only the scoped actions. For other frameworks, the lower-level `buildAgentToolSpecs` and `invokeAgentTool` exports expose the same grant expansion without the AI SDK dependency.
+
 ## Audit and webhooks
 
 ```ts

@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "keel-sdk"
+version = "1.0.0"
+description = "Server-side Python client for Keel — agent identity, vault, grants, approvals, proxy and audit."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+authors = [{ name = "Keel" }]
+keywords = ["keel", "agents", "identity", "vault", "policy", "audit", "langchain", "crewai"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+dependencies = []
+
+[project.optional-dependencies]
+signing = ["cryptography>=42"]
+langchain = ["langchain-core>=0.3", "pydantic>=2"]
+langgraph = ["langchain-core>=0.3", "langgraph>=0.2", "pydantic>=2"]
+crewai = ["crewai>=0.80", "pydantic>=2"]
+openai-agents = ["openai-agents>=0.2"]
+all = [
+  "cryptography>=42",
+  "langchain-core>=0.3",
+  "langgraph>=0.2",
+  "crewai>=0.80",
+  "openai-agents>=0.2",
+  "pydantic>=2",
+]
+
+[project.urls]
+Homepage = "https://keel.dev/docs/python"
+Documentation = "https://keel.dev/docs/python"
+Repository = "https://github.com/jjssmyhaks-dev/keel"
+
+[tool.setuptools.packages.find]
+include = ["keel*"]

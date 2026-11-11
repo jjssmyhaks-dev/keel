@@ -113,16 +113,16 @@ export default function DocsOverviewPage() {
             <td>Everything the dashboard does: agents, credentials, grants, approvals, audit, webhooks.</td>
           </tr>
           <tr>
-            <td><Link href="/docs/sdk">TypeScript SDK</Link></td>
-            <td>Typed clients for your backend and agent runtime, with automatic token refresh.</td>
+            <td><Link href="/docs/sdk">SDKs and integrations</Link></td>
+            <td>Typed TypeScript and Python clients, plus LangChain, CrewAI, OpenAI Agents and Vercel AI SDK tools.</td>
           </tr>
           <tr>
             <td><Link href="/docs/cli">CLI</Link></td>
             <td>Local development, promotion between environments, seeded demo data.</td>
           </tr>
           <tr>
-            <td><Link href="/docs/mcp">MCP server</Link></td>
-            <td>Expose Keel-governed tools to Claude, Cursor and other MCP hosts.</td>
+            <td><Link href="/docs/mcp">MCP server and gateway</Link></td>
+            <td>Expose Keel-governed tools over stdio or Streamable HTTP, with a public registry manifest.</td>
           </tr>
           <tr>
             <td><Link href="/docs/connectors">Connectors</Link></td>

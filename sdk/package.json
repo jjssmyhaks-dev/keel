@@ -4,16 +4,54 @@
   "description": "Server-side TypeScript client for Keel — agent identity, vault, grants, approvals, proxy and audit.",
   "license": "MIT",
   "homepage": "https://keel.dev/docs/sdk",
-  "repository": { "type": "git", "url": "https://github.com/jjssmyhaks-dev/keel" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jjssmyhaks-dev/keel"
+  },
   "type": "commonjs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist", "README.md"],
-  "engines": { "node": ">=20" },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node test/smoke.mjs"
+    "test": "node test/smoke.mjs && node test/ai.mjs"
   },
-  "keywords": ["keel", "agents", "identity", "ed25519", "vault", "policy", "audit"]
+  "keywords": [
+    "keel",
+    "agents",
+    "identity",
+    "ed25519",
+    "vault",
+    "policy",
+    "audit"
+  ],
+  "devDependencies": {
+    "ai": "^7.0.169"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./ai": {
+      "types": "./dist/ai.d.ts",
+      "default": "./dist/ai.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "peerDependencies": {
+    "ai": ">=5"
+  },
+  "peerDependenciesMeta": {
+    "ai": {
+      "optional": true
+    }
+  }
 }

@@ -54,4 +54,10 @@ export class Keel {
 export { KeelError, isKeelError } from "./errors";
 export { signChallenge, generateAgentKeypair, type SignedChallenge } from "./signing";
 export { verifyWebhook, type VerifyWebhookOptions } from "./resources/webhooks";
+export {
+  buildAgentToolSpecs,
+  invokeAgentTool,
+  agentToolName,
+  type AgentToolSpec,
+} from "./agent-tools";
 export type * from "./types";

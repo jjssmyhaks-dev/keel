@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "npm run typecheck",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "node --import tsx --test tests/signed-links.test.ts tests/plans.test.ts tests/policy.test.ts tests/invitations.test.ts tests/provider-health.test.ts tests/runtime-config.test.ts tests/gmail.test.ts",
+    "test": "node --import tsx --test tests/signed-links.test.ts tests/plans.test.ts tests/policy.test.ts tests/invitations.test.ts tests/provider-health.test.ts tests/runtime-config.test.ts tests/gmail.test.ts tests/mcp-gateway.test.ts",
     "connectors:check": "tsx scripts/check-connectors.mts",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate deploy",
@@ -17,11 +17,12 @@
     "db:reset": "prisma db push --force-reset && node --env-file=.env --import tsx prisma/seed.ts",
     "setup": "prisma generate && prisma migrate deploy",
     "sdk:build": "tsc -p sdk/tsconfig.json",
-    "sdk:test": "node sdk/test/smoke.mjs",
+    "sdk:test": "node sdk/test/smoke.mjs && node sdk/test/ai.mjs",
     "cli:build": "node cli/scripts/build.mjs",
     "cli:typecheck": "tsc -p cli/tsconfig.json --noEmit",
     "mcp:build": "node mcp/scripts/build.mjs",
-    "mcp:typecheck": "tsc -p mcp/tsconfig.json --noEmit"
+    "mcp:typecheck": "tsc -p mcp/tsconfig.json --noEmit",
+    "python:test": "python -m unittest discover -s python/tests -v"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

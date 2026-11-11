@@ -11,3 +11,6 @@ dist
 *.tsbuildinfo
 next-env.d.ts
 .neon
+__pycache__/
+*.py[cod]
+.pytest_cache/

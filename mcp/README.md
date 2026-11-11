@@ -39,6 +39,12 @@ Configure a host:
 
 There is deliberately no tool to approve a request. A human decides in the dashboard or from the approval link; the model can only observe status.
 
+## Hosted gateway
+
+For hosted or remote MCP clients, the Keel app itself serves a stateless **Streamable HTTP** gateway at `POST /api/mcp`. It authenticates with a short-lived agent token (minted with a secret key through `POST /api/v1/agents/:id/token`), speaks JSON-RPC 2.0 over POST, and expands the agent's grants into one tool per granted action — `slack_post_message`, `github_list_repos` — with a JSON schema derived from the connector fields. Token scopes narrow the list further, and approvals, policy, rate limits and audit are identical to the stdio server and the REST proxy.
+
+`GET /api/mcp/registry` returns a public, CORS-enabled manifest with the gateway URL, protocol versions, bearer agent-token auth, capabilities and the connector/action catalogue. Use the stdio server below for a local single-agent host; use the gateway when the host cannot hold a secret key or when many agents share one endpoint. Full details are at `/docs/mcp`.
+
 ## What the host sees
 
 ```text
@@ -47,7 +53,7 @@ keel_call { connector: "slack", action: "slack.post_message",
             input: { channel: "#research-launch", text: "Launch brief v3." } }
 ```
 
-- Executed: `{ status: "executed", result: { ... }, auditEventId }`.
+- Executed: `{ status: "executed", result: { ... }, requestId }`.
 - Needs approval: `{ status: "pending_approval", approval: { id, risk, ... }, approvalUrl }`.
 - Denied or invalid: a tool error with `code` (`policy_denied`, `scope_not_granted`, …) and the request id.
 

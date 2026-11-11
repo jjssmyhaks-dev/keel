@@ -32,9 +32,9 @@ export const DOCS_NAV: DocsNavGroup[] = [
     label: "Build",
     links: [
       { name: "API reference", href: "/docs/api" },
-      { name: "TypeScript SDK", href: "/docs/sdk" },
+      { name: "SDKs and integrations", href: "/docs/sdk" },
       { name: "CLI", href: "/docs/cli" },
-      { name: "MCP server", href: "/docs/mcp" },
+      { name: "MCP server and gateway", href: "/docs/mcp" },
     ],
   },
   {

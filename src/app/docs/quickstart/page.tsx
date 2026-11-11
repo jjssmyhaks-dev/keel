@@ -165,7 +165,7 @@ const body = await response.json();
       </p>
       <pre>{`const { data } = await keel.audit.list({ agent: agent.id, limit: 10 });
 const verification = await keel.audit.verify();
-// { valid: true, checked: 107, brokenAt: null }`}</pre>
+// { valid: true, eventsChecked: 107, brokenAtSeq: null }`}</pre>
       <p>
         Export the raw chain as CSV or JSONL from <Link href="/app/activity">Activity</Link>, or subscribe to proxy,
         approval and agent events with webhooks. See <Link href="/docs/concepts/audit">Audit trail</Link>.
@@ -181,8 +181,8 @@ const verification = await keel.audit.verify();
           production with a grant diff.
         </li>
         <li>
-          <Link href="/docs/sdk">SDK reference</Link>, <Link href="/docs/cli">CLI</Link>, or{" "}
-          <Link href="/docs/mcp">MCP server</Link> for each surface.
+          <Link href="/docs/sdk">SDKs and integrations</Link>, <Link href="/docs/cli">CLI</Link>, or{" "}
+          <Link href="/docs/mcp">MCP server and gateway</Link> for each surface.
         </li>
         <li>
           <Link href="/app/approvals">Approvals inbox</Link> — the human side of the loop.

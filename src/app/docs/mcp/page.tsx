@@ -3,24 +3,26 @@ import Link from "next/link";
 import { Callout, DocsAside, DocsShell } from "@/components/docs/docs-shell";
 
 export const metadata: Metadata = {
-  title: "MCP server",
-  description: "Expose Keel-governed tools to Claude, Cursor and other MCP hosts.",
+  title: "MCP server and gateway",
+  description: "Expose Keel-governed tools to Claude, Cursor and hosted MCP clients over stdio or Streamable HTTP.",
 };
 
 export default function McpPage() {
   return (
     <DocsShell
       eyebrow="Build"
-      title="MCP server"
-      intro="Give an MCP host — Claude Desktop, Cursor, your own agent loop — a governed set of tools backed by Keel. Every tool call becomes a proxy call with the agent's identity, policy and audit, not a raw provider token in the host's environment."
-      updated="31 October 2026"
+      title="MCP server and gateway"
+      intro="Give an MCP host — Claude Desktop, Cursor, a hosted agent platform — a governed set of tools backed by Keel. Use the stdio server for local hosts or the hosted gateway for remote clients. Either way, every tool call becomes a proxy call with the agent's identity, policy and audit, not a raw provider token in the host's environment."
+      updated="11 November 2026"
       aside={
         <DocsAside
           links={[
             { href: "#why", name: "Why route through Keel" },
-            { href: "#run", name: "Run the server" },
+            { href: "#run", name: "Run the stdio server" },
             { href: "#clients", name: "Client configuration" },
             { href: "#tools", name: "Tools" },
+            { href: "#gateway", name: "Hosted gateway" },
+            { href: "#registry", name: "Registry manifest" },
             { href: "#policy", name: "Policy and approvals" },
             { href: "#limits", name: "Limits" },
           ]}
@@ -30,11 +32,11 @@ export default function McpPage() {
       <h2 id="why">Why route through Keel</h2>
       <p>
         Most MCP servers hand the host a provider API key and let it call anything the key can reach. Keel instead
-        binds the server to one agent. The host sees only the tools the agent has grants for, and every call is
+        binds the session to one agent. The host sees only the tools the agent has grants for, and every call is
         evaluated and recorded. Revoking the agent turns every tool off at once.
       </p>
 
-      <h2 id="run">Run the server</h2>
+      <h2 id="run">Run the stdio server</h2>
       <pre>{`npx @keel/mcp
 
 # environment
@@ -108,6 +110,68 @@ KEEL_BASE_URL=https://api.keel.dev/v1   # optional`}</pre>
         The host can surface that to the user, or call <code>keel_approval_status</code> later.
       </p>
 
+      <h2 id="gateway">Hosted gateway (Streamable HTTP)</h2>
+      <p>
+        The hosted gateway speaks MCP Streamable HTTP at <code>POST /api/mcp</code>. It is stateless: there is no SSE
+        stream, no session store and no secret key in the client. Instead the client presents a short-lived agent token,
+        which you mint server-side with a secret key. Tools are expanded from that agent&apos;s grants at request time —
+        one tool per granted action, named after the action (dots become underscores, for example{" "}
+        <code>slack_post_message</code>).
+      </p>
+      <pre>{`# 1. Mint an agent token with a secret key (server-side only)
+curl -s https://api.keel.dev/v1/agents/agt_atlas/token \\
+  -H "Authorization: Bearer sk_live_..." \\
+  -H "Content-Type: application/json" \\
+  -d '{"ttl": 600}'
+
+# 2. Point an MCP client at the gateway
+POST https://app.keel.dev/api/mcp
+Authorization: Bearer <agent-token>
+Content-Type: application/json
+
+{"jsonrpc":"2.0","id":1,"method":"initialize",
+ "params":{"protocolVersion":"2025-06-18","capabilities":{},
+           "clientInfo":{"name":"my-host","version":"1.0.0"}}}
+
+{"jsonrpc":"2.0","id":2,"method":"tools/list"}
+{"jsonrpc":"2.0","id":3,"method":"tools/call",
+ "params":{"name":"slack_post_message",
+           "arguments":{"channel":"#support","text":"Escalation triaged.",
+                        "resource":"C0123456789"}}}`}</pre>
+      <p>
+        Supported protocol versions are <code>2025-06-18</code>, <code>2025-03-26</code> and <code>2024-11-05</code>;
+        the server negotiates the version during <code>initialize</code> and rejects requests that send an unsupported{" "}
+        <code>MCP-Protocol-Version</code> header. <code>GET</code> and <code>DELETE</code> return <code>405</code> because
+        the endpoint has no SSE stream or session to close.
+      </p>
+      <p>
+        Tool schemas follow the grant. Unrestricted grants expose the connector&apos;s declared fields; a grant scoped to
+        a resource pattern adds a required <code>resource</code> argument with the pattern in its description. Token
+        scopes are applied to the tool list as well, so the gateway never advertises an action the presented token
+        cannot call. Results include <code>structuredContent</code> and are capped at 64 KB of text. A denied call comes
+        back as <code>isError: true</code> with Keel&apos;s error code; an approval-gated call comes back as a normal
+        result with <code>status: "pending_approval"</code> and the approval URL.
+      </p>
+
+      <h2 id="registry">Registry manifest</h2>
+      <p>
+        <code>GET /api/mcp/registry</code> is a public, CORS-enabled manifest for discovery and registry listing. It
+        advertises the gateway URL and transport, supported protocol versions, bearer agent-token auth (with the token
+        endpoint), capabilities, docs links and the full connector/action catalogue with risk levels. It contains no
+        agent data — tools are always computed per token.
+      </p>
+      <pre>{`curl -s https://app.keel.dev/api/mcp/registry
+
+{
+  "name": "dev.keel/gateway",
+  "transport": { "type": "streamable-http", "url": "https://app.keel.dev/api/mcp" },
+  "protocolVersion": "2025-06-18",
+  "authentication": { "scheme": "Bearer", "tokenType": "agent_token",
+                      "tokenEndpoint": "https://app.keel.dev/api/v1/agents/{agentId}/token" },
+  "connectors": [ { "slug": "slack", "actions": [ { "name": "slack.post_message",
+                                                    "risk": "write" } ] } ]
+}`}</pre>
+
       <h2 id="policy">Policy and approvals</h2>
       <p>
         Nothing changes because the caller is an MCP host. Reads flow if granted, writes follow the same grant
@@ -121,8 +185,10 @@ KEEL_BASE_URL=https://api.keel.dev/v1   # optional`}</pre>
 
       <h2 id="limits">Limits</h2>
       <p>
-        The server runs over stdio, which means one host process. It does not persist tokens to disk, and it logs to
-        stderr so stdout stays a clean MCP stream. Tool results are capped at 64 KB; large provider responses are
+        Both transports share the same governance. The stdio server runs as one host process, does not persist tokens
+        to disk, and logs to stderr so stdout stays a clean MCP stream. The hosted gateway is stateless and applies the
+        environment&apos;s per-agent rate limit (120 calls per minute by default), plan quotas and production access
+        checks to every call. Tool results are capped at 64 KB over either transport; large provider responses are
         truncated with a marker and the full body remains available in the approval or audit record when applicable.
       </p>
       <p>
