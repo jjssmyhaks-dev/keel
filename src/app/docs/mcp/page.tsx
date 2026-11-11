@@ -149,7 +149,8 @@ Content-Type: application/json
         a resource pattern adds a required <code>resource</code> argument with the pattern in its description. Token
         scopes are applied to the tool list as well, so the gateway never advertises an action the presented token
         cannot call. Results include <code>structuredContent</code> and are capped at 64 KB of text. A denied call comes
-        back as <code>isError: true</code> with Keel&apos;s error code; an approval-gated call comes back as a normal
+        back as <code>isError: true</code> with Keel&apos;s error code, and a provider failure comes back the same way as{" "}
+        <code>provider_error</code> or <code>provider_auth_failed</code>; an approval-gated call comes back as a normal
         result with <code>status: "pending_approval"</code> and the approval URL.
       </p>
 

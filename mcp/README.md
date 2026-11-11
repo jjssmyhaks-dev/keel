@@ -56,6 +56,7 @@ keel_call { connector: "slack", action: "slack.post_message",
 - Executed: `{ status: "executed", result: { ... }, requestId }`.
 - Needs approval: `{ status: "pending_approval", approval: { id, risk, ... }, approvalUrl }`.
 - Denied or invalid: a tool error with `code` (`policy_denied`, `scope_not_granted`, …) and the request id.
+- Provider failure: a tool error with `provider_error` or `provider_auth_failed` and the upstream status.
 
 Results are capped at 64 KB; large outputs are truncated with a note. Diagnostics go to stderr only — stdout carries JSON-RPC. Tokens are cached for 10 minutes and refreshed 60 seconds early.
 

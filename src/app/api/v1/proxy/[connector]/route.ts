@@ -12,6 +12,7 @@ import {
 import { connector } from "@/lib/connectors";
 import { evaluatePolicy, envSettings, globMatch } from "@/lib/policy";
 import { executeAction } from "@/lib/proxy";
+import { providerAuthFailure } from "@/lib/provider-health";
 import { createApprovalRequest } from "@/lib/approvals";
 import { auditEvent } from "@/lib/audit";
 import { consumeRateLimit } from "@/lib/rate-limit";
@@ -240,6 +241,27 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
       requestId: rid,
       ip,
     });
+
+    const providerError = providerAuthFailure(connectorDef.slug, result.body);
+    if (result.status >= 400 || providerError) {
+      return apiError(
+        502,
+        providerError ? "provider_auth_failed" : "provider_error",
+        providerError
+          ? `The provider rejected this credential on ${actionName} (${providerError}). Rotate it in the vault.`
+          : `The provider returned HTTP ${result.status} for ${actionName}.`,
+        {
+          connector: connectorDef.slug,
+          action: actionName,
+          status: result.status,
+          body: result.body,
+          latencyMs: result.latencyMs,
+          truncated: result.truncated,
+          ...(providerError ? { providerError } : {}),
+        },
+        rid,
+      );
+    }
 
     return finish(200, {
       status: "executed",

@@ -155,6 +155,11 @@ Content-Type: application/json
         the decision yields the final outcome. If the decision was a denial or the request expired, the retry returns{" "}
         <code>403 approval_not_granted</code>.
       </p>
+      <p>
+        A provider response outside 2xx, or a Slack-style <code>{`{ ok: false }`}</code> credential rejection, is not
+        reported as executed: the call returns <code>502 provider_error</code> or{" "}
+        <code>provider_auth_failed</code> with the upstream status and body in <code>details</code>.
+      </p>
       <Callout title="Connector selection">
         The <code>:connector</code> segment must match the credential&apos;s connector. If <code>credentialId</code> is
         omitted, Keel picks the oldest non-revoked credential for that connector in the environment. Multi-account
@@ -183,7 +188,7 @@ Content-Type: application/json
           <tr><td>409</td><td><code>grant_exists</code>, <code>agent_name_taken</code>, <code>approval_closed</code>, <code>idempotency_conflict</code></td></tr>
           <tr><td>422</td><td><code>invalid_name</code>, <code>invalid_actions</code>, <code>secret_required</code>, <code>invalid_mode</code>, <code>promotion_blocked</code></td></tr>
           <tr><td>429</td><td><code>rate_limited</code></td></tr>
-          <tr><td>502</td><td><code>execution_failed</code> — approved call failed at the provider</td></tr>
+          <tr><td>502</td><td><code>execution_failed</code> — approved call failed at the provider; <code>provider_error</code>, <code>provider_auth_failed</code> — upstream rejected the call</td></tr>
         </tbody>
       </table>
 
