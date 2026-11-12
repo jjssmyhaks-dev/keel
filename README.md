@@ -6,6 +6,8 @@ Agents do not need long-lived API keys: OAuth-connected credentials refresh auto
 
 This repository contains the hosted product, the marketing site and documentation, plus TypeScript and Python SDKs, framework integrations, the CLI, the MCP stdio server and the hosted MCP gateway.
 
+Enterprise controls ship in the product: OIDC and SAML single sign-on with per-domain access control and optional enforcement, SCIM 2.0 provisioning, enforced TOTP MFA with recovery codes, and seven roles with capability grants. Audit events are append-only, stream to a webhook or Splunk HEC sink with HMAC-signed envelopes and a resumable cursor, and every proxied call has a trust view showing what was injected, what was redacted and the request ID. Operations includes provider SLO dashboards, request error tracking, optional OpenTelemetry traces, an incident-backed status page and a published subprocessor list. Billing adds one-time trials, tax-aware checkout, dunning and CSV usage statements.
+
 ## What is here
 
 | Path | What it is |
@@ -17,9 +19,12 @@ This repository contains the hosted product, the marketing site and documentatio
 | `cli/` | `@authab/cli` — terminal client (`authab`) |
 | `mcp/` | `@authab/mcp` — MCP stdio server with governed tools |
 | `src/app/api/mcp/` | Hosted MCP gateway (Streamable HTTP) and public registry manifest |
+| `docs/operations/` | Backup/restore and load-test runbooks, including recorded baselines |
+| `scripts/` | Backup, restore and load-test utilities used by the npm scripts |
+| `.github/workflows/` | CI: typecheck, unit tests, connector checks, package builds and a production build |
 | `.authab/` | Local runtime state (dev secrets, dev server log); never commit |
 
-The app and docs are at `/`, `/docs`, `/pricing`, `/security`, `/status`, `/blog`, `/legal/*`. The dashboard is at `/app`; the platform API is at `/api/v1`.
+The app and docs are at `/`, `/docs`, `/pricing`, `/security`, `/status`, `/trust`, `/blog`, `/legal/*`. The dashboard is at `/app`; the platform API is at `/api/v1`, SCIM at `/api/scim/v2` and SSO callbacks under `/api/sso`.
 
 ## Quickstart
 
@@ -81,6 +86,20 @@ Read calls are allowed in development and production when granted. Writes are al
 
 Allowed runs execute in-process and return a synthetic envelope — no secret is decrypted and no network request leaves the app. Financial, destructive and admin actions open a real approval that executes the stored sandbox call when decided. Sandbox events land in the audit chain as `sandbox.call`, count toward grant call caps, and are excluded from billable proxy usage.
 
+## Enterprise controls
+
+**Single sign-on.** OIDC (discovery + PKCE) and SAML 2.0 connections are configured per organisation at `/app/security/sso`. Each connection is bound to email domains; the start and completion routes reject a mismatched domain, and a connection can be marked enforced so members must use it. SP metadata is served at `/api/sso/:id/metadata` and the SAML ACS at `/api/sso/:id/acs`; SSO state is a signed, single-use cookie. First sign-in provisions a membership with the role mapped from IdP groups.
+
+**SCIM 2.0.** `/api/scim/v2` supports Users: create, filter queries, PATCH and deprovisioning. `Groups` is served as an empty list — roles come from IdP group claims at SSO sign-in, not from SCIM group membership. Bearer tokens use the `scim_` prefix and are stored as SHA-256 hashes with a display prefix. Deprovisioning suspends the membership and revokes its sessions; the owner role cannot be deprovisioned through SCIM. Every SCIM write is audited.
+
+**MFA and roles.** TOTP enrolment at `/mfa/enroll` issues one-time recovery codes stored as hashes. An organisation can require MFA; the requirement is enforced at sign-in and again on each dashboard request. Roles are `owner`, `admin`, `developer`, `approver`, `auditor`, `billing` and `viewer`, with optional capability grants that narrow what a role can do.
+
+**Audit streaming and the trust view.** Audit sinks deliver HMAC-signed envelopes (`signature = HMAC-SHA256(secret, timestamp + "." + body)`) to a webhook or Splunk HEC endpoint. Each environment advances a persisted cursor, and failed deliveries retry with backoff; `/app/security/streaming` configures and sends a test delivery. The audit detail page for a call shows its decision, credential source, injected headers/params/body fields, redactions and request ID.
+
+**Observability and status.** The instrumentation hook records request errors; `/app/observability` shows open errors, provider p50/p95 latency and SLO health. Proxy calls and errors are wrapped in OpenTelemetry spans, and setting `OTEL_EXPORTER_OTLP_ENDPOINT` exports them (incoming `traceparent` headers are used to correlate errors). `/status` renders real incidents managed at `/app/admin/status`, with an RSS feed at `/status/feed.xml`. `/trust` and `/trust/subprocessors.json` publish the subprocessor list; the page states plainly that no SOC 2 Type II report exists yet.
+
+**Billing maturity.** Checkout enables Stripe automatic tax and tax-ID collection, organisations without a subscription can take a one-time trial, failed payments start a dunning escalation, and `/app/billing/usage` downloads a CSV usage statement (labelled a statement, not a tax invoice).
+
 ## Neon
 
 The app runs on Neon Postgres. `neon.ts` declares the branch policy and the services used by this deployment:
@@ -115,6 +134,8 @@ Every environment calls providers for real. Policy, approvals, rate limits and a
 | Approvals | `GET /approvals`, `GET/POST /approvals/:id` |
 | Proxy | `POST /proxy/:connector` (agent JWT; `Idempotency-Key` supported; `sandbox` runs the pipeline with no provider egress) |
 | Audit | `GET /audit`, `GET /audit/verify`, `GET /audit/export` |
+| SCIM | `GET/POST /api/scim/v2/Users`, `GET/PATCH/DELETE /api/scim/v2/Users/:id`, `GET /api/scim/v2/Groups` (empty list), `GET /api/scim/v2/{Schemas,ServiceProviderConfig}` (SCIM bearer token) |
+| SSO | `GET /sso/:connectionId/start`, `GET /api/sso/:id/callback`, `POST /api/sso/:id/acs`, `GET /api/sso/:id/metadata` |
 | Webhooks | `GET/POST /webhooks`, `GET/PATCH/DELETE /webhooks/:id` |
 | Public | `GET /jwks`, `GET /openapi`, `GET /api/status`, `POST /api/mcp`, `GET /api/mcp/registry` |
 
@@ -172,6 +193,12 @@ AUTHAB_API_KEY=sk_dev_... AUTHAB_AGENT_ID=agt_atlas AUTHAB_CONNECTOR=slack AUTHA
 - Custom connectors compile from OpenAPI 3.0/3.1 only, require HTTPS servers, reject private and link-local base URLs, refuse required header/cookie parameters the proxy cannot forward, cap imports at 100 actions, and stay behind the Scale/Enterprise plan gate.
 - Approval payloads are redacted before storage. Approving executes the stored call; the requester cannot approve its own request. Approval SLAs escalate to a configured role and the scheduler expires unanswered requests.
 - Audit events are chained per environment with `SHA-256(prevHash + ":" + canonicalJSON(event))`. Appends take a Postgres advisory lock so concurrent writes cannot fork the chain; `GET /audit/verify` walks the chain. A database trigger rejects UPDATE, DELETE and TRUNCATE unless a maintenance or restore job opts in with `SET LOCAL app.audit_maintenance = 'on'`.
+- SSO state is a signed, single-use cookie bound to the connection. SAML responses are validated (signature and assertion conditions) by `@node-saml/node-saml`; OIDC uses discovery, PKCE and a nonce check. A connection can be enforced for its email domains, and new SSO members receive only the mapped role.
+- SCIM tokens are stored hashed with a display prefix and can be revoked. Deprovisioning suspends the member and revokes their sessions; owners cannot be deprovisioned through SCIM.
+- MFA secrets are envelope-encrypted per user, recovery codes are hashed and consumed once, and an organisation-wide MFA requirement is enforced at sign-in and on every dashboard request.
+- Roles and capability grants are resolved server-side on every dashboard action; a grant can only narrow its role, never widen it.
+- Audit streaming signs each envelope with HMAC-SHA256 over the timestamp and body, queues one delivery row per event (duplicates skipped), and retries failures with backoff. Sink secrets are envelope-encrypted.
+- Proxy execution and request errors are wrapped in OpenTelemetry spans (`proxy.call`); incoming `traceparent` values are used to correlate errors. Spans are only exported when `OTEL_EXPORTER_OTLP_ENDPOINT` is set — otherwise the tracing API is a no-op.
 - Dashboard sessions are httpOnly and database-backed; API keys are stored hashed with a prefix retained for display. Sign-in, sign-up, magic-link and reset requests are throttled in the database.
 - Webhook delivery blocks loopback, private, link-local and metadata addresses, refuses redirects, and retries failed deliveries with exponential backoff.
 - Responses set HSTS, a same-origin Content Security Policy, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` and a same-origin opener policy.
@@ -185,7 +212,7 @@ npm run dev             # Next dev server
 npm run build           # prisma generate + next build
 npm run start           # production server
 npm run typecheck       # next typegen + tsc --noEmit (npm run lint runs this)
-npm test                # server unit tests: policy/CIDR, OpenAPI import, DPoP, OAuth refresh, invites, plans, MCP gateway
+npm test                # server unit tests: policy/CIDR, OpenAPI import, DPoP, OAuth refresh, invites, plans, MFA/TOTP, RBAC, SLO, status, sandbox, redaction, billing, MCP gateway
 npm run connectors:check # validate connector manifests, action names, risks, hosts and samples
 npm run db:seed         # reseed demo workspace (blocked in production unless ALLOW_DEMO_SEED=1)
 npm run db:migrate      # apply pending Prisma migrations to Neon
@@ -208,12 +235,16 @@ npm run mcp:typecheck   # typecheck MCP server against SDK source
 2. Run `npx prisma migrate deploy` (or `db push` for a disposable install) and `npm run build`.
 3. Terminate TLS in front of the app; the dashboard session cookie is httpOnly and same-site.
 4. Point `DATABASE_URL` at the pooled Neon endpoint and `DATABASE_URL_UNPOOLED` at the direct endpoint. Run schema changes in a Neon branch first, then apply them to production.
-5. Set `CRON_SECRET` and schedule `POST /api/cron/webhooks` (for example every five minutes) so failed webhooks retry, approvals and credentials expire, alert rules evaluate, and old challenge/rate-limit rows are pruned. `vercel.json` already declares a five-minute cron for Vercel deployments.
+5. Set `CRON_SECRET` and schedule `POST /api/cron/webhooks` (for example every five minutes) so failed webhooks and audit-sink deliveries retry, approvals and credentials expire, alert rules evaluate, and old challenge/rate-limit rows are pruned. `vercel.json` already declares a five-minute cron for Vercel deployments; it also drains audit sinks. The separate `POST /api/cron/audit-sinks` route runs the same drain when you prefer a dedicated job.
 6. Add provider credentials through the vault with the secret key API or dashboard. Self-serve sign-up always starts on Free. For one-click OAuth connect, either configure an OAuth app in the dashboard or set `CONNECT_<PROVIDER>_CLIENT_ID` / `_CLIENT_SECRET` / optional `_SCOPES` (for example `CONNECT_GOOGLE_CLIENT_ID`). The scheduler refreshes OAuth tokens before the five-minute expiry margin.
-7. To enable card checkout, set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and price IDs for each plan and currency (`STRIPE_PRICE_PRO`, `STRIPE_PRICE_PRO_INR`, `STRIPE_PRICE_SCALE`, `STRIPE_PRICE_SCALE_INR`), then register `${APP_URL}/api/stripe/webhook` for `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid` and `invoice.payment_failed`. Without Stripe, the billing page falls back to emailing a plan-change request.
+7. To enable card checkout, set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and price IDs for each plan and currency (`STRIPE_PRICE_PRO`, `STRIPE_PRICE_PRO_INR`, `STRIPE_PRICE_SCALE`, `STRIPE_PRICE_SCALE_INR`), then register `${APP_URL}/api/stripe/webhook` for `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid` and `invoice.payment_failed`. Checkout enables Stripe automatic tax and tax-ID collection, and organisations without a subscription can take a one-time trial. Failed payments start a dunning escalation, and `/app/billing/usage` downloads a CSV usage statement. Without Stripe, the billing page falls back to emailing a plan-change request.
 8. Leave `ALLOW_DEMO_LOGIN` and `ALLOW_DEMO_SEED` unset in production. Demo access is disabled there unless explicitly enabled.
 9. Put `/api/status` behind your uptime monitor, and run `GET /api/v1/audit/verify` as a scheduled check with a secret key.
 10. Schedule `npm run db:backup` daily to storage outside the database provider, keep `MASTER_KEY`, `JWT_SIGNING_PRIVATE_KEY` and `AUTH_COOKIE_SECRET` recoverable from a secret manager, and run a restore rehearsal monthly. See `docs/operations/backup-restore.md` for the measured RPO/RTO and the procedure.
+11. To enable enterprise SSO, create a connection at `/app/security/sso` with an OIDC issuer/client or SAML IdP details. Give the IdP `/api/sso/:id/metadata` (SAML SP metadata) or `/api/sso/:id/callback` (OIDC redirect); test a sign-in before enabling enforcement. The organisation MFA requirement is set on the same page.
+12. To enable SCIM, create a bearer token on `/app/security/sso` and give the IdP the base URL `${APP_URL}/api/scim/v2`. Tokens are shown once and stored hashed.
+13. Configure audit streaming at `/app/security/streaming` and send a test delivery before enabling the sink. Publish incidents from `/app/admin/status` so `/status` reflects reality, keep `/trust` subprocessors current, and set `OTEL_EXPORTER_OTLP_ENDPOINT` if you collect traces.
+14. Record post-deploy load-test runs in `docs/operations/load-testing.md`. The checked-in numbers are a development baseline, not an SLO.
 
 ## Demo data
 
