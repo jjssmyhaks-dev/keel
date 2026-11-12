@@ -11,6 +11,7 @@ import { assertPublicHost, isPrivateHost, privateOutboundAllowed } from "./outbo
 import { refreshCredentialIfNeeded } from "./oauth-connect";
 import { endSpanError, endSpanOk, startSpan, traceIdOf } from "./tracing";
 import { redact, redactedFieldNames, redactDeep, secretValues } from "./redaction";
+import { recordAgentEvent, resourceTypeOf, upstreamStatusClass } from "./agent-events";
 
 export type ExecutionResult = {
   status: number;
@@ -283,6 +284,7 @@ async function executeSandboxCall(opts: {
   requestId: string;
   ip?: string | null;
   approvalId?: string;
+  delegationDepth?: number;
   decision?: { effect: string; risk: string; source: string; reason: string; grantId?: string | null };
 }): Promise<ExecutionResult> {
   const { environment, agent, action, connectorDef, credential } = opts;
@@ -366,7 +368,40 @@ async function executeSandboxCall(opts: {
     },
   });
 
+  if (agent) {
+    const project = await db.project
+      .findUnique({ where: { id: environment.projectId }, select: { orgId: true } })
+      .catch(() => null);
+    await recordAgentEvent({
+      environmentId: environment.id,
+      organizationId: project?.orgId ?? "",
+      agentId: agent.id,
+      agentType: agent.agentType,
+      requestId: opts.requestId,
+      connectorSlug: connectorDef.slug,
+      action: action.name,
+      riskClass: action.risk,
+      resourceType: resourceTypeOf(action, connectorDef),
+      decision: opts.approvalId ? "approved" : "allowed",
+      decisionReasonCode: opts.approvalId ? "approval_approved" : "granted",
+      upstreamStatusClass: upstreamStatusClass(200),
+      latencyMs,
+      delegationDepth: opts.delegationDepth ?? 0,
+      isSandbox: true,
+      credentialId: credential.id,
+      approvalLatencyMs: await approvalLatency(opts.approvalId),
+    });
+  }
+
   return result;
+}
+
+export async function approvalLatency(approvalId?: string) {
+  if (!approvalId) return null;
+  const approval = await db.approvalRequest
+    .findUnique({ where: { id: approvalId }, select: { createdAt: true } })
+    .catch(() => null);
+  return approval ? Math.max(0, Date.now() - approval.createdAt.getTime()) : null;
 }
 
 export async function executeAction(opts: {
@@ -383,6 +418,7 @@ export async function executeAction(opts: {
   healthCheck?: boolean;
   skipHealthNote?: boolean;
   countUsage?: boolean;
+  delegationDepth?: number;
   decision?: { effect: string; risk: string; source: string; reason: string; grantId?: string | null };
 }): Promise<ExecutionResult> {
   const { environment, agent, action } = opts;
@@ -402,6 +438,7 @@ export async function executeAction(opts: {
       requestId: opts.requestId,
       ip: opts.ip,
       approvalId: opts.approvalId,
+      delegationDepth: opts.delegationDepth,
       decision: opts.decision,
     });
   }
@@ -713,6 +750,33 @@ export async function executeAction(opts: {
         },
       },
     });
+    if (agent && !opts.healthCheck) {
+      const orgId =
+        (
+          await db.project
+            .findUnique({ where: { id: environment.projectId }, select: { orgId: true } })
+            .catch(() => null)
+        )?.orgId ?? "";
+      await recordAgentEvent({
+        environmentId: environment.id,
+        organizationId: orgId,
+        agentId: agent.id,
+        agentType: agent.agentType,
+        requestId: opts.requestId,
+        connectorSlug: connectorDef.slug,
+        action: action.name,
+        riskClass: action.risk,
+        resourceType: resourceTypeOf(action, connectorDef),
+        decision: "errored",
+        decisionReasonCode: "provider_error",
+        upstreamStatusClass: "none",
+        latencyMs: Date.now() - started,
+        delegationDepth: opts.delegationDepth ?? 0,
+        isSandbox: false,
+        credentialId: credential.id,
+        approvalLatencyMs: await approvalLatency(opts.approvalId),
+      });
+    }
     throw new Error(
       `Upstream call to ${connectorDef.name} failed: ${
         error instanceof Error ? error.message : "unknown error"
@@ -786,6 +850,36 @@ export async function executeAction(opts: {
       },
     },
   });
+
+  if (agent && !opts.healthCheck) {
+    const succeeded = result.status < 400 && !providerError;
+    await recordAgentEvent({
+      environmentId: environment.id,
+      organizationId: project?.orgId ?? "",
+      agentId: agent.id,
+      agentType: agent.agentType,
+      requestId: opts.requestId,
+      connectorSlug: connectorDef.slug,
+      action: action.name,
+      riskClass: action.risk,
+      resourceType: resourceTypeOf(action, connectorDef),
+      decision: succeeded ? (opts.approvalId ? "approved" : "allowed") : "errored",
+      decisionReasonCode: succeeded
+        ? opts.approvalId
+          ? "approval_approved"
+          : "granted"
+        : providerError
+          ? "provider_auth_failed"
+          : "provider_error",
+      upstreamStatusClass: upstreamStatusClass(result.status),
+      latencyMs: result.latencyMs,
+      costUnits: opts.countUsage === false ? 0 : 1,
+      delegationDepth: opts.delegationDepth ?? 0,
+      isSandbox: false,
+      credentialId: credential.id,
+      approvalLatencyMs: await approvalLatency(opts.approvalId),
+    });
+  }
 
   return result;
 }

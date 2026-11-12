@@ -11,6 +11,7 @@ import {
 } from "@/lib/api";
 import { validateActions } from "@/lib/grants";
 import { auditEvent } from "@/lib/audit";
+import { recordPolicyEvent } from "@/lib/policy-events";
 import { serializeGrant } from "@/lib/serializers";
 
 export async function GET(req: Request) {
@@ -121,6 +122,22 @@ export async function POST(req: Request) {
         beforeJson: "{}",
         afterJson: JSON.stringify({ actions, resource: grant.resourcePattern, approvalMode }),
       },
+    });
+
+    await recordPolicyEvent({
+      environmentId: auth.environment.id,
+      organizationId: auth.organization.id,
+      agentId: agent.id,
+      agentType: agent.agentType,
+      subject: "grant",
+      grantId: grant.id,
+      connectorSlug: credential.connectorSlug,
+      actions,
+      resourcePattern: grant.resourcePattern,
+      approvalMode,
+      conditions: body.conditions ?? {},
+      changeKind: "create",
+      isSandbox: credential.connectorSlug === "sandbox",
     });
 
     await auditEvent({

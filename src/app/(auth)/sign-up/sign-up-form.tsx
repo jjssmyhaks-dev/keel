@@ -86,6 +86,11 @@ export function SignUpForm({
           By creating an account you agree to the{" "}
           <Link href="/legal/terms" className="underline underline-offset-2 hover:text-foreground">Terms</Link> and{" "}
           <Link href="/legal/privacy" className="underline underline-offset-2 hover:text-foreground">Privacy Policy</Link>.
+          We use anonymized usage statistics to improve default policies;{" "}
+          <Link href="/legal/privacy#usage-statistics" className="underline underline-offset-2 hover:text-foreground">
+            you can turn this off
+          </Link>{" "}
+          at any time.
         </p>
       </form>
 

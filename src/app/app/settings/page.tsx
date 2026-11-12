@@ -10,6 +10,7 @@ import { ThemePicker } from "@/components/app/theme-picker";
 import {
   updateOrganizationAction,
   updateProjectAction,
+  updateDataContributionAction,
   revokeSessionAction,
 } from "@/app/app/actions";
 import { PageHeader, Panel, Notice, StatusBadge, formatDate, relativeTime } from "@/components/app/ui";
@@ -244,6 +245,31 @@ export default async function SettingsPage({
                 </div>
               </div>
             </div>
+          </Panel>
+
+          <Panel title="Data and privacy" hint="Contribution" bodyClassName="p-4">
+            <form action={updateDataContributionAction} className="space-y-3">
+              <label className="flex items-start gap-2 text-[12px] leading-relaxed">
+                <input
+                  type="checkbox"
+                  name="enabled"
+                  defaultChecked={ctx.org.dataContributionEnabled}
+                  disabled={!ctx.capabilities.manageSecurity}
+                  className="mt-0.5 size-3.5 accent-black"
+                />
+                Contribute anonymized usage statistics
+              </label>
+              <p className="text-[10px] leading-relaxed text-black/60 dark:text-muted-foreground">
+                Uses only decision types, action names and counts, never request content, resource names or personal
+                data. Used to improve default policies and agent reputation. You can turn this off at any time.
+              </p>
+              <button
+                disabled={!ctx.capabilities.manageSecurity}
+                className="border border-black bg-black px-4 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-white hover:bg-[#eca8d6] hover:text-black disabled:opacity-40"
+              >
+                Save preference
+              </button>
+            </form>
           </Panel>
 
           <Panel title="Sessions" hint="Devices holding a live cookie" bodyClassName="p-0">

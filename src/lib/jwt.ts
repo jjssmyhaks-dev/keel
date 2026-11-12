@@ -9,7 +9,43 @@ const AUDIENCE = process.env.JWT_AUDIENCE || "authab-api";
 const globalForJwt = globalThis as unknown as {
   authabSignKey?: Awaited<ReturnType<typeof importPKCS8>>;
   authabJwks?: { keys: JWK[]; kid: string };
+  authabPreviousJwks?: JWK[];
 };
+
+/**
+ * Retired public keys stay published so documents signed before a rotation
+ * still verify. The operator adds the outgoing public JWK to
+ * AUTHAB_JWKS_PREVIOUS before changing JWT_SIGNING_PRIVATE_KEY.
+ */
+function previousJwks(): JWK[] {
+  if (globalForJwt.authabPreviousJwks) return globalForJwt.authabPreviousJwks;
+  const raw = process.env.AUTHAB_JWKS_PREVIOUS?.trim();
+  if (!raw) {
+    globalForJwt.authabPreviousJwks = [];
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) throw new Error("AUTHAB_JWKS_PREVIOUS must be a JSON array of public JWKs.");
+    const keys = parsed
+      .filter(
+        (entry): entry is JWK =>
+          Boolean(entry) && typeof entry === "object" && (entry as JWK).kty === "OKP" && typeof (entry as JWK).x === "string",
+      )
+      .map((entry) => ({
+        ...entry,
+        kid: entry.kid ?? String(entry.x).slice(0, 16),
+        use: entry.use ?? "sig",
+        alg: entry.alg ?? "EdDSA",
+      }));
+    globalForJwt.authabPreviousJwks = keys;
+    return keys;
+  } catch (error) {
+    console.error("[authab] AUTHAB_JWKS_PREVIOUS is not valid JSON; retired keys are not published.", error);
+    globalForJwt.authabPreviousJwks = [];
+    return [];
+  }
+}
 
 async function signingKey() {
   if (!globalForJwt.authabSignKey) {
@@ -46,7 +82,33 @@ async function jwks() {
 
 export async function getJwks() {
   const { keys } = await jwks();
-  return { keys };
+  return { keys: [...keys, ...previousJwks()] };
+}
+
+export async function getSigningKeyId() {
+  const { kid } = await jwks();
+  return kid;
+}
+
+/** Sign an arbitrary platform document as a compact JWS with the platform key. */
+export async function signPlatformJws(payload: Record<string, unknown>, typ: string) {
+  const key = await signingKey();
+  const kid = await getSigningKeyId();
+  return new SignJWT(payload).setProtectedHeader({ alg: "EdDSA", kid, typ }).sign(key);
+}
+
+export async function verifyPlatformJws(token: string) {
+  const { keys } = await getJwks();
+  const { importJWK } = await import("jose");
+  for (const jwk of keys) {
+    try {
+      const key = await importJWK(jwk, "EdDSA");
+      return await jwtVerify(token, key, { issuer: ISSUER, algorithms: ["EdDSA"] });
+    } catch {
+      // Try the next published key; a retired key may be the signer.
+    }
+  }
+  throw new Error("The document was not signed by a published platform key.");
 }
 
 export type AgentTokenClaims = {
@@ -120,16 +182,23 @@ export async function signAgentToken(
 }
 
 export async function verifyAgentToken(token: string) {
-  const { keys } = await jwks();
-  const publicKey = keys[0];
+  const { keys } = await getJwks();
   const { importJWK } = await import("jose");
-  const key = await importJWK(publicKey, "EdDSA");
-  const { payload } = await jwtVerify(token, key, {
-    issuer: ISSUER,
-    audience: AUDIENCE,
-    algorithms: ["EdDSA"],
-  });
-  return payload;
+  let lastError: unknown = null;
+  for (const publicKey of keys) {
+    try {
+      const key = await importJWK(publicKey, "EdDSA");
+      const { payload } = await jwtVerify(token, key, {
+        issuer: ISSUER,
+        audience: AUDIENCE,
+        algorithms: ["EdDSA"],
+      });
+      return payload;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError ?? new Error("No platform key could verify this token.");
 }
 
 export function decodeAgentToken(token: string) {

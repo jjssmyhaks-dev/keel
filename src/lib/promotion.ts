@@ -4,6 +4,8 @@ import { auditEvent } from "./audit";
 import { dispatchEvent } from "./webhooks";
 import { notify } from "./notifications";
 import { checkPlanLimit, isBillingActive } from "./limits";
+import { issueIdentityDocumentSafe } from "./identity-document";
+import { recordPolicyEvent } from "./policy-events";
 
 type Readiness = { level: "pass" | "warn" | "fail"; label: string; detail: string }[];
 
@@ -219,6 +221,8 @@ export async function promoteAgent(opts: {
       ownerUserId: dev.ownerUserId,
       publicKey: identity.publicKey,
       fingerprint: identity.fingerprint,
+      agentType: dev.agentType,
+      verificationVisibility: dev.verificationVisibility,
       keyMode: "client",
       tagsJson: dev.tagsJson,
       framework: dev.framework,
@@ -227,6 +231,7 @@ export async function promoteAgent(opts: {
       keys: { create: { publicKey: identity.publicKey } },
     },
   });
+  await issueIdentityDocumentSafe(prodAgent.id);
 
   const copied: { connector: string; granted: boolean; actions: string[] }[] = [];
   for (const grant of dev.grants) {
@@ -236,7 +241,7 @@ export async function promoteAgent(opts: {
       copied.push({ connector: grant.credential.connectorSlug, granted: false, actions });
       continue;
     }
-    await db.grant.create({
+    const created = await db.grant.create({
       data: {
         environmentId: prodEnv.id,
         agentId: prodAgent.id,
@@ -250,6 +255,20 @@ export async function promoteAgent(opts: {
         expiresAt: grant.expiresAt,
       },
     });
+    await recordPolicyEvent({
+      environmentId: prodEnv.id,
+      organizationId: org.id,
+      agentId: prodAgent.id,
+      agentType: prodAgent.agentType,
+      subject: "grant",
+      grantId: created.id,
+      connectorSlug: grant.credential.connectorSlug,
+      actions,
+      resourcePattern: grant.resourcePattern,
+      approvalMode: created.approvalMode,
+      conditions: JSON.parse(grant.conditionsJson || "{}"),
+      changeKind: "create",
+    });
     copied.push({ connector: grant.credential.connectorSlug, granted: true, actions });
   }
 
@@ -262,6 +281,23 @@ export async function promoteAgent(opts: {
         mode: p.mode,
       })),
     });
+    const policies = await db.approvalPolicy.findMany({
+      where: { environmentId: prodEnv.id, agentId: prodAgent.id },
+      select: { id: true, actionPattern: true, mode: true },
+    });
+    for (const policy of policies) {
+      await recordPolicyEvent({
+        environmentId: prodEnv.id,
+        organizationId: org.id,
+        agentId: prodAgent.id,
+        agentType: prodAgent.agentType,
+        subject: "approval_policy",
+        approvalPolicyId: policy.id,
+        actions: policy.actionPattern.split(",").map((value) => value.trim()).filter(Boolean),
+        approvalMode: policy.mode,
+        changeKind: "create",
+      });
+    }
   }
 
   const promotion = await db.promotion.create({

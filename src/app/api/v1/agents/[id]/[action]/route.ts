@@ -15,6 +15,8 @@ import { dispatchEvent } from "@/lib/webhooks";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { serializeAgent } from "@/lib/serializers";
 import { promoteAgent, previewPromotion } from "@/lib/promotion";
+import { issueIdentityDocumentSafe } from "@/lib/identity-document";
+import { recordRevocation } from "@/lib/revocations";
 
 const STATUS_ACTIONS: Record<string, { status: string; action: string; label: string }> = {
   pause: { status: "paused", action: "agent.paused", label: "paused" },
@@ -153,6 +155,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string; ac
         status: "revoked",
         killSwitch: true,
       });
+      await recordRevocation(agent.id, auth.environment.id, "owner_revoked");
+      await issueIdentityDocumentSafe(agent.id);
       return apiOk({ ...serializeAgent(updated), killSwitch: true });
     }
 
@@ -180,6 +184,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string; ac
         name: agent.name,
         status: target.status,
       });
+      if (target.status === "revoked") await recordRevocation(agent.id, auth.environment.id, "owner_revoked");
+      await issueIdentityDocumentSafe(agent.id);
       return apiOk(serializeAgent(updated));
     }
 
@@ -209,6 +215,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string; ac
         ip: clientIp(req),
         payloadSummary: { oldFingerprint: agent.fingerprint, newFingerprint: identity.fingerprint, graceDays: 7 },
       });
+      await issueIdentityDocumentSafe(agent.id);
       return apiOk({
         ...serializeAgent(updated),
         keyId: newKey.id,

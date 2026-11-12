@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { generateAgentIdentity, encryptSecret, hashPassword, sha256 } from "../src/lib/crypto";
 import { auditEvent } from "../src/lib/audit";
 import { storeWebhookSecret } from "../src/lib/webhooks";
+import { issueIdentityDocumentSafe } from "../src/lib/identity-document";
 
 const db = new PrismaClient();
 
@@ -196,6 +197,7 @@ async function main() {
     status?: string;
     tags: string[];
     framework?: string;
+    agentType?: string;
     autonomous?: boolean;
     lastActiveMinutes?: number;
     promotedFrom?: string;
@@ -216,6 +218,7 @@ async function main() {
         keyMode: "platform",
         tagsJson: JSON.stringify(opts.tags),
         framework: opts.framework,
+        agentType: opts.agentType ?? "other",
         autonomousMode: opts.autonomous ?? false,
         promotedFromAgentId: opts.promotedFrom,
         lastActiveAt: opts.lastActiveMinutes ? minutesAgo(opts.lastActiveMinutes) : null,
@@ -242,6 +245,7 @@ async function main() {
     ownerId: demo.id,
     tags: ["research", "customer-facing"],
     framework: "LangGraph",
+    agentType: "research",
     lastActiveMinutes: 2,
   });
   const concierge = await createAgent({
@@ -252,6 +256,7 @@ async function main() {
     ownerId: demo.id,
     tags: ["support", "customer-facing", "tier-1"],
     framework: "OpenAI Agents SDK",
+    agentType: "support",
     lastActiveMinutes: 1,
   });
   const ledger = await createAgent({
@@ -262,6 +267,7 @@ async function main() {
     ownerId: maya.id,
     tags: ["finance", "sensitive"],
     framework: "CrewAI",
+    agentType: "finance",
     lastActiveMinutes: 17,
   });
   const digest = await createAgent({
@@ -272,6 +278,7 @@ async function main() {
     ownerId: rohan.id,
     status: "paused",
     tags: ["internal"],
+    agentType: "operations",
     lastActiveMinutes: 640,
   });
   const sentinel = await createAgent({
@@ -282,6 +289,7 @@ async function main() {
     ownerId: rohan.id,
     status: "suspended",
     tags: ["platform"],
+    agentType: "operations",
     lastActiveMinutes: 2600,
   });
   const scout = await createAgent({
@@ -292,6 +300,7 @@ async function main() {
     ownerId: demo.id,
     tags: ["delegated", "research"],
     framework: "LangGraph",
+    agentType: "research",
     lastActiveMinutes: 44,
   });
 
@@ -303,6 +312,7 @@ async function main() {
     ownerId: demo.id,
     tags: ["research", "customer-facing"],
     framework: "LangGraph",
+    agentType: "research",
     lastActiveMinutes: 5,
     promotedFrom: atlas.id,
     safeLaunchDays: 14,
@@ -315,6 +325,7 @@ async function main() {
     ownerId: demo.id,
     tags: ["support", "customer-facing"],
     framework: "OpenAI Agents SDK",
+    agentType: "support",
     lastActiveMinutes: 9,
     promotedFrom: concierge.id,
   });
@@ -1092,6 +1103,87 @@ async function main() {
     outcome: "recorded",
     timestamp: new Date(Date.now() - 12 * 86400_000),
     payloadSummary: { devAgent: "Atlas Research", prodAgent: "Atlas Research", safeLaunch: true },
+  });
+
+  for (const agent of [atlas, concierge, ledger, digest, sentinel, scout, atlasProd, conciergeProd]) {
+    await issueIdentityDocumentSafe(agent.id);
+  }
+
+  await db.agentEvent.createMany({
+    data: [
+      {
+        environmentId: dev.id,
+        organizationId: org.id,
+        agentId: atlas.id,
+        agentType: "research",
+        contributes: org.dataContributionEnabled,
+        requestId: "req_seed_atlas_1",
+        connectorSlug: "slack",
+        action: "slack.post_message",
+        riskClass: "write",
+        resourceType: "message",
+        decision: "allowed",
+        decisionReasonCode: "granted",
+        upstreamStatusClass: "2xx",
+        latencyMs: 412,
+        costUnits: 1,
+        occurredAt: minutesAgo(3),
+      },
+      {
+        environmentId: dev.id,
+        organizationId: org.id,
+        agentId: concierge.id,
+        agentType: "support",
+        contributes: org.dataContributionEnabled,
+        requestId: "req_seed_concierge_1",
+        connectorSlug: "hubspot",
+        action: "hubspot.update_contact",
+        riskClass: "write",
+        resourceType: "contact",
+        decision: "denied",
+        decisionReasonCode: "action_not_granted",
+        latencyMs: 8,
+        occurredAt: minutesAgo(11),
+      },
+      {
+        environmentId: dev.id,
+        organizationId: org.id,
+        agentId: ledger.id,
+        agentType: "finance",
+        contributes: org.dataContributionEnabled,
+        requestId: "req_seed_ledger_1",
+        connectorSlug: "stripe",
+        action: "stripe.create_refund",
+        riskClass: "financial",
+        resourceType: "refund",
+        decision: "approved",
+        decisionReasonCode: "approval_approved",
+        approvalLatencyMs: 214_000,
+        upstreamStatusClass: "2xx",
+        latencyMs: 630,
+        costUnits: 1,
+        occurredAt: minutesAgo(42),
+      },
+      {
+        environmentId: dev.id,
+        organizationId: org.id,
+        agentId: scout.id,
+        agentType: "research",
+        contributes: org.dataContributionEnabled,
+        requestId: "req_seed_scout_1",
+        connectorSlug: "slack",
+        action: "slack.post_message",
+        riskClass: "write",
+        resourceType: "message",
+        decision: "errored",
+        decisionReasonCode: "provider_error",
+        upstreamStatusClass: "5xx",
+        latencyMs: 2_400,
+        costUnits: 0,
+        delegationDepth: 1,
+        occurredAt: minutesAgo(44),
+      },
+    ],
   });
 
   const counts = {

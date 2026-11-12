@@ -20,11 +20,13 @@ export const DOCS_NAV: DocsNavGroup[] = [
     label: "Concepts",
     links: [
       { name: "Agent identity", href: "/docs/concepts/identity" },
+      { name: "Identity and revocation", href: "/docs/concepts/agent-identity-and-revocation" },
       { name: "Credential vault", href: "/docs/concepts/vault" },
       { name: "Grants", href: "/docs/concepts/grants" },
       { name: "Policy engine", href: "/docs/concepts/policy" },
       { name: "Approvals", href: "/docs/concepts/approvals" },
       { name: "Audit trail", href: "/docs/concepts/audit" },
+      { name: "Agent events", href: "/docs/concepts/agent-events" },
       { name: "Environments", href: "/docs/concepts/environments" },
     ],
   },

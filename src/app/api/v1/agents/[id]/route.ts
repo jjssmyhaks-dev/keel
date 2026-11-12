@@ -3,6 +3,9 @@ import { apiOk, handleApiError, authenticateApiKey, requireSecretKey, parseJson,
 import { serializeAgent } from "@/lib/serializers";
 import { auditEvent } from "@/lib/audit";
 import { dispatchEvent } from "@/lib/webhooks";
+import { isAgentType } from "@/lib/agent-types";
+import { isVerificationVisibility, issueIdentityDocumentSafe } from "@/lib/identity-document";
+import { recordRevocation } from "@/lib/revocations";
 
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
@@ -56,7 +59,15 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       tags?: string[];
       framework?: string | null;
       autonomousMode?: boolean;
+      type?: string;
+      verificationVisibility?: string;
     }>(req);
+    if (body.type !== undefined && !isAgentType(body.type)) {
+      throw new ApiError(422, "invalid_agent_type", "Type must be one of support, sales, finance, coding, research, operations, data or other.");
+    }
+    if (body.verificationVisibility !== undefined && !isVerificationVisibility(body.verificationVisibility)) {
+      throw new ApiError(422, "invalid_visibility", "Visibility must be public, limited or private.");
+    }
 
     const updated = await db.agent.update({
       where: { id: agent.id },
@@ -66,8 +77,32 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
         ...(body.tags !== undefined ? { tagsJson: JSON.stringify(body.tags.slice(0, 12)) } : {}),
         ...(body.framework !== undefined ? { framework: body.framework?.slice(0, 60) || null } : {}),
         ...(body.autonomousMode !== undefined ? { autonomousMode: Boolean(body.autonomousMode) } : {}),
+        ...(body.type !== undefined ? { agentType: body.type } : {}),
+        ...(body.verificationVisibility !== undefined
+          ? { verificationVisibility: body.verificationVisibility }
+          : {}),
       },
     });
+
+    await auditEvent({
+      environmentId: auth.environment.id,
+      actorType: "human",
+      actorId: auth.apiKeyId,
+      actorName: "API key",
+      agentId: agent.id,
+      action: "agent.updated",
+      resourceType: "agent",
+      resourceId: agent.id,
+      outcome: "recorded",
+      ip: clientIp(req),
+      payloadSummary: {
+        name: updated.name,
+        type: updated.agentType,
+        visibility: updated.verificationVisibility,
+        autonomousMode: updated.autonomousMode,
+      },
+    });
+    if (body.verificationVisibility !== undefined) await issueIdentityDocumentSafe(agent.id);
 
     return apiOk(serializeAgent(updated));
   } catch (error) {
@@ -106,6 +141,8 @@ export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }
       name: agent.name,
       status: "revoked",
     });
+    await recordRevocation(agent.id, auth.environment.id, "owner_revoked");
+    await issueIdentityDocumentSafe(agent.id);
 
     return apiOk({ ...serializeAgent(updated), revoked: true });
   } catch (error) {

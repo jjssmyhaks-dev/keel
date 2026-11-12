@@ -104,6 +104,15 @@ export default function PrivacyPage() {
         say so, and are encrypted at rest with the same mechanism.
       </p>
 
+      <h2 id="usage-statistics">Anonymized usage statistics</h2>
+      <p>
+        We use anonymized usage statistics, such as decision types, action names, timing and counts, to improve default
+        permission suggestions and agent reputation scoring. These statistics never include the content of requests or
+        responses, resource names, credentials or personal data, and are only combined across customers in groups large
+        enough that no single customer can be identified. You can turn this off in your organization settings at any
+        time.
+      </p>
+
       <h2 id="legal-basis">Legal bases</h2>
       <ul>
         <li><strong>Contract</strong> — to provide the service you signed up for, including billing and support.</li>

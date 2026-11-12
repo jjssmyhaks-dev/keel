@@ -1,5 +1,5 @@
 import { readFile, writeFile } from "node:fs/promises";
-import { Authab, AuthabError, type Approval, type GrantConditions } from "@authab/sdk";
+import { Authab, AuthabError, type AgentType, type Approval, type GrantConditions } from "@authab/sdk";
 import {
   UsageError,
   flagBool,
@@ -26,7 +26,8 @@ Authentication
 
 Agents
   authab agents list [--status active] [--tag research] [--json]
-  authab agents create --name "Atlas" [--description ...] [--framework ...] [--tag ...]
+  authab agents create --name "Atlas" [--description ...] [--framework ...] [--type support] [--tag ...]
+  authab agents identity <id> [--json]
   authab agents token <id> [--ttl 300] [--json]
   authab agents pause|resume <id>
   authab agents kill <id> --yes
@@ -215,6 +216,7 @@ async function agents(args: ParsedArgs) {
       name,
       description: flagString(args, "description"),
       framework: flagString(args, "framework"),
+      type: flagString(args, "type") as AgentType | undefined,
       tags: flagList(args, "tag"),
       keyMode: keyMode as "client" | "platform" | undefined,
       publicKey: flagString(args, "public-key"),
@@ -230,6 +232,24 @@ async function agents(args: ParsedArgs) {
       process.stdout.write(`\nPrivate key (shown once):\n${agent.privateKey}\n`);
       process.stderr.write("Store this key securely. Authab cannot show it again.\n");
     }
+    return;
+  }
+
+  if (sub === "identity") {
+    const id = requiredId(rest[0], "agent");
+    const identity = await authab.agents.identityDocument(id);
+    if (json) return printJson(identity);
+    kv([
+      ["Agent", identity.agentId],
+      ["Document", `#${identity.docSeq}`],
+      ["Environment", identity.document.environment],
+      ["Status", identity.document.status],
+      ["Visibility", identity.document.visibility],
+      ["Fingerprint", identity.document.key_fingerprint],
+      ["Org ref", identity.document.org_ref],
+      ["Issued", identity.issuedAt],
+    ]);
+    process.stdout.write(`\nJWS:\n${identity.jws}\n`);
     return;
   }
 

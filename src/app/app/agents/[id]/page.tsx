@@ -6,6 +6,7 @@ import { getContext } from "@/lib/session";
 import { actionLabel } from "@/lib/audit";
 import { loadConnectorMap } from "@/lib/custom-connectors";
 import { formatFingerprint } from "@/lib/crypto";
+import { AGENT_TYPES, agentTypeLabel } from "@/lib/agent-types";
 import {
   setAgentStatusAction,
   killSwitchAction,
@@ -156,6 +157,7 @@ export default async function AgentDetailPage({
               <Row label="Key mode" value={agent.keyMode === "client" ? "Client-held (BYOK)" : "Authab-managed"} />
               <Row label="Owner" value={agent.owner ? `${agent.owner.name} · ${agent.owner.email}` : "Unassigned"} />
               <Row label="Framework" value={agent.framework ?? "—"} />
+              <Row label="Agent type" value={agentTypeLabel(agent.agentType)} />
               <Row label="Created" value={formatDate(agent.createdAt)} />
               <Row label="Last active" value={agent.lastActiveAt ? formatDate(agent.lastActiveAt) : "Never"} />
               {agent.promotedFromAgentId ? (
@@ -546,6 +548,23 @@ export default async function AgentDetailPage({
                   defaultValue={agent.framework ?? ""}
                   className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-2 text-[12px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
                 />
+              </div>
+              <div>
+                <label htmlFor="type" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
+                  Agent type
+                </label>
+                <select
+                  id="type"
+                  name="type"
+                  defaultValue={agent.agentType}
+                  className="mt-1 w-full border border-black/45 bg-[#faf9f6] px-2.5 py-2 text-[12px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
+                >
+                  {AGENT_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {agentTypeLabel(type)}
+                    </option>
+                  ))}
+                </select>
               </div>
               <label className="flex items-start gap-2 text-[11px] leading-relaxed text-black/65 dark:text-muted-foreground">
                 <input type="checkbox" name="autonomousMode" defaultChecked={agent.autonomousMode} className="mt-0.5 size-3.5 accent-black" />

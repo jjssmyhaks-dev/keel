@@ -38,6 +38,11 @@ const agentSchema = {
     keyMode: { type: "string", enum: ["client", "platform"] },
     tags: { type: "array", items: { type: "string" } },
     framework: nullableString,
+    type: {
+      type: "string",
+      enum: ["support", "sales", "finance", "coding", "research", "operations", "data", "other"],
+    },
+    verificationVisibility: { type: "string", enum: ["public", "limited", "private"] },
     autonomousMode: { type: "boolean" },
     safeLaunchUntil: { type: ["string", "null"], format: "date-time" },
     environmentId: { type: "string" },
@@ -342,6 +347,10 @@ export function buildOpenApiDocument() {
                 description: { type: "string" },
                 tags: { type: "array", items: { type: "string" } },
                 framework: { type: "string" },
+                type: {
+                  type: "string",
+                  enum: ["support", "sales", "finance", "coding", "research", "operations", "data", "other"],
+                },
                 publicKey: { type: "string", description: "PEM public key for bring-your-own-key mode." },
                 keyMode: { type: "string", enum: ["client", "platform"] },
                 autonomousMode: { type: "boolean" },
@@ -367,6 +376,23 @@ export function buildOpenApiDocument() {
           tags: ["Agents"],
           summary: "Update an agent",
           parameters: [idParam],
+          requestBody: {
+            content: json({
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                description: { type: ["string", "null"] },
+                tags: { type: "array", items: { type: "string" } },
+                framework: { type: ["string", "null"] },
+                type: {
+                  type: "string",
+                  enum: ["support", "sales", "finance", "coding", "research", "operations", "data", "other"],
+                },
+                verificationVisibility: { type: "string", enum: ["public", "limited", "private"] },
+                autonomousMode: { type: "boolean" },
+              },
+            }),
+          },
           responses: { "200": { description: "Updated agent", content: json(agentSchema) } },
         },
         delete: {
@@ -407,6 +433,52 @@ export function buildOpenApiDocument() {
           responses: {
             "200": { description: "Token or updated agent" },
             "401": { description: "Signature required or invalid", content: json(error) },
+          },
+        },
+      },
+      "/agents/{id}/identity-document": {
+        get: {
+          tags: ["Agents"],
+          summary: "Retrieve the signed identity document for an agent",
+          description:
+            "Returns the current EdDSA-signed identity document (`typ` = `agent-identity+jwt`) and its compact JWS. Document `doc_seq` increments on every re-issue; exactly one document per agent is current.",
+          parameters: [idParam],
+          responses: {
+            "200": {
+              description: "Current identity document",
+              content: json({
+                type: "object",
+                properties: {
+                  agentId: { type: "string" },
+                  docSeq: { type: "integer", example: 3 },
+                  document: {
+                    type: "object",
+                    properties: {
+                      v: { type: "integer", example: 1 },
+                      iss: { type: "string" },
+                      iat: { type: "integer" },
+                      doc_seq: { type: "integer" },
+                      agent_id: { type: "string" },
+                      key_fingerprint: { type: "string" },
+                      public_jwk: {
+                        type: "object",
+                        properties: { kty: { type: "string" }, crv: { type: "string" }, x: { type: "string" } },
+                      },
+                      org_ref: { type: "string" },
+                      environment: { type: "string", enum: ["development", "production"] },
+                      status: { type: "string", enum: ["active", "paused", "suspended", "revoked"] },
+                      visibility: { type: "string", enum: ["public", "limited", "private"] },
+                      created_at: { type: "string", format: "date-time" },
+                    },
+                  },
+                  jws: { type: "string" },
+                  issuerKeyId: { type: "string" },
+                  issuedAt: { type: "string", format: "date-time" },
+                },
+              }),
+            },
+            "404": { description: "Agent not found in this environment", content: json(error) },
+            "503": { description: "The document could not be issued; retry", content: json(error) },
           },
         },
       },
@@ -1068,6 +1140,34 @@ export function buildOpenApiDocument() {
           summary: "Delete a webhook endpoint",
           parameters: [idParam],
           responses: { "200": { description: "Endpoint deleted" } },
+        },
+      },
+      "/revocations": {
+        get: {
+          tags: ["Agents"],
+          summary: "List revocations in this environment",
+          description:
+            "Returns a signed revocation list (`typ` = `agent-revocations+jwt`) scoped to the caller's environment. `etag` is the SHA-256 of the revoked list alone; send it as `If-None-Match` to receive 304. Responses use `Cache-Control: private, max-age=30`.",
+          parameters: [
+            { name: "since", in: "query", schema: { type: "string", format: "date-time" } },
+            { name: "limit", in: "query", schema: { type: "integer", default: 1000, maximum: 5000 } },
+            { name: "cursor", in: "query", schema: { type: "string" } },
+          ],
+          responses: {
+            "200": {
+              description: "Signed revocation page",
+              content: json({
+                type: "object",
+                properties: {
+                  jws: { type: "string" },
+                  etag: { type: "string" },
+                  next: { type: ["string", "null"] },
+                },
+              }),
+            },
+            "304": { description: "No change since the supplied ETag" },
+            "422": { description: "Invalid since or cursor", content: json(error) },
+          },
         },
       },
       "/jwks": {

@@ -1,6 +1,16 @@
 export type Risk = "read" | "write" | "destructive" | "financial" | "admin";
 export type ApprovalMode = "allow" | "require_approval" | "deny";
 export type AgentStatus = "active" | "paused" | "suspended" | "revoked";
+export type AgentType =
+  | "support"
+  | "sales"
+  | "finance"
+  | "coding"
+  | "research"
+  | "operations"
+  | "data"
+  | "other";
+export type VerificationVisibility = "public" | "limited" | "private";
 
 export interface List<T> {
   object: "list";
@@ -18,6 +28,8 @@ export interface Agent {
   keyMode: "client" | "platform";
   tags: string[];
   framework: string | null;
+  type: AgentType;
+  verificationVisibility: VerificationVisibility;
   autonomousMode: boolean;
   safeLaunchUntil: string | null;
   ownerUserId: string | null;
@@ -70,6 +82,7 @@ export interface CreateAgentInput {
   description?: string;
   tags?: string[];
   framework?: string;
+  type?: AgentType;
   publicKey?: string;
   keyMode?: "client" | "platform";
   owner?: string;
@@ -81,7 +94,31 @@ export interface UpdateAgentInput {
   description?: string | null;
   tags?: string[];
   framework?: string | null;
+  type?: AgentType;
+  verificationVisibility?: VerificationVisibility;
   autonomousMode?: boolean;
+}
+
+export interface AgentIdentityDocument {
+  agentId: string;
+  docSeq: number;
+  document: {
+    v: number;
+    iss: string;
+    iat: number;
+    doc_seq: number;
+    agent_id: string;
+    key_fingerprint: string;
+    public_jwk: { kty: "OKP"; crv: "Ed25519"; x: string };
+    org_ref: string;
+    environment: "development" | "production";
+    status: AgentStatus;
+    visibility: VerificationVisibility;
+    created_at: string;
+  };
+  jws: string;
+  issuerKeyId: string;
+  issuedAt: string;
 }
 
 export interface TokenOptions {

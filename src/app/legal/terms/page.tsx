@@ -27,8 +27,7 @@ export default function TermsPage() {
         conflict. The <Link href="/legal/dpa">data processing agreement</Link> forms part of this agreement.
       </p>
 
-      <h2 id="service">2. What we provide</h2>
-      <p>
+      <h2 id="service">2. What we provide</h2>      <p>
         Authab is an identity, credential vault and governance layer for AI agents. The service includes the dashboard,
         API, agent proxy, approval workflow and audit trail.
       </p>
@@ -36,6 +35,11 @@ export default function TermsPage() {
         We will provide the service with reasonable skill and care, maintain it as described on the{" "}
         <Link href="/status">status page</Link>, and give at least 30 days&apos; notice before removing a generally
         available feature. We may add features, and some may be gated by plan.
+      </p>
+      <p>
+        We also use anonymized usage statistics, as described in the{" "}
+        <Link href="/legal/privacy#usage-statistics">privacy policy</Link>, to improve default policies and agent
+        reputation; you can turn contribution off in your organization settings at any time.
       </p>
 
       <h2 id="accounts">3. Accounts and security</h2>

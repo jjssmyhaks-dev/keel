@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getContext } from "@/lib/session";
 import { createAgentAction } from "@/app/app/actions";
 import { PageHeader, Notice } from "@/components/app/ui";
+import { AGENT_TYPES, agentTypeLabel } from "@/lib/agent-types";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,9 @@ export default async function NewAgentPage({
               ? "Give the agent a name of at least two characters."
               : error === "permission"
                 ? "Your role cannot register agents in this environment."
-                : error === "plan"
+                : error === "type"
+                  ? "Pick an agent type from the list."
+                  : error === "plan"
                   ? "Production mode requires a paid plan. Upgrade the workspace in Billing."
                   : error === "limit"
                     ? "This plan's agent limit is reached. Upgrade the workspace in Billing to register more agents."
@@ -110,6 +113,27 @@ export default async function NewAgentPage({
                 />
                 <p className="mt-1 text-[10px] text-black/60 dark:text-muted-foreground">Comma separated. Used for filtering.</p>
               </div>
+            </div>
+
+            <div>
+              <label htmlFor="type" className="font-mono text-[9px] uppercase tracking-[0.18em] text-black/60 dark:text-muted-foreground">
+                Agent type
+              </label>
+              <select
+                id="type"
+                name="type"
+                defaultValue="other"
+                className="mt-1.5 w-full border border-black/45 bg-[#faf9f6] px-3 py-2 text-[13px] outline-none focus:border-black dark:border-white/40 dark:bg-background"
+              >
+                {AGENT_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {agentTypeLabel(type)}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-[10px] text-black/60 dark:text-muted-foreground">
+                Groups policy suggestions and reputation. It does not grant access.
+              </p>
             </div>
 
             <div className="border border-black/10 bg-[#faf9f6] p-3 dark:border-border dark:bg-background">

@@ -21,6 +21,12 @@ import { redact, redactedFieldNames } from "@/lib/redaction";
 import { serializeApproval } from "@/lib/serializers";
 import { checkPlanLimit, productionAccess } from "@/lib/limits";
 import { approvalUrlFor } from "@/lib/signed-links";
+import {
+  delegationDepthFromClaims,
+  mapPolicySource,
+  recordAgentEvent,
+  resourceTypeOf,
+} from "@/lib/agent-events";
 
 export async function POST(req: Request, ctx: { params: Promise<{ connector: string }> }) {
   try {
@@ -81,12 +87,45 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
     const limit = settings.agentRateLimitPerMinute ?? 120;
     const rate = await consumeRateLimit(`proxy:${auth.agent.id}`, limit);
     if (!rate.allowed) {
+      await recordAgentEvent({
+        environmentId: auth.environment.id,
+        organizationId: org.id,
+        agentId: auth.agent.id,
+        agentType: auth.agent.agentType,
+        requestId: requestId(),
+        connectorSlug: connectorDef.slug,
+        action: actionName,
+        riskClass: connectorDef.actions.find((entry) => entry.name === actionName)?.risk ?? "write",
+        resourceType: resourceTypeOf(connectorDef.actions.find((entry) => entry.name === actionName), connectorDef),
+        decision: "denied",
+        decisionReasonCode: "rate_limited",
+        delegationDepth: delegationDepthFromClaims(auth.claims),
+        isSandbox: connectorDef.sandbox,
+        credentialId: credential.id,
+      });
       throw new ApiError(429, "rate_limited", `Rate limit of ${limit} calls/minute reached for this agent.`);
     }
 
     const scopes = Array.isArray(auth.claims.scopes) ? (auth.claims.scopes as string[]) : [];
     const scopeEnforced = auth.claims.scope_enforced === true || scopes.length > 0;
     if (scopeEnforced && !scopes.some((scope) => scope === "*" || scope === actionName || globMatch(scope, actionName))) {
+      const scopedAction = connectorDef.actions.find((entry) => entry.name === actionName);
+      await recordAgentEvent({
+        environmentId: auth.environment.id,
+        organizationId: org.id,
+        agentId: auth.agent.id,
+        agentType: auth.agent.agentType,
+        requestId: requestId(),
+        connectorSlug: connectorDef.slug,
+        action: actionName,
+        riskClass: scopedAction?.risk ?? "write",
+        resourceType: resourceTypeOf(scopedAction, connectorDef),
+        decision: "denied",
+        decisionReasonCode: "scope_not_granted",
+        delegationDepth: delegationDepthFromClaims(auth.claims),
+        isSandbox: connectorDef.sandbox,
+        credentialId: credential.id,
+      });
       throw new ApiError(
         403,
         "scope_not_granted",
@@ -187,6 +226,22 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
     };
 
     if (decision.effect === "deny") {
+      await recordAgentEvent({
+        environmentId: auth.environment.id,
+        organizationId: org.id,
+        agentId: auth.agent.id,
+        agentType: auth.agent.agentType,
+        requestId: rid,
+        connectorSlug: connectorDef.slug,
+        action: actionName,
+        riskClass: decision.risk,
+        resourceType: resourceTypeOf(decision.action, connectorDef),
+        decision: "denied",
+        decisionReasonCode: mapPolicySource(decision.source),
+        delegationDepth: delegationDepthFromClaims(auth.claims),
+        isSandbox: connectorDef.sandbox,
+        credentialId: credential.id,
+      });
       await auditEvent({
         environmentId: auth.environment.id,
         actorType: "agent",
@@ -248,6 +303,22 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
         requestId: rid,
         reason: decision.reason,
       });
+      await recordAgentEvent({
+        environmentId: auth.environment.id,
+        organizationId: org.id,
+        agentId: auth.agent.id,
+        agentType: auth.agent.agentType,
+        requestId: rid,
+        connectorSlug: connectorDef.slug,
+        action: actionName,
+        riskClass: decision.risk,
+        resourceType: resourceTypeOf(decision.action, connectorDef),
+        decision: "pending_approval",
+        decisionReasonCode: "approval_required",
+        delegationDepth: delegationDepthFromClaims(auth.claims),
+        isSandbox: connectorDef.sandbox,
+        credentialId: credential.id,
+      });
       return finish(202, {
         status: "pending_approval",
         approval: serializeApproval(approval),
@@ -267,6 +338,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
       resource: body.resource,
       requestId: rid,
       ip,
+      delegationDepth: delegationDepthFromClaims(auth.claims),
       decision: {
         effect: decision.effect,
         risk: decision.risk,

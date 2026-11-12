@@ -30,6 +30,10 @@ import {
   updateStripeCustomerBilling,
 } from "@/lib/stripe";
 import { TRIAL_DAYS, parseBillingAddress, trialEligible } from "@/lib/billing-rules";
+import { isAgentType } from "@/lib/agent-types";
+import { issueIdentityDocumentSafe } from "@/lib/identity-document";
+import { recordRevocation } from "@/lib/revocations";
+import { recordPolicyEvent } from "@/lib/policy-events";
 
 function str(form: FormData, key: string) {
   return String(form.get(key) ?? "").trim();
@@ -119,6 +123,7 @@ export async function setAgentStatusAction(formData: FormData) {
     payloadSummary: { name: agent.name, from: agent.status, to: status },
   });
   await dispatchEvent(ctx.environment.id, "agent.status_changed", { agentId: agent.id, name: agent.name, status });
+  await issueIdentityDocumentSafe(agent.id);
   revalidatePath("/app", "layout");
   redirect(back);
 }
@@ -159,6 +164,8 @@ export async function killSwitchAction(formData: FormData) {
     status: "revoked",
     killSwitch: true,
   });
+  await recordRevocation(agent.id, ctx.environment.id, "owner_revoked");
+  await issueIdentityDocumentSafe(agent.id);
   revalidatePath("/app", "layout");
   redirect(back);
 }
@@ -209,6 +216,7 @@ export async function rotateAgentKeyAction(formData: FormData) {
     ip: meta.ip,
     payloadSummary: { oldFingerprint: agent.fingerprint, newFingerprint: identity.fingerprint, graceDays: 7 },
   });
+  await issueIdentityDocumentSafe(agent.id);
   revalidatePath(back);
   redirect(`${back}?rotated=1`);
 }
@@ -225,6 +233,8 @@ export async function createAgentAction(formData: FormData) {
   const name = str(formData, "name").slice(0, 60);
   const description = str(formData, "description").slice(0, 400);
   const framework = str(formData, "framework").slice(0, 60);
+  const agentType = str(formData, "type") || "other";
+  if (!isAgentType(agentType)) redirect("/app/agents/new?error=type");
   const tags = str(formData, "tags")
     .split(",")
     .map((tag) => tag.trim())
@@ -245,6 +255,7 @@ export async function createAgentAction(formData: FormData) {
       ownerUserId: ctx.user.id,
       publicKey: identity.publicKey,
       fingerprint: identity.fingerprint,
+      agentType,
       keyMode: "platform",
       tagsJson: JSON.stringify(tags),
       framework: framework || null,
@@ -270,7 +281,7 @@ export async function createAgentAction(formData: FormData) {
     resourceId: agent.id,
     outcome: "recorded",
     ip: meta.ip,
-    payloadSummary: { name, keyMode: "platform", fingerprint: identity.fingerprint },
+    payloadSummary: { name, keyMode: "platform", fingerprint: identity.fingerprint, type: agentType },
   });
   await dispatchEvent(ctx.environment.id, "agent.registered", {
     agentId: agent.id,
@@ -278,6 +289,7 @@ export async function createAgentAction(formData: FormData) {
     fingerprint: identity.fingerprint,
     environment: ctx.environment.type,
   });
+  await issueIdentityDocumentSafe(agent.id);
   revalidatePath("/app", "layout");
   redirect(`/app/agents/${agent.id}?created=1`);
 }
@@ -299,6 +311,8 @@ export async function updateAgentAction(formData: FormData) {
     .filter(Boolean)
     .slice(0, 12);
   const autonomousMode = bool(formData, "autonomousMode");
+  const agentType = str(formData, "type") || agent.agentType;
+  if (!isAgentType(agentType)) redirect(`${back}?error=type`);
   const meta = await orgActor(ctx);
 
   await db.agent.update({
@@ -308,6 +322,7 @@ export async function updateAgentAction(formData: FormData) {
       framework: framework || null,
       tagsJson: JSON.stringify(tags),
       autonomousMode,
+      agentType,
     },
   });
   await auditEvent({
@@ -321,7 +336,7 @@ export async function updateAgentAction(formData: FormData) {
     resourceId: agent.id,
     outcome: "recorded",
     ip: meta.ip,
-    payloadSummary: { name: agent.name, autonomousMode, tags },
+    payloadSummary: { name: agent.name, autonomousMode, tags, type: agentType },
   });
   revalidatePath(back);
   redirect(`${back}?saved=1`);
@@ -550,8 +565,27 @@ export async function saveGrantAction(formData: FormData) {
 
   const actions = formData.getAll("actions").map(String).filter(Boolean);
   if (!actions.length) {
+    const removed = await db.grant.findUnique({
+      where: { agentId_credentialId: { agentId: agent.id, credentialId: credential.id } },
+    });
     await db.grant.deleteMany({ where: { agentId: agent.id, credentialId: credential.id } });
     const meta = await orgActor(ctx);
+    if (removed) {
+      await recordPolicyEvent({
+        environmentId: ctx.environment.id,
+        organizationId: ctx.org.id,
+        agentId: agent.id,
+        agentType: agent.agentType,
+        subject: "grant",
+        grantId: removed.id,
+        connectorSlug: credential.connectorSlug,
+        actions: JSON.parse(removed.actionsJson || "[]"),
+        resourcePattern: removed.resourcePattern,
+        approvalMode: removed.approvalMode,
+        conditions: JSON.parse(removed.conditionsJson || "{}"),
+        changeKind: "delete",
+      });
+    }
     await auditEvent({
       environmentId: ctx.environment.id,
       actorType: "human",
@@ -626,6 +660,22 @@ export async function saveGrantAction(formData: FormData) {
       afterJson: JSON.stringify({ actions, resource: resourcePattern, approvalMode, justInTime }),
     },
   });
+
+  await recordPolicyEvent({
+    environmentId: ctx.environment.id,
+    organizationId: ctx.org.id,
+    agentId: agent.id,
+    agentType: agent.agentType,
+    subject: "grant",
+    grantId: grant.id,
+    connectorSlug: credential.connectorSlug,
+    actions,
+    resourcePattern,
+    approvalMode,
+    conditions: JSON.parse(conditionsJson),
+    changeKind: before ? "update" : "create",
+  });
+
   await auditEvent({
     environmentId: ctx.environment.id,
     actorType: "human",
@@ -1241,6 +1291,35 @@ export async function updateProjectAction(formData: FormData) {
   const name = str(formData, "name").slice(0, 80);
   if (!name) redirect("/app/settings?error=name");
   await db.project.update({ where: { id: ctx.project.id }, data: { name } });
+  revalidatePath("/app", "layout");
+  redirect("/app/settings?saved=1");
+}
+
+export async function updateDataContributionAction(formData: FormData) {
+  const ctx = await getContext();
+  if (!ctx.capabilities.manageSecurity) redirect("/app/settings?error=permission");
+  const enabled = bool(formData, "enabled");
+  if (enabled !== ctx.org.dataContributionEnabled) {
+    const meta = await orgActor(ctx);
+    await db.$transaction([
+      db.organization.update({ where: { id: ctx.org.id }, data: { dataContributionEnabled: enabled } }),
+      db.dataContributionChange.create({
+        data: { organizationId: ctx.org.id, enabled, changedBy: ctx.user.id },
+      }),
+    ]);
+    await auditEvent({
+      environmentId: ctx.environment.id,
+      actorType: "human",
+      actorId: meta.actorId,
+      actorName: meta.actorName,
+      action: "org.data_contribution_changed",
+      resourceType: "organization",
+      resourceId: ctx.org.id,
+      outcome: "recorded",
+      ip: meta.ip,
+      payloadSummary: { enabled },
+    });
+  }
   revalidatePath("/app", "layout");
   redirect("/app/settings?saved=1");
 }

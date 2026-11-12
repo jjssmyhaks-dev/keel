@@ -4,6 +4,7 @@ import type {
   Agent,
   AgentCreated,
   AgentDetails,
+  AgentIdentityDocument,
   AgentToken,
   ClientSecret,
   ClientSecretCreated,
@@ -147,6 +148,14 @@ export class AgentsResource {
       diff: unknown;
       safeLaunchUntil: string;
     }>(id, "promote", input);
+  }
+
+  /** The signed EdDSA identity document and its compact JWS. */
+  identityDocument(id: string): Promise<AgentIdentityDocument> {
+    return this.http.request({
+      method: "GET",
+      path: `/agents/${encodeURIComponent(id)}/identity-document`,
+    });
   }
 
   /** Client secrets used for OAuth client_credentials token requests. */

@@ -11,6 +11,7 @@ import {
 } from "@/lib/api";
 import { validateActions } from "@/lib/grants";
 import { auditEvent } from "@/lib/audit";
+import { recordPolicyEvent } from "@/lib/policy-events";
 import { serializeGrant } from "@/lib/serializers";
 
 async function loadGrant(id: string, environmentId: string) {
@@ -124,6 +125,21 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       },
     });
 
+    await recordPolicyEvent({
+      environmentId: auth.environment.id,
+      organizationId: auth.organization.id,
+      agentId: grant.agentId,
+      subject: "grant",
+      grantId: grant.id,
+      connectorSlug: grant.credential.connectorSlug,
+      actions: JSON.parse(updated.actionsJson || "[]"),
+      resourcePattern: updated.resourcePattern,
+      approvalMode: updated.approvalMode,
+      conditions: JSON.parse(updated.conditionsJson || "{}"),
+      changeKind: "update",
+      isSandbox: grant.credential.connectorSlug === "sandbox",
+    });
+
     await auditEvent({
       environmentId: auth.environment.id,
       actorType: "human",
@@ -191,6 +207,21 @@ export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }
         }),
         afterJson: "{}",
       },
+    });
+
+    await recordPolicyEvent({
+      environmentId: auth.environment.id,
+      organizationId: auth.organization.id,
+      agentId: grant.agentId,
+      subject: "grant",
+      grantId: grant.id,
+      connectorSlug: grant.credential.connectorSlug,
+      actions: JSON.parse(grant.actionsJson || "[]"),
+      resourcePattern: grant.resourcePattern,
+      approvalMode: grant.approvalMode,
+      conditions: JSON.parse(grant.conditionsJson || "{}"),
+      changeKind: "delete",
+      isSandbox: grant.credential.connectorSlug === "sandbox",
     });
 
     await auditEvent({

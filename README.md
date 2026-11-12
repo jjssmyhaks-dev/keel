@@ -1,5 +1,7 @@
 # Authab
 
+[![CI](https://github.com/jjssmyhaks-dev/keel/actions/workflows/ci.yml/badge.svg)](https://github.com/jjssmyhaks-dev/keel/actions/workflows/ci.yml)
+
 Authab is identity, vault, and governance for AI agents. Every agent receives a verifiable Ed25519 identity; provider credentials stay in an encrypted vault; each outbound call is evaluated against grants and policy before execution; risky calls route to a human; and the result is appended to an append-only, hash-chained audit log.
 
 Agents do not need long-lived provider keys. OAuth-connected credentials refresh automatically; client secrets and RFC 8693 token exchange issue short-lived tokens, optionally DPoP-bound; and SPIFFE, Kubernetes, or OIDC workload identities can exchange their own JWT for an agent token. Policies can be simulated with a full decision trace, and custom connectors can be imported from OpenAPI 3.0/3.1 when the built-in catalog does not cover a provider.
@@ -138,7 +140,8 @@ Every environment calls providers for real. Policy, approvals, rate limits, and 
 | Group | Endpoints |
 | --- | --- |
 | Context | `GET /me`, `GET /connectors` (built-in and active custom connectors, plus custom metadata) |
-| Agents | `GET/POST /agents`, `GET/PATCH/DELETE /agents/:id`, `POST /agents/:id/{token,pause,resume,suspend,kill,rotate-key,transfer,promote}`, `GET/POST /agents/:id/client-secrets`, `DELETE /agents/:id/client-secrets/:secretId` |
+| Agents | `GET/POST /agents`, `GET/PATCH/DELETE /agents/:id`, `POST /agents/:id/{token,pause,resume,suspend,kill,rotate-key,transfer,promote}`, `GET /agents/:id/identity-document`, `GET/POST /agents/:id/client-secrets`, `DELETE /agents/:id/client-secrets/:secretId` |
+| Revocations | `GET /revocations` (signed `agent-revocations+jwt` list, `since`/`limit`/`cursor`, ETag/304) |
 | Tokens | `POST /tokens/introspect`, `POST /tokens/revoke`, `POST /tokens/client-credentials`, `POST /tokens/exchange`, `POST /tokens/workload-exchange` |
 | Workload identity | `GET/POST /workload-identities`, `GET/PATCH/DELETE /workload-identities/:id` |
 | Vault | `GET/POST /credentials`, `GET/PATCH/DELETE /credentials/:id`, `POST /credentials/:id/refresh`, `POST /credentials/:id/check` |

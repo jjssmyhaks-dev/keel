@@ -11,6 +11,8 @@ import { redact } from "./redaction";
 import { emailLayout, sendEmail } from "./email";
 import { checkPlanLimit, productionAccess } from "./limits";
 import { approvalUrlFor } from "./signed-links";
+import { recordAgentEvent, resourceTypeOf } from "./agent-events";
+import { recordPolicyEvent } from "./policy-events";
 
 export async function createApprovalRequest(opts: {
   environment: Environment;
@@ -160,10 +162,27 @@ export async function decideApproval(opts: {
   if (!approval) return { ok: false, error: "Approval not found." };
   if (approval.status !== "pending") return { ok: false, error: `This request is already ${approval.status}.` };
   if (approval.expiresAt < new Date()) {
-    await db.approvalRequest.updateMany({
+    const expired = await db.approvalRequest.updateMany({
       where: { id: approval.id, status: "pending" },
       data: { status: "expired", decidedAt: new Date(), decisionNote: "Expired before a decision." },
     });
+    if (expired.count > 0) {
+      await recordAgentEvent({
+        environmentId: approval.environmentId,
+        organizationId: approval.environment.project.orgId,
+        agentId: approval.agentId,
+        agentType: approval.agent.agentType,
+        requestId: approval.requestId,
+        connectorSlug: approval.credential?.connectorSlug ?? "unknown",
+        action: approval.action,
+        riskClass: approval.risk,
+        resourceType: "resource",
+        decision: "denied",
+        decisionReasonCode: "approval_expired",
+        isSandbox: approval.credential?.connectorSlug === "sandbox",
+        credentialId: approval.credentialId,
+      });
+    }
     return { ok: false, error: "This request has expired." };
   }
 
@@ -208,6 +227,25 @@ export async function decideApproval(opts: {
       decision: "deny",
       decidedBy: opts.userName,
       note: opts.note ?? null,
+    });
+    const denyConnector = approval.credential
+      ? await resolveConnector(approval.credential.connectorSlug, approval.environment.id)
+      : null;
+    const denyAction = denyConnector?.actions.find((entry) => entry.name === approval.action);
+    await recordAgentEvent({
+      environmentId: approval.environmentId,
+      organizationId: approval.environment.project.orgId,
+      agentId: approval.agentId,
+      agentType: approval.agent.agentType,
+      requestId: approval.requestId,
+      connectorSlug: approval.credential?.connectorSlug ?? "unknown",
+      action: approval.action,
+      riskClass: approval.risk,
+      resourceType: resourceTypeOf(denyAction, denyConnector),
+      decision: "denied",
+      decisionReasonCode: "approval_denied",
+      isSandbox: Boolean(denyConnector?.sandbox),
+      credentialId: approval.credentialId,
     });
     return { ok: true, status: "denied" };
   }
@@ -287,6 +325,20 @@ export async function decideApproval(opts: {
           expiresAt: expiresAt.toISOString(),
           actions,
         },
+      });
+      await recordPolicyEvent({
+        environmentId: approval.environmentId,
+        organizationId: approval.environment.project.orgId,
+        agentId: approval.agentId,
+        agentType: approval.agent.agentType,
+        subject: "jit_grant",
+        grantId: grant.id,
+        connectorSlug: approval.credential?.connectorSlug ?? null,
+        actions,
+        resourcePattern: grant.resourcePattern,
+        approvalMode: grant.approvalMode,
+        conditions: JSON.parse(grant.conditionsJson || "{}"),
+        changeKind: "update",
       });
     }
 
@@ -445,7 +497,21 @@ export async function decideApproval(opts: {
   });
 
   if (opts.approveAlways && approval.grant && status === "approved") {
-    await db.grant.update({ where: { id: approval.grant.id }, data: { approvalMode: "allow" } });
+    const grant = await db.grant.update({ where: { id: approval.grant.id }, data: { approvalMode: "allow" } });
+    await recordPolicyEvent({
+      environmentId: approval.environmentId,
+      organizationId: approval.environment.project.orgId,
+      agentId: approval.agentId,
+      agentType: approval.agent.agentType,
+      subject: "grant",
+      grantId: grant.id,
+      connectorSlug: approval.credential?.connectorSlug ?? null,
+      actions: JSON.parse(grant.actionsJson || "[]"),
+      resourcePattern: grant.resourcePattern,
+      approvalMode: grant.approvalMode,
+      conditions: JSON.parse(grant.conditionsJson || "{}"),
+      changeKind: "update",
+    });
   }
 
   await auditEvent({
@@ -491,14 +557,47 @@ export async function decideApproval(opts: {
 }
 
 export async function expireStaleApprovals(environmentId?: string) {
-  await db.approvalRequest.updateMany({
+  const now = new Date();
+  const candidates = await db.approvalRequest.findMany({
     where: {
       ...(environmentId ? { environmentId } : {}),
       status: "pending",
-      expiresAt: { lt: new Date() },
+      expiresAt: { lt: now },
     },
-    data: { status: "expired", decidedAt: new Date(), decisionNote: "Expired before a decision." },
+    include: {
+      agent: { select: { agentType: true } },
+      credential: { select: { connectorSlug: true } },
+      environment: { include: { project: { select: { orgId: true } } } },
+    },
+    take: 500,
   });
+  let expired = 0;
+  for (const approval of candidates) {
+    // Claim each row individually so a decision that landed between the read
+    // and the update cannot also produce an expiry event.
+    const claimed = await db.approvalRequest.updateMany({
+      where: { id: approval.id, status: "pending", expiresAt: { lt: now } },
+      data: { status: "expired", decidedAt: now, decisionNote: "Expired before a decision." },
+    });
+    if (claimed.count === 0) continue;
+    expired += 1;
+    await recordAgentEvent({
+      environmentId: approval.environmentId,
+      organizationId: approval.environment.project.orgId,
+      agentId: approval.agentId,
+      agentType: approval.agent.agentType,
+      requestId: approval.requestId,
+      connectorSlug: approval.credential?.connectorSlug ?? "unknown",
+      action: approval.action,
+      riskClass: approval.risk,
+      resourceType: "resource",
+      decision: "denied",
+      decisionReasonCode: "approval_expired",
+      isSandbox: approval.credential?.connectorSlug === "sandbox",
+      credentialId: approval.credentialId,
+    });
+  }
+  return expired;
 }
 
 export async function escalateOverdueApprovals(environmentId?: string) {

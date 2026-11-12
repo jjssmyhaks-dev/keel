@@ -109,6 +109,7 @@ model Organization {
   dunningStartedAt     DateTime?
   requireMfa           Boolean         @default(false)
   requireSso           Boolean         @default(false)
+  dataContributionEnabled Boolean      @default(true)
   ssoDefaultRole       String          @default("developer")
   stripeCustomerId     String?         @unique
   stripeSubscriptionId String?
@@ -464,6 +465,8 @@ model Agent {
   description         String?
   ownerUserId         String?
   status              String              @default("active")
+  agentType           String              @default("other")
+  verificationVisibility String          @default("public")
   publicKey           String?
   fingerprint         String
   keyMode             String              @default("platform")
@@ -825,6 +828,94 @@ model EndUser {
   consents       Consent[]
 
   @@unique([projectId, externalUserId])
+}
+
+model AgentIdentityDocument {
+  id           String    @id @default(cuid())
+  agentId      String
+  docSeq       Int
+  documentJson String
+  jws          String
+  issuerKeyId  String
+  issuedAt     DateTime  @default(now())
+  supersededAt DateTime?
+
+  @@unique([agentId, docSeq])
+  @@index([agentId, supersededAt])
+}
+
+model Revocation {
+  id            String   @id @default(cuid())
+  environmentId String
+  agentId       String   @unique
+  reasonCode    String
+  revokedAt     DateTime @default(now())
+
+  @@index([environmentId, revokedAt])
+}
+
+model AgentEvent {
+  id                  String   @id @default(cuid())
+  schemaVersion       Int      @default(1)
+  occurredAt          DateTime @default(now())
+  environmentId       String
+  organizationId      String
+  agentId             String
+  agentType           String
+  requestId           String
+  connectorSlug       String
+  action              String
+  riskClass           String
+  resourceType        String
+  decision            String
+  decisionReasonCode  String
+  approvalLatencyMs   Int?
+  upstreamStatusClass String?
+  latencyMs           Int?
+  costUnits           Int      @default(1)
+  delegationDepth     Int      @default(0)
+  isSandbox           Boolean  @default(false)
+  contributes         Boolean  @default(false)
+  credentialId        String?
+
+  @@index([environmentId, occurredAt])
+  @@index([agentId, occurredAt])
+  @@index([organizationId, occurredAt])
+  @@index([connectorSlug, action])
+}
+
+model PolicyEvent {
+  id                 String   @id @default(cuid())
+  createdAt          DateTime @default(now())
+  environmentId      String
+  organizationId     String
+  agentId            String
+  agentType          String
+  subject            String
+  grantId            String?
+  approvalPolicyId   String?
+  connectorSlug      String?
+  actionSetJson      String   @default("[]")
+  resourceShape      String
+  approvalMode       String?
+  conditionKeysJson  String   @default("[]")
+  changeKind         String
+  changedFromEventId String?
+  isSandbox          Boolean  @default(false)
+  contributes        Boolean  @default(false)
+
+  @@index([environmentId, createdAt])
+  @@index([organizationId, createdAt])
+}
+
+model DataContributionChange {
+  id             String   @id @default(cuid())
+  organizationId String
+  enabled        Boolean
+  changedBy      String
+  changedAt      DateTime @default(now())
+
+  @@index([organizationId, changedAt])
 }
 
 model Consent {

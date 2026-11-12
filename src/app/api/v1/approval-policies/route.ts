@@ -10,6 +10,7 @@ import {
   requireSecretKey,
 } from "@/lib/api";
 import { auditEvent } from "@/lib/audit";
+import { recordPolicyEvent } from "@/lib/policy-events";
 import { serializePolicy } from "@/lib/serializers";
 
 const MODES = ["allow", "require_approval", "deny"];
@@ -84,6 +85,17 @@ export async function POST(req: Request) {
         slaMinutes: normalizeSla(body.slaMinutes),
         escalateToRole: normalizeEscalationRole(body.escalateToRole),
       },
+    });
+
+    await recordPolicyEvent({
+      environmentId: auth.environment.id,
+      organizationId: auth.organization.id,
+      agentId: body.agentId || "",
+      subject: "approval_policy",
+      approvalPolicyId: policy.id,
+      actions: actionPattern.split(",").map((value) => value.trim()).filter(Boolean),
+      approvalMode: policy.mode,
+      changeKind: "create",
     });
 
     const id = requestId();

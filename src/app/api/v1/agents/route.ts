@@ -19,6 +19,8 @@ import { auditEvent } from "@/lib/audit";
 import { dispatchEvent } from "@/lib/webhooks";
 import { serializeAgent } from "@/lib/serializers";
 import { checkPlanLimit, productionAccess } from "@/lib/limits";
+import { isAgentType } from "@/lib/agent-types";
+import { issueIdentityDocumentSafe } from "@/lib/identity-document";
 
 export async function GET(req: Request) {
   try {
@@ -58,8 +60,12 @@ export async function POST(req: Request) {
       framework?: string;
       publicKey?: string;
       keyMode?: "client" | "platform";
+      type?: string;
     }>(req);
 
+    if (body.type !== undefined && !isAgentType(body.type)) {
+      throw new ApiError(422, "invalid_agent_type", "Type must be one of support, sales, finance, coding, research, operations, data or other.");
+    }
     const name = String(body.name || "").trim();
     if (!name || name.length > 60) {
       throw new ApiError(422, "invalid_name", "Agent name is required and must be 60 characters or fewer.");
@@ -121,6 +127,7 @@ export async function POST(req: Request) {
         ownerUserId,
         publicKey,
         fingerprint,
+        agentType: body.type ?? "other",
         keyMode: body.keyMode === "platform" ? "platform" : "client",
         tagsJson: JSON.stringify((body.tags ?? []).filter((t) => typeof t === "string").slice(0, 12)),
         framework: body.framework?.trim() || null,
@@ -153,6 +160,7 @@ export async function POST(req: Request) {
       fingerprint,
       environment: ctx.environment.type,
     });
+    await issueIdentityDocumentSafe(agent.id);
 
     return apiOk(
       {

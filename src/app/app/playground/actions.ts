@@ -85,6 +85,7 @@ export async function runSandboxAction(
   });
   const grant = await ensureSandboxGrant({
     environmentId: ctx.environment.id,
+    organizationId: ctx.org.id,
     agentId: agent.id,
     credentialId: connection.credential.id,
     userId: ctx.user.id,

@@ -1,6 +1,7 @@
 import type { Credential, Grant } from "@prisma/client";
 import { db } from "./db";
 import { auditEvent } from "./audit";
+import { recordPolicyEvent } from "./policy-events";
 
 const SANDBOX_SLUG = "sandbox";
 
@@ -52,6 +53,7 @@ export async function ensureSandboxConnection(opts: {
 
 export async function ensureSandboxGrant(opts: {
   environmentId: string;
+  organizationId: string;
   agentId: string;
   credentialId: string;
   userId: string;
@@ -93,6 +95,19 @@ export async function ensureSandboxGrant(opts: {
       resource: "*",
       sandbox: true,
     },
+  });
+
+  await recordPolicyEvent({
+    environmentId: opts.environmentId,
+    organizationId: opts.organizationId,
+    agentId: opts.agentId,
+    subject: "grant",
+    grantId: grant.id,
+    connectorSlug: SANDBOX_SLUG,
+    actions: ["sandbox.*"],
+    resourcePattern: "*",
+    changeKind: "create",
+    isSandbox: true,
   });
 
   return { grant, created: true };

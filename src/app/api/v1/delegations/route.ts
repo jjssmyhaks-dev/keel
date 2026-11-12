@@ -12,6 +12,7 @@ import {
 import { agentGrantScopes } from "@/lib/agent-secrets";
 import { scopeListFromJson, restrictionsFromJson } from "@/lib/delegations";
 import { auditEvent } from "@/lib/audit";
+import { recordPolicyEvent } from "@/lib/policy-events";
 
 type DelegationRow = {
   id: string;
@@ -187,6 +188,17 @@ export async function POST(req: Request) {
         beforeJson: "{}",
         afterJson: JSON.stringify({ parent: parent.id, scopes, restrictions, expiresAt: expiresAt?.toISOString() ?? null }),
       },
+    });
+
+    await recordPolicyEvent({
+      environmentId: auth.environment.id,
+      organizationId: auth.organization.id,
+      agentId: child.id,
+      agentType: child.agentType,
+      subject: "delegation",
+      actions: scopes,
+      resourcePattern: typeof restrictions.resourceSubset === "string" ? restrictions.resourceSubset : "*",
+      changeKind: "create",
     });
 
     await auditEvent({

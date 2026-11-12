@@ -10,6 +10,7 @@ import {
   requireSecretKey,
 } from "@/lib/api";
 import { auditEvent } from "@/lib/audit";
+import { recordPolicyEvent } from "@/lib/policy-events";
 import { serializePolicy } from "@/lib/serializers";
 
 const MODES = ["allow", "require_approval", "deny"];
@@ -86,6 +87,17 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       },
     });
 
+    await recordPolicyEvent({
+      environmentId: auth.environment.id,
+      organizationId: auth.organization.id,
+      agentId: updated.agentId ?? "",
+      subject: "approval_policy",
+      approvalPolicyId: updated.id,
+      actions: updated.actionPattern.split(",").map((value) => value.trim()).filter(Boolean),
+      approvalMode: updated.mode,
+      changeKind: "update",
+    });
+
     const rid = requestId();
     await auditEvent({
       environmentId: auth.environment.id,
@@ -128,6 +140,17 @@ export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }
     const { id } = await ctx.params;
     const policy = await loadPolicy(id, auth.environment.id);
     await db.approvalPolicy.delete({ where: { id: policy.id } });
+
+    await recordPolicyEvent({
+      environmentId: auth.environment.id,
+      organizationId: auth.organization.id,
+      agentId: policy.agentId ?? "",
+      subject: "approval_policy",
+      approvalPolicyId: policy.id,
+      actions: policy.actionPattern.split(",").map((value) => value.trim()).filter(Boolean),
+      approvalMode: policy.mode,
+      changeKind: "delete",
+    });
 
     const rid = requestId();
     await auditEvent({

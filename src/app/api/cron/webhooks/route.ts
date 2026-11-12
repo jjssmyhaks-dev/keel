@@ -9,6 +9,8 @@ import { refreshExpiringOAuthTokens, runHealthChecks } from "@/lib/credential-he
 import { planFor } from "@/lib/plans";
 import { processAuditSinks } from "@/lib/audit-sinks";
 import { sweepBilling } from "@/lib/billing";
+import { reissueStaleIdentityDocuments } from "@/lib/identity-document";
+import { pruneAgentEvents } from "@/lib/agent-events";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -41,6 +43,8 @@ async function run(req: Request) {
   const tokenRefreshes = await refreshExpiringOAuthTokens(25);
   const alerts = await evaluateAlerts();
   const health = await runHealthChecks({ limit: 25 });
+  const identityDocuments = await reissueStaleIdentityDocuments(200);
+  const prunedAgentEvents = await pruneAgentEvents(new Date(now - 400 * 86_400_000));
 
   const expiring = await db.credential.updateMany({
     where: {
@@ -113,6 +117,8 @@ async function run(req: Request) {
     tokenRefreshes,
     approvalsEscalated,
     health,
+    identityDocuments,
+    prunedAgentEvents,
     alertsFired: alerts.length,
     credentialsExpiring: expiring.count,
     credentialsExpired: expired.count,

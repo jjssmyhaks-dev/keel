@@ -15,6 +15,8 @@ export function serializeAgent(agent: Agent, extra?: Record<string, unknown>) {
     name: agent.name,
     description: agent.description,
     status: agent.status,
+    type: agent.agentType,
+    verificationVisibility: agent.verificationVisibility,
     fingerprint: agent.fingerprint,
     publicKey: agent.publicKey,
     keyMode: agent.keyMode,
