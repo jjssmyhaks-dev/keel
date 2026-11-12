@@ -4,7 +4,7 @@ import { Callout, DocsAside, DocsShell } from "@/components/docs/docs-shell";
 
 export const metadata: Metadata = {
   title: "API reference",
-  description: "REST API for agents, credentials, grants, approvals, audit and webhooks.",
+  description: "REST API for agents, identity documents, revocations, credentials, grants, approvals, audit and webhooks.",
 };
 
 const endpoints: { group: string; rows: [string, string, string, string][] }[] = [
@@ -17,9 +17,11 @@ const endpoints: { group: string; rows: [string, string, string, string][] }[] =
       ["PATCH", "/v1/agents/:id", "Secret key", "Update name, description, tags, framework, autonomous mode."],
       ["DELETE", "/v1/agents/:id", "Secret key", "Revoke an agent permanently."],
       ["POST", "/v1/agents/:id/token", "Secret key", "Issue a short-lived EdDSA token; supports signed challenges."],
+      ["GET", "/v1/agents/:id/identity-document", "Secret key", "Current signed identity document (`agent-identity+jwt`) with its JWS and sequence."],
       ["POST", "/v1/agents/:id/pause|resume|suspend|kill", "Secret key", "Change agent status or kill access."],
       ["POST", "/v1/agents/:id/rotate-key", "Secret key", "Rotate the agent keypair."],
       ["POST", "/v1/agents/:id/promote", "Secret key", "Promote a development agent to production."],
+      ["GET", "/v1/revocations", "Secret key", "Signed revocation list for the environment; ETag/304, since and cursor pagination."],
     ],
   },
   {
@@ -108,7 +110,7 @@ export default function ApiReferencePage() {
       eyebrow="Build"
       title="API reference"
       intro="The REST API is the source of truth. Every dashboard action maps to one of these endpoints, and every endpoint is scoped to the environment of the key or token that calls it."
-      updated="11 November 2026"
+      updated="12 November 2026"
       aside={
         <DocsAside
           links={[
@@ -116,6 +118,8 @@ export default function ApiReferencePage() {
             { href: "#auth", name: "Authentication" },
             { href: "#conventions", name: "Conventions" },
             { href: "#proxy", name: "Proxy contract" },
+            { href: "#identity", name: "Identity documents" },
+            { href: "#revocations", name: "Revocation list" },
             { href: "#errors", name: "Errors" },
             { href: "#endpoints", name: "Endpoints" },
           ]}
@@ -194,6 +198,153 @@ Content-Type: application/json
         omitted, Authab picks the oldest non-revoked credential for that connector in the environment. Multi-account
         teams should always pass <code>credentialId</code>.
       </Callout>
+
+      <h2 id="identity">Agent identity documents</h2>
+      <p>
+        Every agent carries a current EdDSA-signed identity document that outside parties can verify with the
+        platform&apos;s public keys long after the fact. Fetch it with a secret key; the response contains the decoded
+        document, its compact JWS and the key that signed it.
+      </p>
+      <pre>{`GET /v1/agents/agt_atlas/identity-document
+Authorization: Bearer sk_live_...
+
+200 {
+  "agentId": "agt_atlas",
+  "docSeq": 3,
+  "document": {
+    "v": 1,
+    "iss": "https://authab.dev",
+    "iat": 1771326000,
+    "doc_seq": 3,
+    "agent_id": "agt_atlas",
+    "key_fingerprint": "b95883be0763a0b0f5ca7428de3d7a8854f6721989e9abc37f1a7627469cb42d",
+    "public_jwk": { "kty": "OKP", "crv": "Ed25519", "x": "wX7gtQBGJj2bFxAJCQH..." },
+    "org_ref": "575ec432379b8b3788a2592a",
+    "environment": "development",
+    "status": "active",
+    "visibility": "public",
+    "created_at": "2026-10-30T09:14:02.000Z"
+  },
+  "jws": "eyJhbGciOiJFZERTQSIsImtpZCI6IjNXR1dINkI5...",
+  "issuerKeyId": "3WGWH6B9qnpzvfMw",
+  "issuedAt": "2026-11-12T08:02:00.362Z"
+}`}</pre>
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Meaning</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>doc_seq</code></td><td>Starts at 1 and increments on every re-issue. Exactly one document per agent is current; older documents stay verifiable.</td></tr>
+          <tr><td><code>key_fingerprint</code></td><td>SHA-256 fingerprint of the agent&apos;s Ed25519 key.</td></tr>
+          <tr><td><code>public_jwk</code></td><td>The agent&apos;s public key, so a verifier needs no second lookup.</td></tr>
+          <tr><td><code>org_ref</code></td><td>Stable, non-reversible organization reference (24 hex characters). The organization id and name never appear.</td></tr>
+          <tr><td><code>status</code></td><td>Snapshot at issue time: <code>active</code>, <code>paused</code>, <code>suspended</code> or <code>revoked</code>. Unknown statuses are treated as revoked.</td></tr>
+          <tr><td><code>visibility</code></td><td><code>public</code>, <code>limited</code> or <code>private</code>, set per agent.</td></tr>
+          <tr><td><code>environment</code></td><td><code>development</code> or <code>production</code>; it never crosses environments.</td></tr>
+        </tbody>
+      </table>
+      <p>
+        Documents are issued when an agent is registered and re-issued whenever its status, key or visibility changes —
+        pause, resume, suspend, revoke, kill, rotate-key and visibility updates. Fetching an agent created before
+        documents existed backfills one on first read. The request requires a secret key; publishable keys are rejected
+        with <code>403 publishable_key_not_allowed</code>.
+      </p>
+      <p>Verify the JWS offline against the public JWKS; no Authab credential is needed at verification time:</p>
+      <pre>{`import { createRemoteJWKSet, jwtVerify } from "jose";
+
+const jwks = createRemoteJWKSet(new URL("https://authab.dev/.well-known/jwks.json"));
+const { payload, protectedHeader } = await jwtVerify(jws, jwks, {
+  issuer: "https://authab.dev",
+  typ: "agent-identity+jwt",
+});
+if (protectedHeader.kid !== issuerKeyId) throw new Error("unexpected signing key");
+if (payload.agent_id !== agentId) throw new Error("wrong agent");`}</pre>
+      <p>
+        Errors: <code>401</code> for a missing or invalid key, <code>403</code> for publishable keys,{" "}
+        <code>404 agent_not_found</code> when the agent is not in the caller&apos;s environment, and{" "}
+        <code>503 identity_document_unavailable</code> if issuance failed — retry the request.
+      </p>
+
+      <h2 id="revocations">Revocation list</h2>
+      <p>
+        The revocation list is the pull side of the kill switch. It returns every revoked agent in the caller&apos;s
+        environment as a signed JWS, so a verifier can reject credentials without polling each agent. Entries are
+        recorded by the kill action, <code>DELETE /v1/agents/:id</code> and revoke. Development and production keys see
+        separate lists.
+      </p>
+      <pre>{`GET /v1/revocations?since=2026-11-01T00:00:00Z&limit=100
+Authorization: Bearer sk_live_...
+
+200
+ETag: "111fa8834c90c8880566e971ce66b70f4da97830a0ffb2d2373a0c97f186c04b"
+Cache-Control: private, max-age=30
+
+{
+  "jws": "eyJhbGciOiJFZERTQSIsImtpZCI6IjNXR1dINkI5...",
+  "etag": "111fa8834c90c8880566e971ce66b70f4da97830a0ffb2d2373a0c97f186c04b",
+  "next": null
+}`}</pre>
+      <p>The JWS payload:</p>
+      <pre>{`{
+  "v": 1,
+  "iss": "https://authab.dev",
+  "iat": 1771326000,
+  "exp": 1771326600,
+  "environment": "development",
+  "revoked": [
+    { "agent_id": "agt_atlas", "revoked_at": "2026-11-12T08:02:00.362Z", "reason": "owner_revoked" }
+  ]
+}`}</pre>
+      <table>
+        <thead>
+          <tr><th>Query or header</th><th>Behaviour</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>since</code></td><td>ISO 8601 timestamp, inclusive. Invalid values return <code>422 invalid_since</code>.</td></tr>
+          <tr><td><code>limit</code></td><td>1–5000, default 1000. When a page is full, <code>next</code> holds the last row id.</td></tr>
+          <tr><td><code>cursor</code></td><td>Pass <code>next</code> from the previous page. Cursors are environment-scoped; a foreign or unknown cursor returns <code>422 invalid_cursor</code>.</td></tr>
+          <tr><td><code>If-None-Match</code></td><td>Send the ETag to receive <code>304</code> with no body. The ETag hashes the revoked entries only, so it stays stable while <code>iat</code> and <code>exp</code> move.</td></tr>
+        </tbody>
+      </table>
+      <p>
+        <code>exp</code> is ten minutes after <code>iat</code>; refresh the list before it expires. Reasons are{" "}
+        <code>owner_revoked</code>, <code>compromised</code>, <code>abuse</code> and <code>expired</code>. The endpoint
+        requires a secret key (<code>403</code> for publishable keys) and returns <code>422</code> for invalid query
+        parameters.
+      </p>
+      <pre>{`import { createRemoteJWKSet, jwtVerify } from "jose";
+
+const jwks = createRemoteJWKSet(new URL("https://authab.dev/.well-known/jwks.json"));
+const { payload } = await jwtVerify(jws, jwks, {
+  issuer: "https://authab.dev",
+  typ: "agent-revocations+jwt",
+});
+const revoked = new Set(payload.revoked.map((entry) => entry.agent_id));`}</pre>
+      <p>Poll cheaply with the ETag and resume with the last timestamp:</p>
+      <pre>{`let etag = "";
+let since = "1970-01-01T00:00:00Z";
+
+for (;;) {
+  const url = new URL("https://api.authab.dev/v1/revocations");
+  url.searchParams.set("since", since);
+  const res = await fetch(url, {
+    headers: {
+      authorization: "Bearer " + SECRET_KEY,
+      ...(etag ? { "if-none-match": etag } : {}),
+    },
+  });
+  if (res.status === 200) {
+    const { jws } = await res.json();
+    const { payload } = await jwtVerify(jws, jwks, {
+      issuer: "https://authab.dev",
+      typ: "agent-revocations+jwt",
+    });
+    applyRevocations(payload.revoked);
+    etag = res.headers.get("etag") ?? "";
+    since = new Date().toISOString();
+  }
+  await sleep(30_000);
+}`}</pre>
 
       <h2 id="errors">Errors</h2>
       <pre>{`{

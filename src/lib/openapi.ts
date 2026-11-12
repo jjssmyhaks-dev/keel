@@ -441,7 +441,7 @@ export function buildOpenApiDocument() {
           tags: ["Agents"],
           summary: "Retrieve the signed identity document for an agent",
           description:
-            "Returns the current EdDSA-signed identity document (`typ` = `agent-identity+jwt`) and its compact JWS. Document `doc_seq` increments on every re-issue; exactly one document per agent is current.",
+            "Returns the current EdDSA-signed identity document (`typ` = `agent-identity+jwt`) and its compact JWS. Document `doc_seq` increments on every re-issue; exactly one document per agent is current. Documents are issued on registration and re-issued whenever the agent's status, key fingerprint or visibility changes; fetching an agent created before documents existed backfills one on first read. Requires a secret key. Verify offline with the public keys from `/.well-known/jwks.json`.",
           parameters: [idParam],
           responses: {
             "200": {
@@ -477,6 +477,8 @@ export function buildOpenApiDocument() {
                 },
               }),
             },
+            "401": { description: "Missing or invalid API key", content: json(error) },
+            "403": { description: "Publishable keys cannot read identity documents", content: json(error) },
             "404": { description: "Agent not found in this environment", content: json(error) },
             "503": { description: "The document could not be issued; retry", content: json(error) },
           },
@@ -1147,26 +1149,38 @@ export function buildOpenApiDocument() {
           tags: ["Agents"],
           summary: "List revocations in this environment",
           description:
-            "Returns a signed revocation list (`typ` = `agent-revocations+jwt`) scoped to the caller's environment. `etag` is the SHA-256 of the revoked list alone; send it as `If-None-Match` to receive 304. Responses use `Cache-Control: private, max-age=30`.",
+            "Returns a signed revocation list (`typ` = `agent-revocations+jwt`) scoped to the caller's environment. Entries are recorded by the kill action, `DELETE /agents/{id}` and revoke. `since` is inclusive; when a page is full, pass `next` back as `cursor`. `etag` is the SHA-256 of the revoked entries only, so it stays stable while `iat`/`exp` move; send it as `If-None-Match` to receive 304. Responses use `Cache-Control: private, max-age=30`, and the JWS expires ten minutes after `iat`. Requires a secret key.",
           parameters: [
-            { name: "since", in: "query", schema: { type: "string", format: "date-time" } },
-            { name: "limit", in: "query", schema: { type: "integer", default: 1000, maximum: 5000 } },
-            { name: "cursor", in: "query", schema: { type: "string" } },
+            { name: "since", in: "query", description: "Inclusive ISO 8601 lower bound on revoked_at.", schema: { type: "string", format: "date-time" } },
+            { name: "limit", in: "query", description: "Page size. next is set to the last row id when the page is full.", schema: { type: "integer", default: 1000, minimum: 1, maximum: 5000 } },
+            { name: "cursor", in: "query", description: "The next value from the previous page. Cursors are environment-scoped.", schema: { type: "string" } },
           ],
           responses: {
             "200": {
               description: "Signed revocation page",
+              headers: {
+                ETag: { description: "SHA-256 of the revoked list; also returned as etag in the body.", schema: { type: "string" } },
+                "Cache-Control": { description: "private, max-age=30", schema: { type: "string" } },
+              },
               content: json({
                 type: "object",
                 properties: {
-                  jws: { type: "string" },
+                  jws: { type: "string", description: "EdDSA JWS with typ agent-revocations+jwt; payload covers v, iss, iat, exp, environment and revoked[]." },
                   etag: { type: "string" },
-                  next: { type: ["string", "null"] },
+                  next: { type: ["string", "null"], description: "Cursor for the next page, or null when this page is complete." },
                 },
               }),
             },
-            "304": { description: "No change since the supplied ETag" },
-            "422": { description: "Invalid since or cursor", content: json(error) },
+            "304": {
+              description: "No change since the supplied ETag",
+              headers: {
+                ETag: { description: "The current list ETag.", schema: { type: "string" } },
+                "Cache-Control": { description: "private, max-age=30", schema: { type: "string" } },
+              },
+            },
+            "401": { description: "Missing or invalid API key", content: json(error) },
+            "403": { description: "Publishable keys cannot read the revocation list", content: json(error) },
+            "422": { description: "invalid_since or invalid_cursor", content: json(error) },
           },
         },
       },
@@ -1174,7 +1188,7 @@ export function buildOpenApiDocument() {
         get: {
           tags: ["Tokens"],
           summary: "JSON Web Key Set",
-          description: "Public Ed25519 keys used to verify agent tokens. Also served at /.well-known/jwks.json.",
+          description: "Public Ed25519 keys used to verify agent tokens, identity documents and revocation lists. Also served at /.well-known/jwks.json.",
           security: [],
           responses: { "200": { description: "Public keys for verifying agent tokens" } },
         },
