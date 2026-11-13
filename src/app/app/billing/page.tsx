@@ -380,12 +380,19 @@ export default async function BillingPage({
                       type="submit"
                       className="font-mono text-[9px] uppercase tracking-[0.1em] text-black/60 underline-offset-2 hover:text-black hover:underline dark:text-muted-foreground dark:hover:text-foreground"
                     >
-                      {checkoutReady ? (canTrial ? "Start trial →" : "Upgrade →") : "Request →"}
+                      {checkoutReady && canTrial ? "Start trial →" : "Upgrade →"}
                     </button>
                   </form>
                 );
               })}
             </div>
+            {upgradePlans.some(
+              (candidate) => candidate.key !== "enterprise" && !(stripeReady && Boolean(priceIdFor(candidate.key, currency))),
+            ) ? (
+              <p className="border-t border-black/10 px-4 py-2.5 text-[10px] leading-relaxed text-black/60 dark:border-border dark:text-muted-foreground">
+                Billing confirms payment before a plan activates. The current plan stays active until then.
+              </p>
+            ) : null}
           </Panel>
         </div>
       </div>

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { PLANS, planFor, formatPrice } from "../src/lib/plans";
 import { monthPeriod, productionAccess, isBillingActive, effectivePlan } from "../src/lib/limits";
+import { readSource } from "./helpers/source";
 
 test("planFor falls back to free for unknown plans", () => {
   assert.equal(planFor("not-a-plan").key, "free");
@@ -54,6 +55,17 @@ test("plan keys are unique and every plan has a name and CTA", () => {
     assert.ok(plan.name.length > 0);
     assert.ok(plan.cta.length > 0);
     assert.ok(plan.features.length > 0);
+  }
+});
+
+test("paid-plan actions read as upgrades, never requests", () => {
+  for (const plan of PLANS.filter((entry) => entry.key === "pro" || entry.key === "scale")) {
+    assert.match(plan.cta, /^Upgrade to /, `${plan.key} CTA should be an upgrade`);
+  }
+  for (const file of ["src/app/app/billing/page.tsx", "src/app/app/upgrade/production/page.tsx"]) {
+    const source = readSource(file);
+    assert.equal(source.includes("Request →"), false, `${file} should not label a paid action as a request`);
+    assert.equal(source.includes("Request Pro") || source.includes("Request Scale"), false);
   }
 });
 
