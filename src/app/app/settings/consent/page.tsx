@@ -63,7 +63,7 @@ export default async function ConsentSettingsPage({
       ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
-        <form action={saveConsentBrandingAction} className="space-y-6" encType="multipart/form-data">
+        <form action={saveConsentBrandingAction} className="space-y-6">
           <Panel title="Branding" hint="What the end user sees at the top of the request" bodyClassName="grid gap-4 p-4 sm:grid-cols-2">
             <div className="sm:col-span-1">
               <label htmlFor="productName" className="font-mono text-[9px] uppercase tracking-[0.16em] text-black/60 dark:text-muted-foreground">
