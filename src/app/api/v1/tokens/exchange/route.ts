@@ -65,6 +65,18 @@ export async function POST(req: Request) {
     if (subjectAgent.environment.project.org.deletedAt) {
       throw new ApiError(403, "organization_suspended", "This organization is suspended.");
     }
+    if (subjectAgent.kind === "external" || payload.x_org === true) {
+      throw new ApiError(
+        422,
+        "external_agent_cannot_delegate",
+        "Cross-organization shadow agents cannot exchange or delegate tokens.",
+      );
+    }
+    const consentClaim = typeof payload.consent === "string" ? payload.consent : null;
+    const endUserClaim =
+      payload.end_user && typeof payload.end_user === "object"
+        ? (payload.end_user as Record<string, unknown>)
+        : null;
 
     const delegationClaims = await verifyDelegationClaims(payload, subjectAgent.environmentId);
     if (!delegationClaims.ok) {
@@ -102,6 +114,13 @@ export async function POST(req: Request) {
     let targetAgent = subjectAgent;
     let activeDelegation: { id: string; scopesJson: string; restrictionsJson: string } | null = null;
     if (targetAgentId && targetAgentId !== subjectAgent.id) {
+      if (consentClaim) {
+        throw new ApiError(
+          422,
+          "consent_token_cannot_delegate",
+          "A consent token only acts for its own agent. Exchange it without agent_id.",
+        );
+      }
       const found = await db.agent.findFirst({
         where: { id: targetAgentId, environmentId: subjectAgent.environmentId },
         include: { environment: { include: { project: { include: { org: true } } } } },
@@ -209,6 +228,14 @@ export async function POST(req: Request) {
             : [parentJti, ...delegationClaims.parentChain].slice(0, MAX_DELEGATION_DEPTH),
         delegationId: targetAgent.id === subjectAgent.id ? delegationClaims.delegationId : activeDelegation?.id ?? null,
         scopeEnforced: true,
+        ...(consentClaim || endUserClaim
+          ? {
+              extraClaims: {
+                ...(endUserClaim ? { end_user: endUserClaim } : {}),
+                ...(consentClaim ? { consent: consentClaim } : {}),
+              },
+            }
+          : {}),
       },
     );
 
@@ -230,6 +257,8 @@ export async function POST(req: Request) {
         delegationId: targetAgent.id === subjectAgent.id ? delegationClaims.delegationId : activeDelegation?.id ?? null,
         scopes,
         dpop: Boolean(dpop || parentJkt),
+        ...(consentClaim ? { consentId: consentClaim } : {}),
+        ...(endUserClaim ? { endUserId: String(endUserClaim.id ?? "") } : {}),
       },
     });
 

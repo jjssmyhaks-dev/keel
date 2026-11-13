@@ -12,7 +12,7 @@ export async function ensureSandboxConnection(opts: {
   ip?: string | null;
 }): Promise<{ credential: Credential; created: boolean }> {
   const existing = await db.credential.findFirst({
-    where: { environmentId: opts.environmentId, connectorSlug: SANDBOX_SLUG },
+    where: { environmentId: opts.environmentId, connectorSlug: SANDBOX_SLUG, endUserId: null },
     orderBy: { createdAt: "asc" },
   });
   if (existing) return { credential: existing, created: false };

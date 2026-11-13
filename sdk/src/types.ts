@@ -641,3 +641,202 @@ export interface RollbackConnectorResult {
   version: number;
   connector: CustomConnector;
 }
+
+export interface ConfigFileAgent {
+  name: string;
+  type?: string;
+  description?: string | null;
+  tags?: string[];
+  autonomousMode?: boolean;
+}
+
+export interface ConfigFileConnection {
+  name: string;
+  connector: string;
+  type?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ConfigFileGrant {
+  agent: string;
+  connection: string;
+  actions: string[];
+  resource?: string;
+  approvalMode?: ApprovalMode | null;
+  conditions?: GrantConditions;
+  expiresAt?: string | null;
+}
+
+export interface ConfigFileApprovalPolicy {
+  agent: string | null;
+  actionPattern: string;
+  mode: ApprovalMode;
+  slaMinutes?: number | null;
+  escalateToRole?: string | null;
+}
+
+export interface ConfigFileWebhook {
+  url: string;
+  events: string[];
+}
+
+export interface ConfigFile {
+  version: 1;
+  environment: string;
+  agents: ConfigFileAgent[];
+  connections: ConfigFileConnection[];
+  grants: ConfigFileGrant[];
+  approvalPolicies: ConfigFileApprovalPolicy[];
+  webhooks: ConfigFileWebhook[];
+}
+
+export interface ConfigApplyInput {
+  config?: ConfigFile;
+  yaml?: string;
+  dryRun?: boolean;
+  prune?: boolean;
+  /** Sends x-authab-confirm: prune. Required for production prune. */
+  confirmPrune?: boolean;
+}
+
+export interface ConfigApplyChange {
+  key: string;
+  changes: string[];
+}
+
+export interface ConfigApplyResult {
+  version: 1;
+  environment: string;
+  dryRun: boolean;
+  create: string[];
+  update: ConfigApplyChange[];
+  delete: string[];
+  warnings: string[];
+  results?: {
+    created: string[];
+    updated: string[];
+    deleted: string[];
+    agents: { name: string; id: string; privateKey: string | null }[];
+    webhookSecrets: { url: string; secret: string }[];
+  };
+}
+
+export interface ConsentRequestInput {
+  agentId: string;
+  redirectUri: string;
+  endUser: { externalUserId: string; email?: string | null };
+  scopes?: string[];
+  connectors?: string[];
+  state?: string;
+  expiresInMinutes?: number;
+  durationOptions?: ConsentDuration[];
+}
+
+export type ConsentDuration = "session" | "30d" | "until_revoked";
+
+export interface ConsentRequestCreated {
+  id: string;
+  url: string;
+  expiresAt: string;
+}
+
+export interface ConsentSummary {
+  id: string;
+  agentId: string;
+  agentName: string | null;
+  endUserId: string;
+  scopes: string[];
+  grantedAt: string;
+  expiresAt: string | null;
+  revokedAt: string | null;
+  lastUsedAt: string | null;
+}
+
+export interface ConsentTokenGrant {
+  agentToken: string;
+  expiresIn: number;
+  consentId: string;
+  endUserId: string;
+  scopes: string[];
+  expiresAt?: string | null;
+}
+
+export interface DataRequestSummary {
+  id: string;
+  kind: string;
+  status: string;
+  createdAt: string;
+  completedAt: string | null;
+}
+
+export interface EndUserConnection {
+  id: string;
+  name: string;
+  connector: string;
+  type: string;
+  status: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+}
+
+export interface EndUserSummary {
+  id: string;
+  externalUserId: string;
+  email: string | null;
+  createdAt: string;
+  lastSeenAt: string | null;
+  consents: ConsentSummary[];
+  dataRequests: DataRequestSummary[];
+}
+
+export interface EndUserDetails extends EndUserSummary {
+  connections: EndUserConnection[];
+}
+
+export interface ControlLink {
+  url: string;
+  expiresAt: string;
+}
+
+export type TrustStatus = "invited" | "active" | "declined" | "revoked";
+
+export interface TrustInviteInput {
+  externalAgentId: string;
+  note?: string;
+  maxScopes?: string[];
+}
+
+export interface TrustRelationship {
+  id: string;
+  status: TrustStatus;
+  note: string | null;
+  maxScopes: string[];
+  ownerEnvironmentId: string;
+  externalEnvironmentId: string;
+  shadowAgentId: string | null;
+  invitedAt: string;
+  acceptedAt: string | null;
+  revokedAt: string | null;
+  externalAgent: { id: string; name: string; status: string; orgName: string | null } | null;
+  shadowAgent: { id: string; name: string; status: string } | null;
+}
+
+export interface TrustExchangeInput {
+  trustRelationshipId: string;
+  scopes?: string[];
+  ttl?: number;
+}
+
+export interface TrustTokenGrant {
+  access_token: string;
+  token_type: "Bearer";
+  expires_in: number;
+  expires_at: string;
+  token_id: string;
+  scope: string;
+  scopes: string[];
+  trust: string;
+  x_org: true;
+  agent: { id: string; name: string; environmentId: string };
+}

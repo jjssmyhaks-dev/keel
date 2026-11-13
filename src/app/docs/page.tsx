@@ -37,19 +37,38 @@ const paths = [
   { name: "Connectors", detail: `${CONNECTORS.length} integrations, with exact actions and scopes`, href: "/docs/connectors" },
 ];
 
+const beyond = [
+  {
+    name: "End-user consent",
+    detail: "Let an agent act for your customers. Hosted permission screen, one-time codes, tokens that die with the consent.",
+    href: "/docs/concepts/end-user-consent",
+  },
+  {
+    name: "Cross-organization trust",
+    detail: "Admit a partner's agent as a shadow agent. Your grants, your audit trail, no credential handoff.",
+    href: "/docs/concepts/cross-org-trust",
+  },
+  {
+    name: "Configuration as code",
+    detail: "Scan repositories for stray keys, import them into the vault, and review permissions in a git-tracked file.",
+    href: "/docs/gitops",
+  },
+];
+
 export default function DocsOverviewPage() {
   return (
     <DocsShell
       eyebrow="Documentation"
       title="Identity, vault and governance. In one API."
       intro="Authab sits between your agents and the services they call. It issues identity, holds the secrets, evaluates policy on every request, and writes an append-only record of what happened."
-      updated="31 October 2026"
+      updated="13 November 2026"
       aside={
         <DocsAside
           links={[
             { href: "#pillars", name: "The three layers" },
             { href: "#request-path", name: "The request path" },
             { href: "#surfaces", name: "Surfaces" },
+            { href: "#beyond", name: "Beyond one organization" },
             { href: "#paths", name: "Start here" },
           ]}
         />
@@ -130,6 +149,25 @@ export default function DocsOverviewPage() {
           </tr>
         </tbody>
       </table>
+
+      <h2 id="beyond">Beyond one organization</h2>
+      <p>
+        Two flows extend the same model past your own team. End-user consent lets an agent act for your customers, with
+        a hosted permission screen and tokens scoped to one person&apos;s connections. Cross-organization trust admits
+        a partner&apos;s agent as a shadow agent you can grant, audit and revoke. Configuration as code keeps the whole
+        setup in review.
+      </p>
+      <div className="not-prose my-8 grid gap-px border border-foreground/12 bg-foreground/10 sm:grid-cols-3">
+        {beyond.map((item) => (
+          <Link key={item.name} href={item.href} className="group bg-background p-5 hover:bg-foreground/[0.03]">
+            <p className="text-[14px] font-medium">{item.name}</p>
+            <p className="mt-1 text-[12px] leading-relaxed text-foreground/65">{item.detail}</p>
+            <span className="mt-4 inline-flex items-center gap-1 text-[11px] text-foreground/60 group-hover:text-foreground">
+              Read <ArrowUpRight className="size-3" />
+            </span>
+          </Link>
+        ))}
+      </div>
 
       <h2 id="paths">Start here</h2>
       <div className="not-prose my-8 grid gap-px border border-foreground/12 bg-foreground/10 sm:grid-cols-2">

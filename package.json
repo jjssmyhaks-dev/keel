@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "npm run typecheck",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "node --import tsx --test tests/signed-links.test.ts tests/plans.test.ts tests/policy.test.ts tests/invitations.test.ts tests/provider-health.test.ts tests/runtime-config.test.ts tests/gmail.test.ts tests/mcp-gateway.test.ts tests/openapi-compile.test.ts tests/dpop.test.ts tests/oauth-refresh.test.ts tests/totp.test.ts tests/rbac.test.ts tests/slo.test.ts tests/status.test.ts tests/sandbox.test.ts tests/redaction.test.ts tests/billing.test.ts tests/identity-document.test.ts tests/revocations.test.ts tests/agent-events.test.ts tests/policy-events.test.ts tests/data-contribution.test.ts",
+    "test": "node --import tsx --test tests/signed-links.test.ts tests/plans.test.ts tests/policy.test.ts tests/invitations.test.ts tests/provider-health.test.ts tests/runtime-config.test.ts tests/gmail.test.ts tests/mcp-gateway.test.ts tests/openapi-compile.test.ts tests/dpop.test.ts tests/oauth-refresh.test.ts tests/totp.test.ts tests/rbac.test.ts tests/slo.test.ts tests/status.test.ts tests/sandbox.test.ts tests/redaction.test.ts tests/billing.test.ts tests/identity-document.test.ts tests/revocations.test.ts tests/agent-events.test.ts tests/policy-events.test.ts tests/data-contribution.test.ts tests/consent.test.ts tests/consent-safety.test.ts tests/trust.test.ts tests/secret-patterns.test.ts tests/config-apply.test.ts tests/openapi-routes.test.ts",
     "connectors:check": "tsx scripts/check-connectors.mts",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate deploy",

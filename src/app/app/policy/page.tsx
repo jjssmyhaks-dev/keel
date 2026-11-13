@@ -31,7 +31,7 @@ export default async function PolicyLabPage({
       orderBy: { name: "asc" },
     }),
     db.credential.findMany({
-      where: { environmentId: ctx.environment.id, revokedAt: null },
+      where: { environmentId: ctx.environment.id, revokedAt: null, endUserId: null },
       select: { id: true, name: true, connectorSlug: true, maskedHint: true },
       orderBy: { connectorSlug: "asc" },
     }),

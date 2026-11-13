@@ -91,7 +91,7 @@ export default async function ActivityEventPage({ params }: { params: Promise<{ 
   const [credential, approval, related, previous] = await Promise.all([
     credentialId
       ? db.credential.findFirst({
-          where: { id: credentialId, environmentId: ctx.environment.id },
+          where: { id: credentialId, environmentId: ctx.environment.id, endUserId: null },
           select: { id: true, name: true, connectorSlug: true, maskedHint: true, status: true },
         })
       : Promise.resolve(null),

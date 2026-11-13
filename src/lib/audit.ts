@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { Prisma } from "@prisma/client";
 import { db } from "./db";
 
 export type AuditInput = {
@@ -33,68 +34,81 @@ function hashEntry(prevHash: string, payload: Record<string, unknown>) {
   return createHash("sha256").update(`${prevHash}:${canonical(payload)}`).digest("hex");
 }
 
-export async function auditEvent(input: AuditInput, attempt = 0): Promise<void> {
+async function appendAudit(tx: Prisma.TransactionClient, input: AuditInput, requestId: string) {
+  // Serialize appends per environment so concurrent writes cannot fork the chain.
+  await tx.$queryRaw`SELECT 1::int AS locked FROM (SELECT pg_advisory_xact_lock(hashtext(${input.environmentId}))) AS held`;
+  const last = await tx.auditEvent.findFirst({
+    where: { environmentId: input.environmentId },
+    orderBy: { seq: "desc" },
+    select: { seq: true, hash: true },
+  });
+  const prevHash = last?.hash ?? GENESIS;
+  const seq = (last?.seq ?? 0) + 1;
+  const timestamp = input.timestamp ?? new Date();
+  const body = {
+    seq,
+    timestamp: timestamp.toISOString(),
+    actorType: input.actorType,
+    actorId: input.actorId ?? null,
+    actorName: input.actorName,
+    action: input.action,
+    resourceType: input.resourceType,
+    resourceId: input.resourceId ?? null,
+    outcome: input.outcome,
+    requestId,
+    ip: input.ip ?? null,
+    agentId: input.agentId ?? null,
+    payloadSummary: input.payloadSummary ?? {},
+    chain: input.chain ?? [],
+  };
+  const hash = hashEntry(prevHash, body);
+  await tx.auditEvent.create({
+    data: {
+      environmentId: input.environmentId,
+      seq,
+      timestamp,
+      actorType: body.actorType,
+      actorId: body.actorId,
+      actorName: body.actorName,
+      action: input.action,
+      resourceType: input.resourceType,
+      resourceId: body.resourceId,
+      outcome: input.outcome,
+      requestId,
+      ip: body.ip,
+      agentId: body.agentId,
+      payloadSummary: JSON.stringify(body.payloadSummary),
+      chainJson: JSON.stringify(body.chain),
+      prevHash,
+      hash,
+    },
+  });
+}
+
+export async function auditEvent(
+  input: AuditInput,
+  store?: Prisma.TransactionClient,
+): Promise<void> {
   const requestId =
     input.requestId ??
     `req_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
-  try {
-    await db.$transaction(async (tx) => {
-      // Serialize appends per environment so concurrent writes cannot fork the chain.
-      await tx.$queryRaw`SELECT 1::int AS locked FROM (SELECT pg_advisory_xact_lock(hashtext(${input.environmentId}))) AS held`;
-      const last = await tx.auditEvent.findFirst({
-        where: { environmentId: input.environmentId },
-        orderBy: { seq: "desc" },
-        select: { seq: true, hash: true },
-      });
-      const prevHash = last?.hash ?? GENESIS;
-      const seq = (last?.seq ?? 0) + 1;
-      const timestamp = input.timestamp ?? new Date();
-      const body = {
-        seq,
-        timestamp: timestamp.toISOString(),
-        actorType: input.actorType,
-        actorId: input.actorId ?? null,
-        actorName: input.actorName,
-        action: input.action,
-        resourceType: input.resourceType,
-        resourceId: input.resourceId ?? null,
-        outcome: input.outcome,
-        requestId,
-        ip: input.ip ?? null,
-        agentId: input.agentId ?? null,
-        payloadSummary: input.payloadSummary ?? {},
-        chain: input.chain ?? [],
-      };
-      const hash = hashEntry(prevHash, body);
-      await tx.auditEvent.create({
-        data: {
-          environmentId: input.environmentId,
-          seq,
-          timestamp,
-          actorType: body.actorType,
-          actorId: body.actorId,
-          actorName: body.actorName,
-          action: body.action,
-          resourceType: body.resourceType,
-          resourceId: body.resourceId,
-          outcome: body.outcome,
-          requestId,
-          ip: body.ip,
-          agentId: body.agentId,
-          payloadSummary: JSON.stringify(body.payloadSummary),
-          chainJson: JSON.stringify(body.chain),
-          prevHash,
-          hash,
-        },
-      });
-    });
-  } catch (error) {
-    if (attempt < 2) {
-      await new Promise((r) => setTimeout(r, 15 + Math.random() * 30));
-      return auditEvent(input, attempt + 1);
+  if (store) {
+    // A failure inside a caller transaction must abort the whole unit of work.
+    await appendAudit(store, input, requestId);
+    return;
+  }
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      await db.$transaction((tx) => appendAudit(tx, input, requestId));
+      return;
+    } catch (error) {
+      if (attempt < 2) {
+        await new Promise((r) => setTimeout(r, 15 + Math.random() * 30));
+        continue;
+      }
+      console.error("[authab] audit write failed", error);
+      throw error;
     }
-    console.error("[authab] audit write failed", error);
-    throw error;
   }
 }
 
@@ -231,6 +245,20 @@ export const ACTION_LABELS: Record<string, string> = {
   "incident.created": "Status incident opened",
   "incident.updated": "Status incident updated",
   "incident.resolved": "Status incident resolved",
+  "consent.request_created": "End-user consent requested",
+  "consent.granted": "End-user consent granted",
+  "consent.declined": "End-user consent declined",
+  "consent.revoked": "End-user consent revoked",
+  "consent.control_link_created": "End-user control link created",
+  "end_user.deleted": "End-user data deleted",
+  "end_user.data_request": "End-user data request",
+  "trust.invited": "Cross-org trust invited",
+  "trust.accepted": "Cross-org trust accepted",
+  "trust.declined": "Cross-org trust declined",
+  "trust.revoked": "Cross-org trust revoked",
+  "trust.outbound_call": "Cross-org agent call",
+  "credential.imported": "Credentials imported",
+  "config.applied": "Configuration applied",
 };
 
 export function actionLabel(action: string) {

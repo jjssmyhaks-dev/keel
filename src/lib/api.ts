@@ -139,6 +139,49 @@ export async function authenticateAgent(req: Request): Promise<AgentAuthContext>
   const delegation = await verifyDelegationClaims(payload, agent.environmentId);
   if (!delegation.ok) throw new ApiError(401, delegation.code, delegation.message);
 
+  const consentId = typeof payload.consent === "string" ? payload.consent : null;
+  if (consentId) {
+    const consent = await db.consent.findUnique({ where: { id: consentId } });
+    const endUser = payload.end_user as { id?: unknown } | undefined;
+    const claimUserId = typeof endUser?.id === "string" ? endUser.id : null;
+    if (
+      !consent ||
+      consent.revokedAt ||
+      consent.agentId !== agent.id ||
+      (claimUserId && consent.endUserId !== claimUserId)
+    ) {
+      throw new ApiError(401, "consent_revoked", "The end user's consent was revoked. They must approve again.");
+    }
+    if (consent.expiresAt && consent.expiresAt <= new Date()) {
+      throw new ApiError(401, "consent_expired", "The end user's consent expired. They must approve again.");
+    }
+    if (!consent.lastUsedAt || Date.now() - consent.lastUsedAt.getTime() > 60_000) {
+      await db.consent
+        .update({ where: { id: consent.id }, data: { lastUsedAt: new Date() } })
+        .catch(() => null);
+    }
+  }
+
+  const trustId = typeof payload.trust === "string" ? payload.trust : null;
+  if (trustId) {
+    const relationship = await db.trustRelationship.findUnique({ where: { id: trustId } });
+    const externalAgent = relationship
+      ? await db.agent.findUnique({
+          where: { id: relationship.externalAgentId },
+          select: { status: true },
+        })
+      : null;
+    if (
+      !relationship ||
+      relationship.status !== "active" ||
+      relationship.shadowAgentId !== agent.id ||
+      !externalAgent ||
+      externalAgent.status !== "active"
+    ) {
+      throw new ApiError(401, "trust_revoked", "The cross-organization trust relationship is no longer active.");
+    }
+  }
+
   const tokenType = String(payload.token_use ?? "");
   if (tokenType && tokenType !== "access") {
     throw new ApiError(401, "wrong_token_type", "This endpoint requires an access token.");
@@ -195,15 +238,19 @@ export async function parseJson<T = Record<string, unknown>>(req: Request): Prom
   }
 }
 
-export function clientIp(req: Request) {
+export function headersClientIp(headers: Headers) {
   for (const header of ["cf-connecting-ip", "x-vercel-forwarded-for", "x-real-ip"]) {
-    const value = req.headers.get(header)?.split(",")[0]?.trim();
+    const value = headers.get(header)?.split(",")[0]?.trim();
     if (value) return value;
   }
-  const forwarded = req.headers.get("x-forwarded-for");
+  const forwarded = headers.get("x-forwarded-for");
   if (!forwarded) return null;
   // The rightmost entry is the one appended by the nearest proxy; the
   // leftmost value is client-supplied and can be spoofed.
   const parts = forwarded.split(",").map((part) => part.trim()).filter(Boolean);
   return parts.length ? parts[parts.length - 1] : null;
+}
+
+export function clientIp(req: Request) {
+  return headersClientIp(req.headers);
 }

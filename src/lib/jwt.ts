@@ -131,6 +131,8 @@ export type SignAgentTokenOptions = {
   parentChain?: string[];
   delegationId?: string | null;
   scopeEnforced?: boolean;
+  /** Consent, trust and cross-org markers that must survive verification. */
+  extraClaims?: Record<string, unknown>;
 };
 
 export async function signAgentToken(
@@ -162,6 +164,12 @@ export async function signAgentToken(
   if (options.parentChain?.length) payload.parent_chain = options.parentChain;
   if (options.delegationId) payload.delegation_id = options.delegationId;
   if (options.scopeEnforced) payload.scope_enforced = true;
+  if (options.extraClaims) {
+    for (const [key, value] of Object.entries(options.extraClaims)) {
+      if (["env", "project", "org", "sub", "iss", "aud", "jti", "iat", "nbf", "exp"].includes(key)) continue;
+      payload[key] = value;
+    }
+  }
 
   const token = await new SignJWT(payload)
     .setProtectedHeader({ alg: "EdDSA", kid, typ: "JWT" })

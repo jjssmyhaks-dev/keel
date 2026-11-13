@@ -25,7 +25,8 @@ test("new organizations default to contributing and the migration opts old ones 
 
 test("the change history model records who toggled the setting", () => {
   const schema = readSource("prisma/schema.prisma");
-  const model = schema.slice(schema.indexOf("model DataContributionChange"), schema.indexOf("model Consent"));
+  const start = schema.indexOf("model DataContributionChange");
+  const model = schema.slice(start, schema.indexOf("\nmodel ", start + 1));
   for (const field of ["organizationId", "enabled", "changedBy", "changedAt"]) {
     assert.match(model, new RegExp(`\\b${field}\\b`), `DataContributionChange is missing ${field}`);
   }

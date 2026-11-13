@@ -108,6 +108,11 @@ export default async function AgentsPage({
                           <span className="min-w-0">
                             <span className="flex items-center gap-2">
                               <span className="truncate text-[12px] font-medium">{agent.name}</span>
+                              {agent.kind === "external" ? (
+                                <span className="border border-[#25567a]/35 px-1 py-px font-mono text-[8px] uppercase tracking-[0.1em] text-[#25567a] dark:text-[#93c5e8]">
+                                  external · {agent.externalOrgName ?? "trust"}
+                                </span>
+                              ) : null}
                               {agent.autonomousMode ? (
                                 <span className="border border-[#7a3db8]/35 px-1 py-px font-mono text-[8px] uppercase tracking-[0.1em] text-[#7a3db8]">
                                   auto

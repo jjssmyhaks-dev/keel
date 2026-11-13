@@ -19,11 +19,11 @@ export default async function PermissionsPage() {
       orderBy: { name: "asc" },
     }),
     db.credential.findMany({
-      where: { environmentId: ctx.environment.id, revokedAt: null },
+      where: { environmentId: ctx.environment.id, revokedAt: null, endUserId: null },
       orderBy: { connectorSlug: "asc" },
     }),
     db.grant.findMany({
-      where: { environmentId: ctx.environment.id },
+      where: { environmentId: ctx.environment.id, endUserId: null },
       include: { credential: true },
     }),
     loadConnectorMap(ctx.environment.id),

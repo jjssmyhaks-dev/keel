@@ -6,11 +6,9 @@ import {
   clientIp,
   handleApiError,
   parseJson,
-  requestId,
   requireSecretKey,
 } from "@/lib/api";
-import { auditEvent } from "@/lib/audit";
-import { WEBHOOK_EVENTS, assertSafeWebhookUrl } from "@/lib/webhooks";
+import { deleteWebhookService, updateWebhookService } from "@/lib/services/webhooks";
 
 async function loadEndpoint(id: string, environmentId: string) {
   const endpoint = await db.webhookEndpoint.findFirst({ where: { id, environmentId } });
@@ -61,52 +59,28 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     const endpoint = await loadEndpoint(id, auth.environment.id);
     const body = await parseJson<{ url?: string; events?: string[]; status?: string }>(req);
 
-    const data: Record<string, unknown> = {};
-    if (body.url) {
-      try {
-        data.url = await assertSafeWebhookUrl(body.url);
-      } catch (error) {
-        throw new ApiError(
-          422,
-          "invalid_url",
-          error instanceof Error ? error.message : "Provide a valid HTTPS URL for webhook deliveries.",
-        );
-      }
-    }
-    if (body.events) {
-      const known = WEBHOOK_EVENTS.map((event) => event.value) as string[];
-      const events = body.events.filter((event) => known.includes(event));
-      if (!events.length) throw new ApiError(422, "events_required", "Subscribe to at least one event.");
-      data.eventsJson = JSON.stringify(events);
-    }
-    if (body.status && ["active", "disabled"].includes(body.status)) data.status = body.status;
-    if (!Object.keys(data).length) throw new ApiError(422, "no_changes", "Provide a URL, events or status to update.");
+    const result = await updateWebhookService(
+      {
+        environmentId: auth.environment.id,
+        organizationId: auth.organization.id,
+        actorId: auth.apiKeyId,
+        actorName: "API key",
+        ip: clientIp(req),
+      },
+      endpoint,
+      { url: body.url, events: body.events, status: body.status },
+    );
 
-    const updated = await db.webhookEndpoint.update({ where: { id: endpoint.id }, data });
-    const rid = requestId();
-    await auditEvent({
-      environmentId: auth.environment.id,
-      actorType: "human",
-      actorId: auth.apiKeyId,
-      actorName: "API key",
-      action: "webhook.updated",
-      resourceType: "webhook",
-      resourceId: endpoint.id,
-      outcome: "recorded",
-      requestId: rid,
-      ip: clientIp(req),
-      payloadSummary: { url: updated.url, events: JSON.parse(updated.eventsJson), status: updated.status },
-    });
     return apiOk(
       {
-        id: updated.id,
+        id: result.endpoint.id,
         object: "webhook_endpoint",
-        url: updated.url,
-        events: JSON.parse(updated.eventsJson || "[]"),
-        status: updated.status,
-        createdAt: updated.createdAt.toISOString(),
+        url: result.endpoint.url,
+        events: JSON.parse(result.endpoint.eventsJson || "[]"),
+        status: result.endpoint.status,
+        createdAt: result.endpoint.createdAt.toISOString(),
       },
-      { requestId: rid },
+      { requestId: result.requestId },
     );
   } catch (error) {
     return handleApiError(error);
@@ -119,23 +93,19 @@ export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }
     requireSecretKey(auth);
     const { id } = await ctx.params;
     const endpoint = await loadEndpoint(id, auth.environment.id);
-    await db.webhookEndpoint.delete({ where: { id: endpoint.id } });
 
-    const rid = requestId();
-    await auditEvent({
-      environmentId: auth.environment.id,
-      actorType: "human",
-      actorId: auth.apiKeyId,
-      actorName: "API key",
-      action: "webhook.deleted",
-      resourceType: "webhook",
-      resourceId: endpoint.id,
-      outcome: "recorded",
-      requestId: rid,
-      ip: clientIp(req),
-      payloadSummary: { url: endpoint.url },
-    });
-    return apiOk({ id: endpoint.id, object: "webhook_endpoint", deleted: true }, { requestId: rid });
+    const result = await deleteWebhookService(
+      {
+        environmentId: auth.environment.id,
+        organizationId: auth.organization.id,
+        actorId: auth.apiKeyId,
+        actorName: "API key",
+        ip: clientIp(req),
+      },
+      endpoint,
+    );
+
+    return apiOk({ id: endpoint.id, object: "webhook_endpoint", deleted: true }, { requestId: result.requestId });
   } catch (error) {
     return handleApiError(error);
   }

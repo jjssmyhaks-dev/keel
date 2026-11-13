@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { db } from "./db";
 
 export const POLICY_SUBJECTS = ["grant", "approval_policy", "delegation", "jit_grant"] as const;
@@ -98,11 +99,15 @@ export function buildPolicyEventRow(input: PolicyEventInput): PolicyEventRow {
 }
 
 /** Never throws into the permission-change path. */
-export async function recordPolicyEvent(input: PolicyEventInput): Promise<void> {
+export async function recordPolicyEvent(
+  input: PolicyEventInput,
+  store?: Prisma.TransactionClient,
+): Promise<void> {
+  const client = store ?? (db as unknown as Prisma.TransactionClient);
   try {
     let contributes = input.contributes;
     if (contributes === undefined) {
-      const org = await db.organization.findUnique({
+      const org = await client.organization.findUnique({
         where: { id: input.organizationId },
         select: { dataContributionEnabled: true },
       });
@@ -110,12 +115,12 @@ export async function recordPolicyEvent(input: PolicyEventInput): Promise<void> 
     }
     let agentType = input.agentType;
     if (!agentType && input.agentId) {
-      const agent = await db.agent.findUnique({ where: { id: input.agentId }, select: { agentType: true } });
+      const agent = await client.agent.findUnique({ where: { id: input.agentId }, select: { agentType: true } });
       agentType = agent?.agentType;
     }
     let changedFromEventId = input.changedFromEventId ?? null;
     if (!changedFromEventId && input.changeKind === "update" && (input.grantId || input.approvalPolicyId)) {
-      const previous = await db.policyEvent.findFirst({
+      const previous = await client.policyEvent.findFirst({
         where: {
           ...(input.grantId ? { grantId: input.grantId } : {}),
           ...(input.approvalPolicyId ? { approvalPolicyId: input.approvalPolicyId } : {}),
@@ -125,7 +130,7 @@ export async function recordPolicyEvent(input: PolicyEventInput): Promise<void> 
       });
       changedFromEventId = previous?.id ?? null;
     }
-    await db.policyEvent.create({
+    await client.policyEvent.create({
       data: buildPolicyEventRow({ ...input, contributes, agentType, changedFromEventId }),
     });
   } catch (error) {

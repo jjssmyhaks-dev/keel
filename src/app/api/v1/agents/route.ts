@@ -6,17 +6,10 @@ import {
   authenticateApiKey,
   requireSecretKey,
   parseJson,
-  clientIp,
-  requestId,
   ApiError,
 } from "@/lib/api";
-import {
-  encryptSecret,
-  generateAgentIdentity,
-  fingerprintFor,
-} from "@/lib/crypto";
-import { auditEvent } from "@/lib/audit";
 import { dispatchEvent } from "@/lib/webhooks";
+import { registerAgentService } from "@/lib/services/agents";
 import { serializeAgent } from "@/lib/serializers";
 import { checkPlanLimit, productionAccess } from "@/lib/limits";
 import { isAgentType } from "@/lib/agent-types";
@@ -101,59 +94,26 @@ export async function POST(req: Request) {
       ownerUserId = owner!.id;
     }
 
-    let publicKey = body.publicKey?.trim() || null;
-    let privateKey: string | null = null;
-    let fingerprint: string;
-    let encryptedPrivateKey: string | null = null;
-
-    if (publicKey) {
-      fingerprint = fingerprintFor(publicKey);
-    } else {
-      const identity = generateAgentIdentity();
-      publicKey = identity.publicKey;
-      privateKey = identity.privateKey;
-      fingerprint = identity.fingerprint;
-      if ((body.keyMode ?? "client") === "platform") {
-        const sealed = await encryptSecret(ctx.project.id, { privateKey: identity.privateKey });
-        encryptedPrivateKey = JSON.stringify(sealed);
-      }
-    }
-
-    const agent = await db.agent.create({
-      data: {
+    const { agent, privateKey, fingerprint, requestId } = await registerAgentService(
+      {
         environmentId: ctx.environment.id,
-        name,
-        description: body.description?.trim() || null,
-        ownerUserId,
-        publicKey,
-        fingerprint,
-        agentType: body.type ?? "other",
-        keyMode: body.keyMode === "platform" ? "platform" : "client",
-        tagsJson: JSON.stringify((body.tags ?? []).filter((t) => typeof t === "string").slice(0, 12)),
-        framework: body.framework?.trim() || null,
-        keys: {
-          create: {
-            publicKey: publicKey!,
-            encryptedPrivateKey,
-          },
-        },
+        organizationId: ctx.organization.id,
+        actorId: ctx.apiKeyId,
+        actorName: "API key",
+        projectId: ctx.project.id,
       },
-    });
+      {
+        name,
+        description: body.description,
+        tags: body.tags,
+        type: body.type,
+        framework: body.framework,
+        ownerUserId,
+        publicKey: body.publicKey,
+        keyMode: body.keyMode,
+      },
+    );
 
-    const id = requestId();
-    await auditEvent({
-      environmentId: ctx.environment.id,
-      actorType: "human",
-      actorId: ctx.apiKeyId,
-      actorName: "API key",
-      action: "agent.registered",
-      resourceType: "agent",
-      resourceId: agent.id,
-      outcome: "recorded",
-      requestId: id,
-      ip: clientIp(req),
-      payloadSummary: { name, keyMode: agent.keyMode, fingerprint, owner: body.owner ?? null },
-    });
     await dispatchEvent(ctx.environment.id, "agent.registered", {
       agentId: agent.id,
       name,
@@ -168,7 +128,7 @@ export async function POST(req: Request) {
         privateKey,
         warning: privateKey ? "Store this private key securely. It will not be shown again." : undefined,
       },
-      { status: 201, requestId: id },
+      { status: 201, requestId },
     );
   } catch (error) {
     return handleApiError(error);

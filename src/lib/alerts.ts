@@ -158,7 +158,7 @@ export async function evaluateAlerts(environmentId?: string): Promise<FiredAlert
       }
     } else if (rule.type === "credential_broken") {
       const credentials = await db.credential.findMany({
-        where: { environmentId: rule.environmentId, revokedAt: null, status: "broken" },
+        where: { environmentId: rule.environmentId, revokedAt: null, status: "broken", endUserId: null },
         select: { name: true, connectorSlug: true },
         orderBy: { createdAt: "desc" },
         take: 10,
@@ -176,6 +176,7 @@ export async function evaluateAlerts(environmentId?: string): Promise<FiredAlert
         where: {
           environmentId: rule.environmentId,
           revokedAt: null,
+          endUserId: null,
           expiresAt: { not: null, lte: new Date(Date.now() + days * 86400_000) },
         },
         select: { name: true, connectorSlug: true, expiresAt: true },

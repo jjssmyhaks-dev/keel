@@ -99,6 +99,9 @@ export async function validateWorkloadIdentityInput(
     const agent = await db.agent.findFirst({ where: { id: agentId, environmentId } });
     if (!agent) throw new ApiError(422, "invalid_agent", "agentId must reference an agent in this environment.");
     if (agent.status === "revoked") throw new ApiError(422, "invalid_agent", "Cannot map a workload identity to a revoked agent.");
+    if (agent.kind === "external") {
+      throw new ApiError(422, "invalid_agent", "Shadow agents cannot hold workload identities. Use trust-exchange.");
+    }
     data.agentId = agent.id;
   }
 

@@ -68,6 +68,7 @@ const STATUS_STYLE: Record<string, { dot: string; label: string }> = {
   broken: { dot: "bg-[#b3402f]", label: "Broken" },
   expiring: { dot: "bg-[#a56b18]", label: "Expiring" },
   pending: { dot: "bg-[#a56b18]", label: "Pending" },
+  invited: { dot: "bg-[#25567a]", label: "Invited" },
   approved: { dot: "bg-[#2f7d5c]", label: "Approved" },
   denied: { dot: "bg-[#b3402f]", label: "Denied" },
   expired: { dot: "bg-black/30", label: "Expired" },

@@ -97,6 +97,13 @@ export async function POST(req: Request) {
     ]);
     if (!parent) throw new ApiError(404, "parent_not_found", "No parent agent with that ID exists in this environment.");
     if (!child) throw new ApiError(404, "child_not_found", "No child agent with that ID exists in this environment.");
+    if (parent.kind === "external" || child.kind === "external") {
+      throw new ApiError(
+        422,
+        "external_agent_cannot_delegate",
+        "Shadow agents for cross-organization trust cannot delegate further.",
+      );
+    }
     if (parent.status !== "active" || child.status !== "active") {
       throw new ApiError(409, "agent_inactive", "Both agents must be active before you can record a delegation.");
     }

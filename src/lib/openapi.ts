@@ -160,6 +160,174 @@ const error = {
   },
 };
 
+const consentSchema = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    agentId: { type: "string" },
+    agentName: nullableString,
+    endUserId: { type: "string" },
+    scopes: { type: "array", items: { type: "string" } },
+    grantedAt: { type: "string", format: "date-time" },
+    expiresAt: { type: ["string", "null"], format: "date-time" },
+    revokedAt: { type: ["string", "null"], format: "date-time" },
+    lastUsedAt: { type: ["string", "null"], format: "date-time" },
+  },
+};
+
+const endUserSchema = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    externalUserId: { type: "string" },
+    email: nullableString,
+    createdAt: { type: "string", format: "date-time" },
+    lastSeenAt: { type: ["string", "null"], format: "date-time" },
+    consents: { type: "array", items: consentSchema },
+    connections: {
+      type: "array",
+      description: "Present on the detail endpoint. Credentials created on this end user's behalf.",
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          name: { type: "string" },
+          connector: { type: "string" },
+          type: { type: "string" },
+          status: { type: "string" },
+          createdAt: { type: "string", format: "date-time" },
+          lastUsedAt: { type: ["string", "null"], format: "date-time" },
+          revokedAt: { type: ["string", "null"], format: "date-time" },
+        },
+      },
+    },
+    dataRequests: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          kind: { type: "string" },
+          status: { type: "string" },
+          createdAt: { type: "string", format: "date-time" },
+          completedAt: { type: ["string", "null"], format: "date-time" },
+        },
+      },
+    },
+  },
+};
+
+const trustRelationshipSchema = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    status: { type: "string", enum: ["invited", "active", "declined", "revoked"] },
+    note: nullableString,
+    maxScopes: { type: "array", items: { type: "string" } },
+    ownerEnvironmentId: { type: "string" },
+    externalEnvironmentId: { type: "string" },
+    shadowAgentId: nullableString,
+    invitedAt: { type: "string", format: "date-time" },
+    acceptedAt: { type: ["string", "null"], format: "date-time" },
+    revokedAt: { type: ["string", "null"], format: "date-time" },
+    externalAgent: {
+      type: ["object", "null"],
+      properties: {
+        id: { type: "string" },
+        name: { type: "string" },
+        status: { type: "string" },
+        orgName: nullableString,
+      },
+    },
+    shadowAgent: {
+      type: ["object", "null"],
+      properties: {
+        id: { type: "string" },
+        name: { type: "string" },
+        status: { type: "string" },
+      },
+    },
+  },
+};
+
+const configFileSchema = {
+  type: "object",
+  required: ["version", "environment"],
+  properties: {
+    version: { type: "integer", enum: [1] },
+    environment: { type: "string" },
+    agents: {
+      type: "array",
+      items: {
+        type: "object",
+        required: ["name"],
+        properties: {
+          name: { type: "string" },
+          type: { type: "string" },
+          description: nullableString,
+          tags: { type: "array", items: { type: "string" } },
+          autonomousMode: { type: "boolean" },
+        },
+      },
+    },
+    connections: {
+      type: "array",
+      description: "Referenced by name from grants; apply never creates or deletes connections.",
+      items: {
+        type: "object",
+        required: ["name", "connector"],
+        properties: {
+          name: { type: "string" },
+          connector: { type: "string" },
+          type: { type: "string" },
+          metadata: { type: "object", additionalProperties: true },
+        },
+      },
+    },
+    grants: {
+      type: "array",
+      items: {
+        type: "object",
+        required: ["agent", "connection", "actions"],
+        properties: {
+          agent: { type: "string" },
+          connection: { type: "string" },
+          actions: { type: "array", items: { type: "string" } },
+          resource: { type: "string" },
+          approvalMode: { type: ["string", "null"], enum: ["allow", "require_approval", "deny", null] },
+          conditions: { type: "object", additionalProperties: true },
+          expiresAt: nullableString,
+        },
+      },
+    },
+    approvalPolicies: {
+      type: "array",
+      items: {
+        type: "object",
+        required: ["agent", "actionPattern", "mode"],
+        properties: {
+          agent: nullableString,
+          actionPattern: { type: "string" },
+          mode: { type: "string", enum: ["allow", "require_approval", "deny"] },
+          slaMinutes: { type: ["integer", "null"] },
+          escalateToRole: nullableString,
+        },
+      },
+    },
+    webhooks: {
+      type: "array",
+      items: {
+        type: "object",
+        required: ["url", "events"],
+        properties: {
+          url: { type: "string", format: "uri" },
+          events: { type: "array", items: { type: "string" } },
+        },
+      },
+    },
+  },
+};
+
 const idParam = { $ref: "#/components/parameters/Id" };
 
 const json = (schema: object) => ({ "application/json": { schema } });
@@ -179,7 +347,12 @@ export function buildOpenApiDocument() {
     security,
     tags: [
       { name: "Agents" },
+      { name: "Consent" },
+      { name: "End users" },
+      { name: "Trust" },
+      { name: "Config" },
       { name: "Tokens" },
+      { name: "Delegation" },
       { name: "Workload identity" },
       { name: "Vault" },
       { name: "Grants" },
@@ -1184,6 +1357,476 @@ export function buildOpenApiDocument() {
           },
         },
       },
+      "/consent/requests": {
+        post: {
+          tags: ["Consent"],
+          summary: "Create a hosted consent request",
+          description:
+            "Creates a pending request and returns the hosted URL to redirect the end user to. The end user approves, declines or edits scopes on Authab's domain. A one-time code is appended to `redirectUri` on approval. Consent can only be requested for internal agents, and destructive or financial scopes never appear in development or sandbox environments.",
+          requestBody: {
+            required: true,
+            content: json({
+              type: "object",
+              required: ["agentId", "redirectUri", "endUser"],
+              properties: {
+                agentId: { type: "string" },
+                scopes: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Action scopes such as slack.post_message. At most 50.",
+                },
+                connectors: { type: "array", items: { type: "string" } },
+                endUser: {
+                  type: "object",
+                  required: ["externalUserId"],
+                  properties: {
+                    externalUserId: { type: "string", description: "Your identifier for this end user." },
+                    email: nullableString,
+                  },
+                },
+                redirectUri: { type: "string", format: "uri", description: "Where the end user returns after deciding." },
+                state: { type: "string", description: "Returned unchanged on the callback. Stored up to 200 characters." },
+                expiresInMinutes: { type: "integer", minimum: 5, maximum: 1440, default: 30 },
+                durationOptions: {
+                  type: "array",
+                  items: { type: "string", enum: ["session", "30d", "until_revoked"] },
+                  description: "Let the end user pick how long the consent lasts.",
+                },
+              },
+            }),
+          },
+          responses: {
+            "201": {
+              description: "Request created. Redirect the end user to `url`.",
+              content: json({
+                type: "object",
+                properties: {
+                  id: { type: "string" },
+                  url: { type: "string", format: "uri" },
+                  expiresAt: { type: "string", format: "date-time" },
+                },
+              }),
+            },
+            "409": { description: "agent_inactive", content: json(error) },
+            "422": {
+              description:
+                "agent_required, redirect_required, end_user_required, invalid_expiry, scopes_required, too_many_scopes, scope_unknown, scope_not_allowed or connector_not_found",
+              content: json(error),
+            },
+          },
+        },
+      },
+      "/consent/token": {
+        post: {
+          tags: ["Consent"],
+          summary: "Exchange a consent code for an agent token",
+          description:
+            "Called from your redirect handler with the one-time `code` and the same `redirectUri` used to create the request. The code is single-use and expires five minutes after approval. The returned token carries `end_user` and `consent` claims and only the consented scopes.",
+          requestBody: {
+            required: true,
+            content: json({
+              type: "object",
+              required: ["code", "redirectUri"],
+              properties: {
+                code: { type: "string" },
+                redirectUri: { type: "string", format: "uri" },
+              },
+            }),
+          },
+          responses: {
+            "200": {
+              description: "Consent-scoped agent token",
+              content: json({
+                type: "object",
+                properties: {
+                  agentToken: { type: "string" },
+                  expiresIn: { type: "integer", example: 300 },
+                  consentId: { type: "string" },
+                  endUserId: { type: "string" },
+                  scopes: { type: "array", items: { type: "string" } },
+                },
+              }),
+            },
+            "409": { description: "code_used, code_expired, consent_inactive or invalid_code", content: json(error) },
+            "422": { description: "invalid_code or redirect_mismatch", content: json(error) },
+          },
+        },
+      },
+      "/consent/{id}/token": {
+        post: {
+          tags: ["Consent"],
+          summary: "Mint another token for an active consent",
+          description:
+            "Short-lived agent tokens can be minted repeatedly while the underlying consent is active. Revoking the consent blocks every later mint. Requires a secret key.",
+          parameters: [idParam],
+          responses: {
+            "200": {
+              description: "Consent-scoped agent token",
+              content: json({
+                type: "object",
+                properties: {
+                  agentToken: { type: "string" },
+                  expiresIn: { type: "integer" },
+                  consentId: { type: "string" },
+                  endUserId: { type: "string" },
+                  scopes: { type: "array", items: { type: "string" } },
+                  expiresAt: nullableString,
+                },
+              }),
+            },
+            "404": { description: "consent_not_found", content: json(error) },
+            "409": { description: "consent_inactive", content: json(error) },
+          },
+        },
+      },
+      "/consent/{id}/revoke": {
+        post: {
+          tags: ["Consent"],
+          summary: "Revoke a consent",
+          description:
+            "Revokes the consent, expires every grant created through it, and writes a hash-chained audit event. Requires a secret key.",
+          parameters: [idParam],
+          requestBody: {
+            content: json({
+              type: "object",
+              properties: {
+                reason: { type: "string", maxLength: 200, example: "customer_revoked" },
+              },
+            }),
+          },
+          responses: {
+            "200": {
+              description: "Consent revoked",
+              content: json({
+                type: "object",
+                properties: {
+                  id: { type: "string" },
+                  agentId: { type: "string" },
+                  endUserId: { type: "string" },
+                  revokedAt: nullableString,
+                },
+              }),
+            },
+            "404": { description: "consent_not_found", content: json(error) },
+          },
+        },
+      },
+      "/end-users": {
+        get: {
+          tags: ["End users"],
+          summary: "List end users",
+          description:
+            "Returns up to 200 end users in this project with their consents and data requests. Soft-deleted end users are excluded. Requires a secret key.",
+          responses: {
+            "200": { description: "End users", content: json(list("EndUser")) },
+            "403": { description: "Publishable keys cannot list end users", content: json(error) },
+          },
+        },
+      },
+      "/end-users/{externalUserId}": {
+        get: {
+          tags: ["End users"],
+          summary: "Retrieve an end user",
+          description:
+            "Consents, connections created on this end user's behalf, and data requests. Looked up by your external id, not by a raw email address.",
+          parameters: [
+            {
+              name: "externalUserId",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
+          responses: {
+            "200": { description: "End user", content: json({ $ref: "#/components/schemas/EndUser" }) },
+            "404": { description: "end_user_not_found", content: json(error) },
+          },
+        },
+      },
+      "/end-users/{externalUserId}/control-link": {
+        post: {
+          tags: ["End users"],
+          summary: "Issue a control-center link",
+          description:
+            "Creates a 15-minute, single-purpose link the end user can open to see and revoke their own consents and connections. Use it for in-app 'manage access' buttons and support flows. Requires a secret key.",
+          parameters: [
+            {
+              name: "externalUserId",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
+          responses: {
+            "201": {
+              description: "Control-center link",
+              content: json({
+                type: "object",
+                properties: {
+                  url: { type: "string", format: "uri" },
+                  expiresAt: { type: "string", format: "date-time" },
+                },
+              }),
+            },
+            "404": { description: "end_user_not_found", content: json(error) },
+          },
+        },
+      },
+      "/trust-relationships": {
+        get: {
+          tags: ["Trust"],
+          summary: "List cross-organization trust relationships",
+          description:
+            "`side=owner` lists invitations this environment sent; `side=external` lists invitations it received. Requires a secret key.",
+          parameters: [
+            { name: "side", in: "query", schema: { type: "string", enum: ["owner", "external"], default: "owner" } },
+          ],
+          responses: {
+            "200": {
+              description: "Relationships for the requested side",
+              content: json({
+                type: "object",
+                properties: {
+                  side: { type: "string", enum: ["owner", "external"] },
+                  relationships: {
+                    type: "array",
+                    items: { $ref: "#/components/schemas/TrustRelationship" },
+                  },
+                },
+              }),
+            },
+            "422": { description: "invalid_side", content: json(error) },
+          },
+        },
+        post: {
+          tags: ["Trust"],
+          summary: "Invite another organization's agent",
+          description:
+            "Invites an internal agent in the same environment type (production↔production, development↔development) from a different organization. The invitation never grants access by itself; the external organization must accept.",
+          requestBody: {
+            required: true,
+            content: json({
+              type: "object",
+              required: ["externalAgentId"],
+              properties: {
+                externalAgentId: { type: "string" },
+                note: { type: "string", maxLength: 500 },
+                maxScopes: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Upper bound on what the external agent may request later.",
+                },
+              },
+            }),
+          },
+          responses: {
+            "201": {
+              description: "Invitation created",
+              content: json({ $ref: "#/components/schemas/TrustRelationship" }),
+            },
+            "404": { description: "agent_not_found", content: json(error) },
+            "409": { description: "relationship_exists", content: json(error) },
+            "422": {
+              description:
+                "external_agent_required, agent_not_internal, agent_inactive, agent_private, environment_mismatch or same_organization",
+              content: json(error),
+            },
+          },
+        },
+      },
+      "/trust-relationships/{id}/accept": {
+        post: {
+          tags: ["Trust"],
+          summary: "Accept a trust invitation",
+          description:
+            "Accepted from the external organization. Creates the shadow agent in the owner's environment that the external agent will call through, and dispatches `trust.accepted`. Requires a secret key.",
+          parameters: [idParam],
+          responses: {
+            "200": {
+              description: "Relationship active",
+              content: json({
+                type: "object",
+                properties: {
+                  id: { type: "string" },
+                  status: { type: "string", example: "active" },
+                  shadowAgentId: { type: "string" },
+                },
+              }),
+            },
+            "403": { description: "not_external_agent", content: json(error) },
+            "409": { description: "trust_inactive", content: json(error) },
+          },
+        },
+      },
+      "/trust-relationships/{id}/decline": {
+        post: {
+          tags: ["Trust"],
+          summary: "Decline a trust invitation",
+          parameters: [idParam],
+          responses: {
+            "200": {
+              description: "Relationship declined",
+              content: json({
+                type: "object",
+                properties: { id: { type: "string" }, status: { type: "string", example: "declined" } },
+              }),
+            },
+            "403": { description: "not_external_agent", content: json(error) },
+          },
+        },
+      },
+      "/trust-relationships/{id}/revoke": {
+        post: {
+          tags: ["Trust"],
+          summary: "Revoke a trust relationship",
+          description:
+            "Either side can revoke. The shadow agent is revoked and added to the owner environment's signed revocation list, so tokens on it stop verifying. Idempotent.",
+          parameters: [idParam],
+          responses: {
+            "200": {
+              description: "Relationship revoked",
+              content: json({
+                type: "object",
+                properties: {
+                  id: { type: "string" },
+                  status: { type: "string", example: "revoked" },
+                  revokedAt: { type: "string", format: "date-time" },
+                  alreadyRevoked: { type: "boolean" },
+                },
+              }),
+            },
+          },
+        },
+      },
+      "/tokens/trust-exchange": {
+        post: {
+          tags: ["Trust"],
+          summary: "Exchange a trust relationship for a shadow-agent token",
+          description:
+            "Called by the external agent with its own token. Narrows the shadow agent's grants to the relationship's `maxScopes` and the requested scopes, then issues a 5-minute token with `act`, `x_org` and `trust` claims. Rate limited to 120 requests per minute per agent.",
+          security: agentSecurity,
+          requestBody: {
+            required: true,
+            content: json({
+              type: "object",
+              required: ["trustRelationshipId"],
+              properties: {
+                trustRelationshipId: { type: "string" },
+                scopes: { type: "array", items: { type: "string" } },
+                ttl: { type: "integer", minimum: 60, maximum: 300, default: 300 },
+              },
+            }),
+          },
+          responses: {
+            "200": {
+              description: "Shadow-agent token",
+              content: json({
+                type: "object",
+                properties: {
+                  access_token: { type: "string" },
+                  token_type: { type: "string", example: "Bearer" },
+                  expires_in: { type: "integer" },
+                  expires_at: { type: "string", format: "date-time" },
+                  token_id: { type: "string" },
+                  scope: { type: "string" },
+                  scopes: { type: "array", items: { type: "string" } },
+                  trust: { type: "string" },
+                  x_org: { type: "boolean", example: true },
+                  agent: { type: "object", additionalProperties: true },
+                },
+              }),
+            },
+            "403": { description: "not_external_agent", content: json(error) },
+            "404": { description: "trust_not_found", content: json(error) },
+            "409": { description: "trust_inactive, agent_inactive, shadow_agent_missing or shadow_agent_inactive", content: json(error) },
+            "422": { description: "trust_relationship_required or no_scopes", content: json(error) },
+            "429": { description: "rate_limited", content: json(error) },
+          },
+        },
+      },
+      "/config/export": {
+        get: {
+          tags: ["Config"],
+          summary: "Export configuration as JSON or YAML",
+          description:
+            "Version 1 configuration for this environment: agents, connections (metadata only), grants, approval policies and webhook URLs. Secrets, credential payloads and end-user consent data are never exported.",
+          parameters: [
+            { name: "format", in: "query", schema: { type: "string", enum: ["json", "yaml"], default: "json" } },
+          ],
+          responses: {
+            "200": {
+              description: "Configuration document",
+              content: {
+                ...json({ $ref: "#/components/schemas/ConfigFile" }),
+                "application/yaml": { schema: { type: "string" } },
+              },
+            },
+            "422": { description: "invalid_format", content: json(error) },
+          },
+        },
+      },
+      "/config/apply": {
+        post: {
+          tags: ["Config"],
+          summary: "Apply configuration",
+          description:
+            "Validates a version 1 document, diffs it by natural keys, and writes in one transaction. `dryRun` returns the same plan without writing. `prune` deletes grants, approval policies and webhooks not present in the document; production prune additionally requires the `x-authab-confirm: prune` header. Connections are never created or deleted, and agent private keys and webhook signing secrets are returned once in `results`.",
+          parameters: [
+            {
+              name: "x-authab-confirm",
+              in: "header",
+              description: "Send `prune` to allow pruning in a production environment.",
+              schema: { type: "string", enum: ["prune"] },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: json({
+              type: "object",
+              properties: {
+                config: { $ref: "#/components/schemas/ConfigFile" },
+                yaml: { type: "string", description: "Alternative to config; parsed server-side." },
+                dryRun: { type: "boolean", default: false },
+                prune: { type: "boolean", default: false },
+              },
+            }),
+          },
+          responses: {
+            "200": {
+              description: "Plan and, unless dryRun, results",
+              content: json({
+                type: "object",
+                properties: {
+                  version: { type: "integer", example: 1 },
+                  environment: { type: "string" },
+                  dryRun: { type: "boolean" },
+                  create: { type: "array", items: { type: "string" } },
+                  update: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        key: { type: "string" },
+                        changes: { type: "array", items: { type: "string" } },
+                      },
+                    },
+                  },
+                  delete: { type: "array", items: { type: "string" } },
+                  warnings: { type: "array", items: { type: "string" } },
+                  results: { type: "object", additionalProperties: true },
+                },
+              }),
+            },
+            "403": { description: "Plan limit or production confirmation required", content: json(error) },
+            "409": { description: "ambiguous_name", content: json(error) },
+            "422": {
+              description:
+                "config_required, invalid_yaml, unsupported_version, invalid_config, duplicate or unknown reference",
+              content: json(error),
+            },
+          },
+        },
+      },
       "/jwks": {
         get: {
           tags: ["Tokens"],
@@ -1203,6 +1846,10 @@ export function buildOpenApiDocument() {
         Agent: agentSchema,
         Connector: connectorSchema,
         CustomConnector: customConnectorSchema,
+        Consent: consentSchema,
+        EndUser: endUserSchema,
+        TrustRelationship: trustRelationshipSchema,
+        ConfigFile: configFileSchema,
         Error: error,
       },
     },

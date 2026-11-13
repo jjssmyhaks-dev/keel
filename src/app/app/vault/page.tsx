@@ -36,6 +36,7 @@ export default async function VaultPage({
   const credentials = await db.credential.findMany({
     where: {
       environmentId: ctx.environment.id,
+      endUserId: null,
       ...(query.connector ? { connectorSlug: query.connector } : {}),
     },
     include: {
@@ -67,6 +68,9 @@ export default async function VaultPage({
             </form>
             <Link href="/app/connect" className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
               OAuth apps
+            </Link>
+            <Link href="/app/vault/import" className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
+              Import .env
             </Link>
             <Link href="/app/vault/new" className="border border-black bg-black px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white hover:bg-[#eca8d6] hover:text-black">
               Add connection

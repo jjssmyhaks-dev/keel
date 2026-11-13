@@ -1,5 +1,12 @@
 import { readFile, writeFile } from "node:fs/promises";
-import { Authab, AuthabError, type AgentType, type Approval, type GrantConditions } from "@authab/sdk";
+import {
+  Authab,
+  AuthabError,
+  type AgentType,
+  type Approval,
+  type ConfigFile,
+  type GrantConditions,
+} from "@authab/sdk";
 import {
   UsageError,
   flagBool,
@@ -11,7 +18,8 @@ import {
 } from "./args";
 import { CONFIG_PATH, resolveClient, saveProfile } from "./config";
 import { heading, kv, printJson, shortTime, table } from "./format";
-import { promptHidden, promptText, readStdin, requireYes } from "./io";
+import { confirm, promptHidden, promptText, readStdin, requireYes } from "./io";
+import { assertCleanGitTree, findingsToGroups, rewriteSources, scanPaths, scanRoot, type ScanFinding } from "./scan";
 
 const VERSION = "1.0.0";
 const DEFAULT_BASE_URL = "https://api.authab.dev/v1";
@@ -75,6 +83,11 @@ Audit
   authab audit tail [--agent <id>] [--action proxy] [--limit 20]
   authab audit export [--format jsonl|csv] [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--out file]
 
+Scan and configuration
+  authab scan [paths...] [--json] [--exclude <glob>] [--max-size <bytes>] [--import] [--write] [--force]
+  authab config export [--format yaml|json] [--out <file>]
+  authab config apply <file> [--dry-run] [--prune]
+
 Global
   --json      machine-readable output on read commands
   --env NAME  use a stored profile (or AUTHAB_ENV)
@@ -122,6 +135,10 @@ async function main(argv: string[]): Promise<void> {
       return approvals(args);
     case "audit":
       return audit(args);
+    case "scan":
+      return scanCommand(args);
+    case "config":
+      return configCommand(args);
     case "promote":
       return promote(args);
     default:
@@ -1049,6 +1066,194 @@ async function audit(args: ParsedArgs) {
   }
 
   throw new UsageError(`Unknown audit command “${sub ?? ""}”. Run \`authab --help\`.`);
+}
+
+/* ------------------------------------------------------------------ */
+/* Scan                                                                */
+/* ------------------------------------------------------------------ */
+
+async function scanCommand(args: ParsedArgs) {
+  const paths = args.positionals;
+  const excludes = flagList(args, "exclude");
+  const maxSize = numberFlag(args, "max-size") ?? 1_000_000;
+  if (maxSize <= 0) throw new UsageError("--max-size must be a positive number of bytes.");
+  const cwd = process.cwd();
+  const findings = await scanPaths({ paths, excludes, maxSize, cwd });
+  const json = flagBool(args, "json");
+
+  if (json) {
+    printJson(findings.map(({ value: _value, ...rest }) => rest));
+  } else if (!findings.length) {
+    process.stdout.write("No stored credentials found.\n");
+  } else {
+    table(
+      ["file", "line", "connector", "confidence", "preview"],
+      findings.map((finding) => [
+        finding.file,
+        String(finding.line),
+        finding.connector || "unmapped",
+        finding.confidence,
+        `${finding.name ? `${finding.name} · ` : ""}${finding.preview}`,
+      ]),
+    );
+  }
+
+  const imported: ScanFinding[] = [];
+  if (flagBool(args, "import") && findings.length) {
+    const write = flagBool(args, "write");
+    if (write) {
+      assertWriteSafe(scanRoot(paths, cwd), flagBool(args, "force"));
+    }
+    const { authab } = await resolveClient(args);
+    const byFile = new Map<string, ScanFinding[]>();
+    for (const finding of findings) {
+      const list = byFile.get(finding.file) ?? [];
+      list.push(finding);
+      byFile.set(finding.file, list);
+    }
+
+    for (const [file, list] of byFile) {
+      for (const group of findingsToGroups(list)) {
+        if (!group.connector) {
+          process.stderr.write(`Skipping unnamed secret in ${file}: choose a connector with \`authab vault add\`.\n`);
+          continue;
+        }
+        if (!group.complete) {
+          process.stderr.write(
+            `Skipping ${group.connector} in ${file}: missing ${group.missing.join(", ")}. Import it on the dashboard or add the fields manually.\n`,
+          );
+          continue;
+        }
+        const names = group.findings.map((finding) => finding.key || "(literal)").join(", ");
+        if (!(await confirm(`Import ${names} from ${file} as ${group.connector}?`))) continue;
+        const first = group.findings[0]!;
+        const secret = Object.keys(group.fields).length ? group.fields : first.value;
+        try {
+          const credential = await authab.vault.create({
+            connector: group.connector,
+            type: first.credentialType || undefined,
+            secret,
+          });
+          process.stdout.write(`Imported ${credential.name} (${credential.id}) with hint ${credential.maskedHint}.\n`);
+          for (const groupFinding of group.findings) {
+            const original = list.find(
+              (finding) => finding.name === groupFinding.key && finding.value === groupFinding.value,
+            );
+            if (original) imported.push(original);
+          }
+        } catch (error) {
+          process.stderr.write(
+            `Could not import ${names}: ${error instanceof Error ? error.message : String(error)}\n`,
+          );
+        }
+      }
+    }
+  }
+
+  if (flagBool(args, "write")) {
+    if (!flagBool(args, "import")) {
+      throw new UsageError("Pass --import with --write. Sources are only rewritten after a successful import.");
+    }
+    if (imported.length) {
+      const rewritten = await rewriteSources(imported, { cwd: scanRoot(paths, cwd), force: flagBool(args, "force") });
+      for (const file of rewritten) process.stdout.write(`Rewrote ${file}.\n`);
+    }
+  }
+
+  if (findings.some((finding) => finding.confidence === "high")) process.exitCode = 1;
+}
+
+function assertWriteSafe(root: string, force: boolean) {
+  try {
+    assertCleanGitTree(root, force);
+  } catch (error) {
+    throw new UsageError(error instanceof Error ? error.message : String(error));
+  }
+}
+
+async function configCommand(args: ParsedArgs) {
+  const sub = args.positionals[0];
+  const { authab } = await resolveClient(args);
+
+  if (sub === "export") {
+    const format = (flagString(args, "format") ?? "json").toLowerCase();
+    if (format !== "json" && format !== "yaml") throw new UsageError("--format must be json or yaml.");
+    const body =
+      format === "yaml"
+        ? await authab.config.exportYaml()
+        : `${JSON.stringify(await authab.config.export(), null, 2)}\n`;
+    const out = flagString(args, "out");
+    if (!out) {
+      process.stdout.write(body.endsWith("\n") ? body : `${body}\n`);
+      return;
+    }
+    await writeFile(out, body, "utf8");
+    process.stderr.write(`Wrote ${out} (${format}).\n`);
+    return;
+  }
+
+  if (sub === "apply") {
+    const file = args.positionals[1];
+    if (!file) throw new UsageError("Provide the configuration file to apply.");
+    let raw: string;
+    try {
+      raw = await readFile(file, "utf8");
+    } catch {
+      throw new UsageError(`Could not read ${file}.`);
+    }
+    const trimmed = raw.trim();
+    if (!trimmed) throw new UsageError(`${file} is empty.`);
+
+    let input: { config?: ConfigFile; yaml?: string };
+    if (trimmed.startsWith("{")) {
+      try {
+        input = { config: JSON.parse(trimmed) as ConfigFile };
+      } catch {
+        throw new UsageError(`${file} is not valid JSON.`);
+      }
+    } else {
+      input = { yaml: raw };
+    }
+
+    const dryRun = flagBool(args, "dry-run");
+    const prune = flagBool(args, "prune");
+    const result = await authab.config.apply({
+      ...input,
+      dryRun,
+      prune,
+      confirmPrune: prune,
+    });
+
+    if (flagBool(args, "json")) {
+      printJson(result);
+      return;
+    }
+
+    const counts = `${result.create.length} create, ${result.update.length} update, ${result.delete.length} delete`;
+    process.stdout.write(
+      `${dryRun ? "Dry run" : "Applied"} for ${result.environment}: ${counts}.\n`,
+    );
+    for (const key of result.create) process.stdout.write(`  + ${key}\n`);
+    for (const entry of result.update) process.stdout.write(`  ~ ${entry.key} (${entry.changes.join(", ")})\n`);
+    for (const key of result.delete) process.stdout.write(`  - ${key}\n`);
+    for (const warning of result.warnings) process.stderr.write(`Warning: ${warning}\n`);
+
+    if (result.results?.agents.length) {
+      process.stdout.write("\nNew agent private keys (shown once):\n");
+      for (const agent of result.results.agents) {
+        process.stdout.write(`  ${agent.name} (${agent.id}): ${agent.privateKey ?? "no private key"}\n`);
+      }
+    }
+    if (result.results?.webhookSecrets.length) {
+      process.stdout.write("\nNew webhook signing secrets (shown once):\n");
+      for (const webhook of result.results.webhookSecrets) {
+        process.stdout.write(`  ${webhook.url}: ${webhook.secret}\n`);
+      }
+    }
+    return;
+  }
+
+  throw new UsageError(`Unknown config command “${sub ?? ""}”. Run \`authab --help\`.`);
 }
 
 /* ------------------------------------------------------------------ */

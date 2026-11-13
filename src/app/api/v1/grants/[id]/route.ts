@@ -9,17 +9,15 @@ import {
   requestId,
   requireSecretKey,
 } from "@/lib/api";
-import { validateActions } from "@/lib/grants";
-import { auditEvent } from "@/lib/audit";
-import { recordPolicyEvent } from "@/lib/policy-events";
+import { deleteGrantService, updateGrantService } from "@/lib/services/grants";
 import { serializeGrant } from "@/lib/serializers";
 
 async function loadGrant(id: string, environmentId: string) {
   const grant = await db.grant.findFirst({
     where: { id, environmentId },
     include: {
-      agent: { select: { id: true, name: true, status: true } },
-      credential: { select: { id: true, name: true, connectorSlug: true, status: true } },
+      agent: { select: { id: true, name: true, status: true, agentType: true } },
+      credential: { select: { id: true, name: true, connectorSlug: true, status: true, revokedAt: true } },
     },
   });
   if (!grant) throw new ApiError(404, "grant_not_found", "No grant with that ID exists in this environment.");
@@ -59,125 +57,28 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       activate?: boolean;
     }>(req);
 
-    const data: Record<string, unknown> = {};
-    if (body.actions) {
-      const actions = body.actions.map((action) => String(action).trim()).filter(Boolean);
-      const validation = await validateActions(grant.credential.connectorSlug, actions, auth.environment.id);
-      if (!validation.ok) throw new ApiError(422, "invalid_actions", validation.error);
-      data.actionsJson = JSON.stringify(actions);
-    }
-    if (body.resourcePattern !== undefined) data.resourcePattern = body.resourcePattern.trim() || "*";
-    if (body.conditions !== undefined) data.conditionsJson = JSON.stringify(body.conditions);
-    if (body.purpose !== undefined) data.purpose = body.purpose?.trim() || null;
-    if (body.expiresAt !== undefined) data.expiresAt = body.expiresAt ? new Date(body.expiresAt) : null;
-    if (body.approvalMode !== undefined) {
-      if (body.approvalMode && !["allow", "require_approval", "deny"].includes(body.approvalMode)) {
-        throw new ApiError(422, "invalid_approval_mode", "approvalMode must be allow, require_approval or deny.");
-      }
-      data.approvalMode = body.approvalMode;
-    }
-    let activated = false;
-    if (body.justInTime !== undefined) {
-      data.justInTime = body.justInTime;
-      if (body.justInTime) {
-        data.activatedAt = null;
-      } else if (!grant.activatedAt) {
-        data.activatedAt = new Date();
-      }
-    }
-    if (body.activate === true) {
-      data.justInTime = true;
-      data.activatedAt = new Date();
-      if (body.expiresAt === undefined && !grant.expiresAt) {
-        data.expiresAt = new Date(Date.now() + 60 * 60_000);
-      }
-      activated = true;
-    }
-
-    if (!Object.keys(data).length) {
-      throw new ApiError(422, "no_changes", "Provide at least one field to update.");
-    }
-
-    const before = {
-      actions: JSON.parse(grant.actionsJson || "[]"),
-      resource: grant.resourcePattern,
-      conditions: JSON.parse(grant.conditionsJson || "{}"),
-      approvalMode: grant.approvalMode,
-    };
-    const updated = await db.grant.update({ where: { id: grant.id }, data });
-
-    const rid = requestId();
-    await db.permissionChange.create({
-      data: {
+    const result = await updateGrantService(
+      {
         environmentId: auth.environment.id,
-        agentId: grant.agentId,
-        credentialId: grant.credentialId,
+        organizationId: auth.organization.id,
         actorId: auth.apiKeyId,
         actorName: "API key",
-        change: "Grant updated",
-        beforeJson: JSON.stringify(before),
-        afterJson: JSON.stringify({
-          actions: JSON.parse(updated.actionsJson || "[]"),
-          resource: updated.resourcePattern,
-          conditions: JSON.parse(updated.conditionsJson || "{}"),
-          approvalMode: updated.approvalMode,
-        }),
-      },
-    });
-
-    await recordPolicyEvent({
-      environmentId: auth.environment.id,
-      organizationId: auth.organization.id,
-      agentId: grant.agentId,
-      subject: "grant",
-      grantId: grant.id,
-      connectorSlug: grant.credential.connectorSlug,
-      actions: JSON.parse(updated.actionsJson || "[]"),
-      resourcePattern: updated.resourcePattern,
-      approvalMode: updated.approvalMode,
-      conditions: JSON.parse(updated.conditionsJson || "{}"),
-      changeKind: "update",
-      isSandbox: grant.credential.connectorSlug === "sandbox",
-    });
-
-    await auditEvent({
-      environmentId: auth.environment.id,
-      actorType: "human",
-      actorId: auth.apiKeyId,
-      actorName: "API key",
-      agentId: grant.agentId,
-      action: "grant.updated",
-      resourceType: "grant",
-      resourceId: grant.id,
-      outcome: "recorded",
-      requestId: rid,
-      ip: clientIp(req),
-      payloadSummary: { agent: grant.agent.name, connector: grant.credential.connectorSlug, changed: Object.keys(data) },
-    });
-
-    if (activated) {
-      await auditEvent({
-        environmentId: auth.environment.id,
-        actorType: "human",
-        actorId: auth.apiKeyId,
-        actorName: "API key",
-        agentId: grant.agentId,
-        action: "grant.activated",
-        resourceType: "grant",
-        resourceId: updated.id,
-        outcome: "recorded",
-        requestId: rid,
         ip: clientIp(req),
-        payloadSummary: {
-          agent: grant.agent.name,
-          connector: grant.credential.connectorSlug,
-          manual: true,
-          expiresAt: updated.expiresAt?.toISOString() ?? null,
-        },
-      });
-    }
+      },
+      grant,
+      {
+        actions: body.actions,
+        resourcePattern: body.resourcePattern,
+        conditions: body.conditions,
+        approvalMode: body.approvalMode,
+        purpose: body.purpose,
+        expiresAt: body.expiresAt !== undefined ? (body.expiresAt ? new Date(body.expiresAt) : null) : undefined,
+        justInTime: body.justInTime,
+        activate: body.activate,
+      },
+    );
 
-    return apiOk(serializeGrant(updated), { requestId: rid });
+    return apiOk(serializeGrant(result.grant), { requestId: result.requestId });
   } catch (error) {
     return handleApiError(error);
   }
@@ -190,56 +91,18 @@ export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }
     const { id } = await ctx.params;
     const grant = await loadGrant(id, auth.environment.id);
 
-    await db.grant.delete({ where: { id: grant.id } });
-
-    const rid = requestId();
-    await db.permissionChange.create({
-      data: {
+    const result = await deleteGrantService(
+      {
         environmentId: auth.environment.id,
-        agentId: grant.agentId,
-        credentialId: grant.credentialId,
+        organizationId: auth.organization.id,
         actorId: auth.apiKeyId,
         actorName: "API key",
-        change: "Grant removed",
-        beforeJson: JSON.stringify({
-          actions: JSON.parse(grant.actionsJson || "[]"),
-          resource: grant.resourcePattern,
-        }),
-        afterJson: "{}",
+        ip: clientIp(req),
       },
-    });
+      grant,
+    );
 
-    await recordPolicyEvent({
-      environmentId: auth.environment.id,
-      organizationId: auth.organization.id,
-      agentId: grant.agentId,
-      subject: "grant",
-      grantId: grant.id,
-      connectorSlug: grant.credential.connectorSlug,
-      actions: JSON.parse(grant.actionsJson || "[]"),
-      resourcePattern: grant.resourcePattern,
-      approvalMode: grant.approvalMode,
-      conditions: JSON.parse(grant.conditionsJson || "{}"),
-      changeKind: "delete",
-      isSandbox: grant.credential.connectorSlug === "sandbox",
-    });
-
-    await auditEvent({
-      environmentId: auth.environment.id,
-      actorType: "human",
-      actorId: auth.apiKeyId,
-      actorName: "API key",
-      agentId: grant.agentId,
-      action: "grant.deleted",
-      resourceType: "grant",
-      resourceId: grant.id,
-      outcome: "recorded",
-      requestId: rid,
-      ip: clientIp(req),
-      payloadSummary: { agent: grant.agent.name, connector: grant.credential.connectorSlug },
-    });
-
-    return apiOk({ id: grant.id, object: "grant", deleted: true }, { requestId: rid });
+    return apiOk({ id: grant.id, object: "grant", deleted: true }, { requestId: result.requestId });
   } catch (error) {
     return handleApiError(error);
   }

@@ -69,8 +69,9 @@ export async function loadGatewayGrants(
     where: {
       agentId,
       environmentId,
+      endUserId: null,
       OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-      credential: { revokedAt: null, status: { not: "revoked" } },
+      credential: { revokedAt: null, status: { not: "revoked" }, endUserId: null },
     },
     include: { credential: true },
     orderBy: { createdAt: "asc" },

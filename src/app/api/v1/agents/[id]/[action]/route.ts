@@ -46,6 +46,13 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string; ac
     }>(req);
 
     if (action === "token") {
+      if (agent.kind === "external") {
+        throw new ApiError(
+          422,
+          "trust_exchange_required",
+          "Shadow agents cannot mint tokens directly. The external organization must call POST /api/v1/tokens/trust-exchange.",
+        );
+      }
       if (agent.status !== "active") {
         throw new ApiError(403, "agent_inactive", `Agent is ${agent.status} and cannot receive tokens.`);
       }
@@ -90,7 +97,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string; ac
       }
 
       const grants = await db.grant.findMany({
-        where: { agentId: agent.id, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+        where: {
+          agentId: agent.id,
+          endUserId: null,
+          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+        },
         include: { credential: true },
       });
       const scopes = [...new Set(grants.flatMap((g) => JSON.parse(g.actionsJson || "[]") as string[]))];
@@ -190,6 +201,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string; ac
     }
 
     if (action === "rotate-key") {
+      if (agent.kind === "external") {
+        throw new ApiError(422, "external_agent_has_no_keys", "Shadow agents have no keys to rotate.");
+      }
       const identity = generateAgentIdentity();
       const newKey = await db.agentKey.create({
         data: { agentId: agent.id, publicKey: identity.publicKey },

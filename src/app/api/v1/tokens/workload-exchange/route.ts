@@ -46,6 +46,13 @@ export async function POST(req: Request) {
       throw error;
     }
     const { identity, agent } = verification;
+    if (agent.kind === "external") {
+      throw new ApiError(
+        422,
+        "external_agent_cannot_delegate",
+        "Shadow agents for cross-organization trust cannot mint workload tokens.",
+      );
+    }
 
     const rate = await consumeRateLimit(`token:workload:${identity.id}`, 120);
     if (!rate.allowed) throw new ApiError(429, "rate_limited", "Too many token requests for this workload identity.");

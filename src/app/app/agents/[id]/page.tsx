@@ -33,6 +33,7 @@ const STATUS_ERROR: Record<string, string> = {
   missing: "That agent no longer exists.",
   revoked: "Revocation is permanent. Create a new agent instead.",
   client_key: "This agent holds its own key. Rotate it from your own key management.",
+  external: "Shadow agents have no keys to rotate. Access flows through trust-exchange.",
 };
 
 const WI_ERROR: Record<string, string> = {
@@ -103,7 +104,7 @@ export default async function AgentDetailPage({
             <Link href="/app/agents" className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
               All agents
             </Link>
-            {ctx.environment.type === "development" && ctx.capabilities.writeProduction ? (
+            {agent.kind !== "external" && ctx.environment.type === "development" && ctx.capabilities.writeProduction ? (
               <Link href={`/app/promote/${agent.id}`} className="border border-black bg-black px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white hover:bg-[#eca8d6] hover:text-black">
                 Promote to production
               </Link>
@@ -124,6 +125,11 @@ export default async function AgentDetailPage({
 
       <div className="mb-6 flex flex-wrap items-center gap-3 border border-black/10 bg-white px-4 py-3 dark:border-border dark:bg-card">
         <StatusBadge status={agent.status} />
+        {agent.kind === "external" ? (
+          <span className="border border-[#25567a]/35 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-[#25567a] dark:text-[#93c5e8]">
+            external · {agent.externalOrgName ?? "another organization"}
+          </span>
+        ) : null}
         <span className="font-mono text-[10px] text-black/60 dark:text-muted-foreground">
           {formatFingerprint(agent.fingerprint)}
         </span>
@@ -177,6 +183,8 @@ export default async function AgentDetailPage({
             </details>
           </Panel>
 
+          {agent.kind !== "external" ? (
+            <>
           <Panel title="Try a token" hint="5-minute EdDSA JWT" bodyClassName="p-4">
             <TokenIssuer agentId={agent.id} keyMode={agent.keyMode} />
             <p className="mt-3 text-[11px] leading-relaxed text-black/60 dark:text-muted-foreground">
@@ -378,6 +386,16 @@ export default async function AgentDetailPage({
               </div>
             )}
           </Panel>
+            </>
+          ) : (
+            <Panel title="Cross-organization agent" hint="Trust lane only" bodyClassName="p-4">
+              <p className="text-[12px] leading-relaxed text-black/60 dark:text-muted-foreground">
+                This shadow agent belongs to <span className="font-medium text-black dark:text-foreground">{agent.externalOrgName ?? "another organization"}</span>.
+                It holds no keys and cannot sign challenges. The external organization mints short-lived tokens through{" "}
+                <span className="font-mono">POST /api/v1/tokens/trust-exchange</span>, and every non-read action needs a human here.
+              </p>
+            </Panel>
+          )}
 
           <Panel title="Recent activity" hint="Calls and decisions" bodyClassName="p-0">
             {activity.length ? (
@@ -451,19 +469,28 @@ export default async function AgentDetailPage({
               Paused agents keep their grants but cannot receive tokens. Suspension is louder: every new call is denied and
               surfaced in the activity feed.
             </p>
-            <form action={rotateAgentKeyAction}>
-              <input type="hidden" name="agentId" value={agent.id} />
-              <button
-                disabled={!canManage || agent.keyMode === "client"}
-                className="w-full border border-black/20 px-2 py-2 font-mono text-[9px] uppercase tracking-[0.14em] hover:border-black disabled:opacity-40 dark:border-border"
-              >
-                Rotate key
-              </button>
-            </form>
-            <p className="text-[11px] leading-relaxed text-black/60 dark:text-muted-foreground">
-              The new key takes over immediately. The old key keeps verifying for 7 days so in-flight tokens do not fail
-              mid-run.
-            </p>
+            {agent.kind !== "external" ? (
+              <>
+                <form action={rotateAgentKeyAction}>
+                  <input type="hidden" name="agentId" value={agent.id} />
+                  <button
+                    disabled={!canManage || agent.keyMode === "client"}
+                    className="w-full border border-black/20 px-2 py-2 font-mono text-[9px] uppercase tracking-[0.14em] hover:border-black disabled:opacity-40 dark:border-border"
+                  >
+                    Rotate key
+                  </button>
+                </form>
+                <p className="text-[11px] leading-relaxed text-black/60 dark:text-muted-foreground">
+                  The new key takes over immediately. The old key keeps verifying for 7 days so in-flight tokens do not fail
+                  mid-run.
+                </p>
+              </>
+            ) : (
+              <p className="text-[11px] leading-relaxed text-black/60 dark:text-muted-foreground">
+                Shadow agents have no keys to rotate. Access is minted by the external organization through trust-exchange
+                and stops when the relationship is revoked.
+              </p>
+            )}
           </Panel>
 
           <Panel title="Danger zone" hint="Immediate and permanent" bodyClassName="p-4">

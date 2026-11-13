@@ -26,7 +26,7 @@ export async function refreshCredentialAction(formData: FormData) {
   if (!ctx.capabilities.manageCredentials) redirect(`${back}?error=permission`);
 
   const credential = await db.credential.findFirst({
-    where: { id: credentialId, environmentId: ctx.environment.id },
+    where: { id: credentialId, environmentId: ctx.environment.id, endUserId: null },
   });
   if (!credential) redirect("/app/vault?error=missing");
   if (credential.revokedAt) redirect(`${back}?error=revoked`);
@@ -66,7 +66,7 @@ export async function checkCredentialAction(formData: FormData) {
   if (!ctx.capabilities.manageCredentials) redirect(`${back}?error=permission`);
 
   const credential = await db.credential.findFirst({
-    where: { id: credentialId, environmentId: ctx.environment.id },
+    where: { id: credentialId, environmentId: ctx.environment.id, endUserId: null },
   });
   if (!credential) redirect("/app/vault?error=missing");
 

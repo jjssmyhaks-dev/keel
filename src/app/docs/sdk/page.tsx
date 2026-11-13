@@ -13,7 +13,7 @@ export default function SdkPage() {
       eyebrow="Build"
       title="SDKs and integrations"
       intro="Small, server-only clients over the REST API. They handle authentication, retries, idempotency keys and typed errors, so your agent runtime does not have to. Python and TypeScript are mirrored feature for feature, and both ship adapters for the frameworks teams already use."
-      updated="11 November 2026"
+      updated="13 November 2026"
       aside={
         <DocsAside
           links={[
@@ -24,6 +24,9 @@ export default function SdkPage() {
             { href: "#grants", name: "Grants" },
             { href: "#proxy", name: "Proxy" },
             { href: "#approvals", name: "Approvals" },
+            { href: "#consent", name: "Consent and end users" },
+            { href: "#trust", name: "Cross-org trust" },
+            { href: "#config", name: "Configuration" },
             { href: "#audit", name: "Audit" },
             { href: "#errors", name: "Errors" },
             { href: "#webhooks", name: "Webhooks" },
@@ -158,6 +161,65 @@ await authab.approvals.decide("apr_123", {
       <p>
         Deciding requires a secret key and the approver role in the dashboard. Approving executes the call with the
         stored payload.
+      </p>
+
+      <h2 id="consent">Consent and end users</h2>
+      <pre>{`const request = await authab.consent.createRequest({
+  agentId: agent.id,
+  endUser: { externalUserId: "cust_8812" },
+  scopes: ["slack.post_message"],
+  redirectUri: "https://app.example.com/authab/callback",
+  state: "onboarding-8812",
+  durationOptions: ["session", "30d"],
+});
+// redirect the end user to request.url
+
+// in the redirect handler:
+const grant = await authab.consent.exchangeCode({ code, redirectUri });
+const next = await authab.consent.mintToken(grant.consentId);
+await authab.consent.revoke(grant.consentId, { reason: "customer_revoked" });
+
+const users = await authab.endUsers.list();
+const user = await authab.endUsers.get("cust_8812");
+const link = await authab.endUsers.controlLink("cust_8812");`}</pre>
+      <p>
+        Full flow, error codes and safety rules: <Link href="/docs/concepts/end-user-consent">end-user consent</Link>.
+      </p>
+
+      <h2 id="trust">Cross-org trust</h2>
+      <pre>{`const invitation = await authab.trust.create({
+  externalAgentId: "agt_partner_support",
+  maxScopes: ["slack.post_message"],
+});
+
+const inbound = await authab.trust.list({ side: "external" });
+await authab.trust.accept(inbound.relationships[0].id);
+await authab.trust.decline(inbound.relationships[1].id);
+await authab.trust.revoke(invitation.id);
+
+// on the external agent, using its own token:
+const shadow = await authab.tokens.trustExchange({
+  trustRelationshipId: invitation.id,
+  scopes: ["slack.post_message"],
+});`}</pre>
+      <p>
+        Shadow-agent semantics and the full sequence:{" "}
+        <Link href="/docs/concepts/cross-org-trust">cross-organization trust</Link>.
+      </p>
+
+      <h2 id="config">Configuration</h2>
+      <pre>{`const config = await authab.config.export();          // typed ConfigFile
+const yaml = await authab.config.exportYaml();
+
+const plan = await authab.config.apply({ config, dryRun: true });
+const result = await authab.config.apply({
+  config,
+  prune: true,
+  confirmPrune: environment === "production",          // x-authab-confirm: prune
+});
+// result.results?.agents[0].privateKey — shown once`}</pre>
+      <p>
+        Apply semantics and a CI workflow: <Link href="/docs/gitops">configuration as code</Link>.
       </p>
 
       <h2 id="audit">Audit</h2>

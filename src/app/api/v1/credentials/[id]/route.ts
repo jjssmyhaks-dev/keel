@@ -16,7 +16,7 @@ import { serializeCredential } from "@/lib/serializers";
 
 async function loadCredential(id: string, environmentId: string) {
   const credential = await db.credential.findFirst({
-    where: { id, environmentId },
+    where: { id, environmentId, endUserId: null },
     include: {
       grants: { include: { agent: { select: { id: true, name: true, status: true } } } },
       healthEvents: { orderBy: { checkedAt: "desc" }, take: 10 },

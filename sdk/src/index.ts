@@ -2,11 +2,15 @@ import { HttpClient, type HttpClientOptions } from "./client";
 import { AgentsResource } from "./resources/agents";
 import { ApprovalsResource } from "./resources/approvals";
 import { AuditResource } from "./resources/audit";
+import { ConfigResource } from "./resources/config";
 import { ConnectorsResource } from "./resources/connectors";
+import { ConsentResource } from "./resources/consent";
+import { EndUsersResource } from "./resources/end-users";
 import { GrantsResource } from "./resources/grants";
 import { PoliciesResource } from "./resources/policies";
 import { ProxyResource } from "./resources/proxy";
 import { TokensResource } from "./resources/tokens";
+import { TrustResource } from "./resources/trust";
 import { VaultResource } from "./resources/vault";
 import { WebhooksResource } from "./resources/webhooks";
 import { WorkloadIdentitiesResource } from "./resources/workload-identities";
@@ -30,6 +34,10 @@ export class Authab {
   readonly webhooks: WebhooksResource;
   readonly connectors: ConnectorsResource;
   readonly workloadIdentities: WorkloadIdentitiesResource;
+  readonly config: ConfigResource;
+  readonly consent: ConsentResource;
+  readonly endUsers: EndUsersResource;
+  readonly trust: TrustResource;
 
   private readonly http: HttpClient;
 
@@ -46,6 +54,10 @@ export class Authab {
     this.webhooks = new WebhooksResource(this.http);
     this.connectors = new ConnectorsResource(this.http);
     this.workloadIdentities = new WorkloadIdentitiesResource(this.http);
+    this.config = new ConfigResource(this.http);
+    this.consent = new ConsentResource(this.http);
+    this.endUsers = new EndUsersResource(this.http);
+    this.trust = new TrustResource(this.http);
   }
 
   /** Organisation, project, environment and key metadata for this key. */

@@ -165,37 +165,37 @@ test("creates do not look up or link a previous event", async () => {
 });
 
 test("every permission-change site records one policy event", () => {
-  const sites = filesContaining("src", "recordPolicyEvent({");
+  const sites = filesContaining("src", "await recordPolicyEvent(");
   assert.deepEqual(sites, [
-    "src/app/api/v1/approval-policies/[id]/route.ts",
-    "src/app/api/v1/approval-policies/route.ts",
     "src/app/api/v1/delegations/route.ts",
-    "src/app/api/v1/grants/[id]/route.ts",
-    "src/app/api/v1/grants/route.ts",
     "src/app/app/actions.ts",
     "src/lib/approvals.ts",
     "src/lib/promotion.ts",
     "src/lib/sandbox.ts",
+    "src/lib/services/approval-policies.ts",
+    "src/lib/services/grants.ts",
   ]);
 
-  const grantsRoute = readSource("src/app/api/v1/grants/route.ts");
-  assert.match(grantsRoute, /subject: "grant"/);
-  assert.match(grantsRoute, /changeKind: "create"/);
-  assert.match(grantsRoute, /isSandbox: credential\.connectorSlug === "sandbox"/);
+  const grantsService = readSource("src/lib/services/grants.ts");
+  assert.match(grantsService, /subject: "grant"/);
+  assert.match(grantsService, /changeKind: "create"/);
+  assert.match(grantsService, /changeKind: "update"/);
+  assert.match(grantsService, /changeKind: "delete"/);
+  assert.match(grantsService, /isSandbox: input\.credential\.connectorSlug === "sandbox"/);
+  assert.match(grantsService, /isSandbox: grant\.credential\.connectorSlug === "sandbox"/);
+  assert.match(readSource("src/app/api/v1/grants/route.ts"), /createGrantService\(/);
+  assert.match(readSource("src/app/api/v1/grants/[id]/route.ts"), /updateGrantService\(|deleteGrantService\(/);
 
-  const grantsDetail = readSource("src/app/api/v1/grants/[id]/route.ts");
-  assert.match(grantsDetail, /subject: "grant"/);
-  assert.match(grantsDetail, /changeKind: "update"/);
-  assert.match(grantsDetail, /changeKind: "delete"/);
-  assert.match(grantsDetail, /isSandbox: grant\.credential\.connectorSlug === "sandbox"/);
-
-  const policiesRoute = readSource("src/app/api/v1/approval-policies/route.ts");
-  assert.match(policiesRoute, /subject: "approval_policy"/);
-  assert.match(policiesRoute, /changeKind: "create"/);
-  const policiesDetail = readSource("src/app/api/v1/approval-policies/[id]/route.ts");
-  assert.match(policiesDetail, /subject: "approval_policy"/);
-  assert.match(policiesDetail, /changeKind: "update"/);
-  assert.match(policiesDetail, /changeKind: "delete"/);
+  const policiesService = readSource("src/lib/services/approval-policies.ts");
+  assert.match(policiesService, /subject: "approval_policy"/);
+  assert.match(policiesService, /changeKind: "create"/);
+  assert.match(policiesService, /changeKind: "update"/);
+  assert.match(policiesService, /changeKind: "delete"/);
+  assert.match(readSource("src/app/api/v1/approval-policies/route.ts"), /createApprovalPolicyService\(/);
+  assert.match(
+    readSource("src/app/api/v1/approval-policies/[id]/route.ts"),
+    /updateApprovalPolicyService\(|deleteApprovalPolicyService\(/,
+  );
 
   assert.match(readSource("src/app/api/v1/delegations/route.ts"), /subject: "delegation"/);
 

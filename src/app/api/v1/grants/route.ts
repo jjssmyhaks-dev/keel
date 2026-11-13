@@ -6,12 +6,9 @@ import {
   clientIp,
   handleApiError,
   parseJson,
-  requestId,
   requireSecretKey,
 } from "@/lib/api";
-import { validateActions } from "@/lib/grants";
-import { auditEvent } from "@/lib/audit";
-import { recordPolicyEvent } from "@/lib/policy-events";
+import { createGrantService } from "@/lib/services/grants";
 import { serializeGrant } from "@/lib/serializers";
 
 export async function GET(req: Request) {
@@ -23,6 +20,7 @@ export async function GET(req: Request) {
     const grants = await db.grant.findMany({
       where: {
         environmentId: auth.environment.id,
+        endUserId: null,
         ...(agentId ? { agentId } : {}),
         ...(credentialId ? { credentialId } : {}),
       },
@@ -68,99 +66,31 @@ export async function POST(req: Request) {
 
     const [agent, credential] = await Promise.all([
       db.agent.findFirst({ where: { id: body.agentId, environmentId: auth.environment.id } }),
-      db.credential.findFirst({ where: { id: body.credentialId, environmentId: auth.environment.id } }),
+      db.credential.findFirst({ where: { id: body.credentialId, environmentId: auth.environment.id, endUserId: null } }),
     ]);
     if (!agent) throw new ApiError(404, "agent_not_found", "No agent with that ID exists in this environment.");
     if (!credential) throw new ApiError(404, "credential_not_found", "No connection with that ID exists in this environment.");
-    if (credential.revokedAt || credential.status === "revoked") {
-      throw new ApiError(409, "credential_revoked", "This connection was revoked. Rotate it before granting access.");
-    }
 
-    const actions = (body.actions ?? []).map((action) => String(action).trim()).filter(Boolean);
-    const validation = await validateActions(credential.connectorSlug, actions, auth.environment.id);
-    if (!validation.ok) throw new ApiError(422, "invalid_actions", validation.error);
-
-    const approvalMode = body.approvalMode ?? null;
-    if (approvalMode && !["allow", "require_approval", "deny"].includes(approvalMode)) {
-      throw new ApiError(422, "invalid_approval_mode", "approvalMode must be allow, require_approval or deny.");
-    }
-
-    const existing = await db.grant.findUnique({
-      where: { agentId_credentialId: { agentId: agent.id, credentialId: credential.id } },
-    });
-    if (existing) {
-      throw new ApiError(409, "grant_exists", "A grant already links this agent to this connection. Update it instead.");
-    }
-
-    const justInTime = body.justInTime === true;
-    const grant = await db.grant.create({
-      data: {
+    const { grant, requestId: id } = await createGrantService(
+      {
         environmentId: auth.environment.id,
-        agentId: agent.id,
-        credentialId: credential.id,
-        actionsJson: JSON.stringify(actions),
-        resourcePattern: body.resourcePattern?.trim() || "*",
-        conditionsJson: JSON.stringify(body.conditions ?? {}),
-        approvalMode,
-        purpose: body.purpose?.trim() || null,
-        expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
-        justInTime,
-        activatedAt: justInTime ? null : new Date(),
-        createdBy: auth.apiKeyId,
-      },
-    });
-
-    const id = requestId();
-    await db.permissionChange.create({
-      data: {
-        environmentId: auth.environment.id,
-        agentId: agent.id,
-        credentialId: credential.id,
+        organizationId: auth.organization.id,
         actorId: auth.apiKeyId,
         actorName: "API key",
-        change: "Grant created",
-        beforeJson: "{}",
-        afterJson: JSON.stringify({ actions, resource: grant.resourcePattern, approvalMode }),
+        ip: clientIp(req),
       },
-    });
-
-    await recordPolicyEvent({
-      environmentId: auth.environment.id,
-      organizationId: auth.organization.id,
-      agentId: agent.id,
-      agentType: agent.agentType,
-      subject: "grant",
-      grantId: grant.id,
-      connectorSlug: credential.connectorSlug,
-      actions,
-      resourcePattern: grant.resourcePattern,
-      approvalMode,
-      conditions: body.conditions ?? {},
-      changeKind: "create",
-      isSandbox: credential.connectorSlug === "sandbox",
-    });
-
-    await auditEvent({
-      environmentId: auth.environment.id,
-      actorType: "human",
-      actorId: auth.apiKeyId,
-      actorName: "API key",
-      agentId: agent.id,
-      action: "grant.created",
-      resourceType: "grant",
-      resourceId: grant.id,
-      outcome: "recorded",
-      requestId: id,
-      ip: clientIp(req),
-      payloadSummary: {
-        agent: agent.name,
-        connector: credential.connectorSlug,
-        actions,
-        resource: grant.resourcePattern,
-        approvalMode,
-        justInTime,
+      {
+        agent,
+        credential,
+        actions: body.actions ?? [],
+        resourcePattern: body.resourcePattern,
+        conditions: body.conditions,
+        approvalMode: body.approvalMode,
+        purpose: body.purpose,
+        expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
+        justInTime: body.justInTime === true,
       },
-    });
+    );
 
     return apiOk(serializeGrant(grant), { status: 201, requestId: id });
   } catch (error) {

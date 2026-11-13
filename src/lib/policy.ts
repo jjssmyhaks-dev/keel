@@ -706,8 +706,22 @@ export async function evaluatePolicy(opts: {
     });
   }
 
+  // A shadow agent from another organization always needs a human for writes,
+  // in every environment, regardless of grants or autonomous mode.
+  if (externalAgentRequiresApproval(agent, risk)) {
+    mode = "require_approval";
+    source = "external_agent";
+    mark("external_agent", "pass", "External agents need approval for every non-read action.");
+  } else {
+    mark(
+      "external_agent",
+      "skip",
+      agent.kind === "external" ? "Read-only action by an external agent." : "Not an external agent.",
+    );
+  }
+
   if (mode === "require_approval") {
-    if (agent.autonomousMode && !forcedByAmount) {
+    if (agent.autonomousMode && !forcedByAmount && source !== "external_agent") {
       mark("autonomous", "pass", "Autonomous mode auto-approved the request; the call is audited.");
       return finish({
         effect: "allow",
@@ -718,8 +732,14 @@ export async function evaluatePolicy(opts: {
         source: "autonomous",
       });
     }
-    if (agent.autonomousMode && forcedByAmount) {
-      mark("autonomous", "skip", "Autonomous mode cannot bypass the grant's amount threshold.");
+    if (agent.autonomousMode && (forcedByAmount || source === "external_agent")) {
+      mark(
+        "autonomous",
+        "skip",
+        source === "external_agent"
+          ? "Autonomous mode cannot bypass the external-agent approval rule."
+          : "Autonomous mode cannot bypass the grant's amount threshold.",
+      );
     }
     mark("decision", "pass", "Human approval required.");
     return finish({
@@ -749,6 +769,11 @@ function withinPeriodLimit(used: number, max: number) {
   return used >= max;
 }
 
+/** Shadow agents from another organization never write without a human. */
+export function externalAgentRequiresApproval(agent: { kind?: string | null }, risk: Risk) {
+  return agent.kind === "external" && risk !== "read";
+}
+
 function describeSource(source: string) {
   if (source === "grant.approval_mode") return "the grant's approval override";
   if (source === "grant.conditions.amount") return "the grant's amount condition";
@@ -758,6 +783,9 @@ function describeSource(source: string) {
 }
 
 function approvalReason(risk: Risk, source: string, service: string, label: string) {
+  if (source === "external_agent") {
+    return `External agents need approval for every non-read action. ${label} on ${service} changes data.`;
+  }
   if (source === "safe_launch") {
     return `Safe launch mode requires approval for ${risk} actions during the initial production period.`;
   }
@@ -796,7 +824,7 @@ export async function simulatePolicy(opts: {
 }) {
   const [agent, credential] = await Promise.all([
     db.agent.findFirst({ where: { id: opts.agentId, environmentId: opts.environment.id } }),
-    db.credential.findFirst({ where: { id: opts.credentialId, environmentId: opts.environment.id } }),
+    db.credential.findFirst({ where: { id: opts.credentialId, environmentId: opts.environment.id, endUserId: null } }),
   ]);
   if (!agent || !credential) return null;
   const decision = await evaluatePolicy({

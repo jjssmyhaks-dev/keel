@@ -105,7 +105,7 @@ async function noteBroken(credential: Credential, detail: string, reason: string
  * - skipped: the connector has no safe probe
  */
 export async function checkCredentialHealth(credentialId: string): Promise<HealthCheckResult> {
-  const credential = await db.credential.findUnique({ where: { id: credentialId } });
+  const credential = await db.credential.findFirst({ where: { id: credentialId, endUserId: null } });
   if (!credential) throw new Error("Credential not found.");
   if (credential.revokedAt || credential.status === "revoked") {
     return {
@@ -250,6 +250,7 @@ export async function runHealthChecks(opts?: {
   const credentials = await db.credential.findMany({
     where: {
       ...(opts?.environmentId ? { environmentId: opts.environmentId } : {}),
+      endUserId: null,
       revokedAt: null,
       status: { not: "revoked" },
     },
@@ -296,6 +297,7 @@ export async function refreshExpiringOAuthTokens(limit = 25): Promise<{
     where: {
       type: "oauth",
       refreshable: true,
+      endUserId: null,
       revokedAt: null,
       status: { not: "revoked" },
       tokenExpiresAt: { not: null, lte: new Date(Date.now() + REFRESH_AHEAD_MS) },

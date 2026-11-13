@@ -24,7 +24,7 @@ export default async function OverviewPage() {
     }),
     db.agent.count({ where: { environmentId: ctx.environment.id } }),
     db.agent.count({ where: { environmentId: ctx.environment.id, status: "active" } }),
-    db.credential.findMany({ where: { environmentId: ctx.environment.id } }),
+    db.credential.findMany({ where: { environmentId: ctx.environment.id, endUserId: null } }),
     db.approvalRequest.findMany({
       where: { environmentId: ctx.environment.id, status: "pending", expiresAt: { gt: new Date() } },
       include: { agent: { select: { name: true } } },

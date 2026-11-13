@@ -43,7 +43,7 @@ export default async function CredentialDetailPage({
   const query = await searchParams;
 
   const credential = await db.credential.findFirst({
-    where: { id, environmentId: ctx.environment.id },
+    where: { id, environmentId: ctx.environment.id, endUserId: null },
     include: {
       grants: { include: { agent: { select: { id: true, name: true, status: true } } } },
       healthEvents: { orderBy: { checkedAt: "desc" }, take: 10 },

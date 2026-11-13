@@ -13,7 +13,13 @@ export type WebhookEvent =
   | "credential.expiring"
   | "anomaly.detected"
   | "agent.registered"
-  | "proxy.call";
+  | "proxy.call"
+  | "consent.granted"
+  | "consent.revoked"
+  | "end_user.data_request"
+  | "trust.invited"
+  | "trust.accepted"
+  | "trust.revoked";
 
 export const WEBHOOK_EVENTS: { value: WebhookEvent; label: string }[] = [
   { value: "approval.requested", label: "Approval requested" },
@@ -23,6 +29,12 @@ export const WEBHOOK_EVENTS: { value: WebhookEvent; label: string }[] = [
   { value: "credential.expiring", label: "Credential expiring" },
   { value: "anomaly.detected", label: "Anomaly detected" },
   { value: "agent.registered", label: "Agent registered" },
+  { value: "consent.granted", label: "End-user consent granted" },
+  { value: "consent.revoked", label: "End-user consent revoked" },
+  { value: "end_user.data_request", label: "End-user data request" },
+  { value: "trust.invited", label: "Cross-org trust invited" },
+  { value: "trust.accepted", label: "Cross-org trust accepted" },
+  { value: "trust.revoked", label: "Cross-org trust revoked" },
 ];
 
 const MAX_ATTEMPTS = 5;

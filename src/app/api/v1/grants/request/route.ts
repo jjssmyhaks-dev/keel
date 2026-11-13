@@ -31,12 +31,19 @@ export async function POST(req: Request) {
           where: {
             id: credentialId,
             environmentId: auth.environment.id,
+            endUserId: null,
             ...(connectorSlug ? { connectorSlug } : {}),
           },
         })
       : connectorSlug
         ? await db.credential.findFirst({
-            where: { environmentId: auth.environment.id, connectorSlug, revokedAt: null, status: { not: "revoked" } },
+            where: {
+              environmentId: auth.environment.id,
+              connectorSlug,
+              endUserId: null,
+              revokedAt: null,
+              status: { not: "revoked" },
+            },
             orderBy: { createdAt: "asc" },
           })
         : null;

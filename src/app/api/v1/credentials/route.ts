@@ -23,6 +23,7 @@ export async function GET(req: Request) {
     const credentials = await db.credential.findMany({
       where: {
         environmentId: auth.environment.id,
+        endUserId: null,
         ...(connectorSlug ? { connectorSlug } : {}),
       },
       include: { grants: true, healthEvents: { orderBy: { checkedAt: "desc" }, take: 1 } },

@@ -285,6 +285,9 @@ async function executeSandboxCall(opts: {
   ip?: string | null;
   approvalId?: string;
   delegationDepth?: number;
+  endUserId?: string | null;
+  endUserExternalId?: string | null;
+  trustRelationshipId?: string | null;
   decision?: { effect: string; risk: string; source: string; reason: string; grantId?: string | null };
 }): Promise<ExecutionResult> {
   const { environment, agent, action, connectorDef, credential } = opts;
@@ -344,6 +347,10 @@ async function executeSandboxCall(opts: {
       sandbox: true,
       approvalId: opts.approvalId,
       ...(traceId ? { traceId } : {}),
+      ...(opts.endUserId ? { endUser: { id: opts.endUserId, externalUserId: opts.endUserExternalId ?? null } } : {}),
+      ...(agent?.kind === "external"
+        ? { crossOrg: { externalAgentId: agent.externalAgentId, externalOrgName: agent.externalOrgName } }
+        : {}),
       input: redactedInput,
       ...(opts.decision ? { decision: opts.decision } : {}),
       trust: {
@@ -389,6 +396,8 @@ async function executeSandboxCall(opts: {
       delegationDepth: opts.delegationDepth ?? 0,
       isSandbox: true,
       credentialId: credential.id,
+      endUserId: opts.endUserId ?? null,
+      trustRelationshipId: opts.trustRelationshipId ?? null,
       approvalLatencyMs: await approvalLatency(opts.approvalId),
     });
   }
@@ -419,6 +428,9 @@ export async function executeAction(opts: {
   skipHealthNote?: boolean;
   countUsage?: boolean;
   delegationDepth?: number;
+  endUserId?: string | null;
+  endUserExternalId?: string | null;
+  trustRelationshipId?: string | null;
   decision?: { effect: string; risk: string; source: string; reason: string; grantId?: string | null };
 }): Promise<ExecutionResult> {
   const { environment, agent, action } = opts;
@@ -439,13 +451,24 @@ export async function executeAction(opts: {
       ip: opts.ip,
       approvalId: opts.approvalId,
       delegationDepth: opts.delegationDepth,
+      endUserId: opts.endUserId,
+      endUserExternalId: opts.endUserExternalId,
+      trustRelationshipId: opts.trustRelationshipId,
       decision: opts.decision,
     });
   }
 
   const started = Date.now();
   const auditAction = opts.healthCheck ? "credential.checked" : "proxy.call";
-  const actorName = agent?.name ?? "Credential health check";
+  const crossOrg =
+    agent?.kind === "external" && agent.externalOrgName
+      ? { externalAgentId: agent.externalAgentId, externalOrgName: agent.externalOrgName }
+      : null;
+  const actorName = agent
+    ? crossOrg && !agent.name.includes(`(${crossOrg.externalOrgName})`)
+      ? `${agent.name} (via ${crossOrg.externalOrgName})`
+      : agent.name
+    : "Credential health check";
 
   if (credential.type === "oauth" && credential.refreshable) {
     credential = await refreshCredentialIfNeeded(credential);
@@ -733,6 +756,8 @@ export async function executeAction(opts: {
         error: error instanceof Error ? error.message : "upstream_failure",
         ...(cause?.code ? { errorCode: cause.code } : {}),
         ...(cause?.message ? { errorCause: cause.message } : {}),
+        ...(opts.endUserId ? { endUser: { id: opts.endUserId, externalUserId: opts.endUserExternalId ?? null } } : {}),
+        ...(crossOrg ? { crossOrg } : {}),
         input: redacted,
         ...(opts.decision ? { decision: opts.decision } : {}),
         trust: {
@@ -774,6 +799,8 @@ export async function executeAction(opts: {
         delegationDepth: opts.delegationDepth ?? 0,
         isSandbox: false,
         credentialId: credential.id,
+        endUserId: opts.endUserId ?? null,
+        trustRelationshipId: opts.trustRelationshipId ?? null,
         approvalLatencyMs: await approvalLatency(opts.approvalId),
       });
     }
@@ -830,6 +857,8 @@ export async function executeAction(opts: {
       approvalId: opts.approvalId,
       ...(traceId ? { traceId } : {}),
       ...(providerError ? { providerError } : {}),
+      ...(opts.endUserId ? { endUser: { id: opts.endUserId, externalUserId: opts.endUserExternalId ?? null } } : {}),
+      ...(crossOrg ? { crossOrg } : {}),
       input: redacted,
       ...(opts.decision ? { decision: opts.decision } : {}),
       trust: {
@@ -877,6 +906,8 @@ export async function executeAction(opts: {
       delegationDepth: opts.delegationDepth ?? 0,
       isSandbox: false,
       credentialId: credential.id,
+      endUserId: opts.endUserId ?? null,
+      trustRelationshipId: opts.trustRelationshipId ?? null,
       approvalLatencyMs: await approvalLatency(opts.approvalId),
     });
   }

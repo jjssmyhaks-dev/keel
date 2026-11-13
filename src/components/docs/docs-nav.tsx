@@ -27,6 +27,8 @@ export const DOCS_NAV: DocsNavGroup[] = [
       { name: "Approvals", href: "/docs/concepts/approvals" },
       { name: "Audit trail", href: "/docs/concepts/audit" },
       { name: "Agent events", href: "/docs/concepts/agent-events" },
+      { name: "End-user consent", href: "/docs/concepts/end-user-consent" },
+      { name: "Cross-organization trust", href: "/docs/concepts/cross-org-trust" },
       { name: "Environments", href: "/docs/concepts/environments" },
     ],
   },
@@ -37,6 +39,7 @@ export const DOCS_NAV: DocsNavGroup[] = [
       { name: "SDKs and integrations", href: "/docs/sdk" },
       { name: "CLI", href: "/docs/cli" },
       { name: "MCP server and gateway", href: "/docs/mcp" },
+      { name: "Configuration as code", href: "/docs/gitops" },
     ],
   },
   {

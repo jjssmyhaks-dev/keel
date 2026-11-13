@@ -3,6 +3,8 @@ import type {
   ClientCredentialsInput,
   TokenExchangeInput,
   TokenGrant,
+  TrustExchangeInput,
+  TrustTokenGrant,
   WorkloadExchangeInput,
 } from "../types";
 
@@ -67,6 +69,22 @@ export class TokensResource {
         token: input.token,
         subject_token_type: "urn:ietf:params:oauth:token-type:jwt",
         ...scopeBody(input),
+      },
+    });
+  }
+
+  /**
+   * Cross-organization trust exchange: the external agent trades its own
+   * token for a 5-minute token on the owner's shadow agent.
+   */
+  trustExchange(input: TrustExchangeInput): Promise<TrustTokenGrant> {
+    return this.http.request({
+      method: "POST",
+      path: "/tokens/trust-exchange",
+      body: {
+        trustRelationshipId: input.trustRelationshipId,
+        ...(input.scopes?.length ? { scopes: input.scopes } : {}),
+        ...(input.ttl !== undefined ? { ttl: input.ttl } : {}),
       },
     });
   }

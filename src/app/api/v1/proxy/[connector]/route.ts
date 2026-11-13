@@ -10,6 +10,7 @@ import {
   requestId,
 } from "@/lib/api";
 import { resolveConnector } from "@/lib/custom-connectors";
+import { credentialOwnershipError } from "@/lib/consent";
 import { evaluatePolicy, envSettings, globMatch } from "@/lib/policy";
 import { executeAction } from "@/lib/proxy";
 import { providerAuthFailure } from "@/lib/provider-health";
@@ -46,15 +47,44 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
     const actionName = String(body.action || "").trim();
     if (!actionName) throw new ApiError(422, "action_required", "Provide the connector action to call, e.g. slack.post_message.");
 
+    // End-user tokens may only use the connection that belongs to that end user;
+    // org tokens never see end-user connections, including through an explicit id.
+    const endUserClaim =
+      auth.claims.end_user && typeof auth.claims.end_user === "object"
+        ? (auth.claims.end_user as { id?: string; ext?: string })
+        : null;
+    const endUserId = typeof endUserClaim?.id === "string" ? endUserClaim.id : null;
+    const endUserExternalId = typeof endUserClaim?.ext === "string" ? endUserClaim.ext : null;
+    const trustRelationshipId = typeof auth.claims.trust === "string" ? auth.claims.trust : null;
+
     const credentialId = body.credentialId || body.credential;
     const credential = credentialId
       ? await db.credential.findFirst({
           where: { id: credentialId, environmentId: auth.environment.id, connectorSlug },
         })
       : await db.credential.findFirst({
-          where: { environmentId: auth.environment.id, connectorSlug, revokedAt: null, status: { not: "revoked" } },
+          where: {
+            environmentId: auth.environment.id,
+            connectorSlug,
+            revokedAt: null,
+            status: { not: "revoked" },
+            ...(endUserId ? { endUserId } : { endUserId: null }),
+          },
           orderBy: { createdAt: "asc" },
         });
+    if (credential) {
+      const ownership = credentialOwnershipError(credential.endUserId, endUserId);
+      if (ownership?.code === "credential_not_owned") {
+        throw new ApiError(403, "credential_not_owned", "This connection belongs to a different end user.");
+      }
+      if (ownership?.code === "credential_not_found") {
+        throw new ApiError(
+          404,
+          "credential_not_found",
+          `No ${connectorDef.name} connection is available to this agent. Link one in the vault, then grant access.`,
+        );
+      }
+    }
     if (!credential) {
       throw new ApiError(
         404,
@@ -92,6 +122,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
         organizationId: org.id,
         agentId: auth.agent.id,
         agentType: auth.agent.agentType,
+        endUserId,
+        trustRelationshipId,
         requestId: requestId(),
         connectorSlug: connectorDef.slug,
         action: actionName,
@@ -108,13 +140,20 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
 
     const scopes = Array.isArray(auth.claims.scopes) ? (auth.claims.scopes as string[]) : [];
     const scopeEnforced = auth.claims.scope_enforced === true || scopes.length > 0;
-    if (scopeEnforced && !scopes.some((scope) => scope === "*" || scope === actionName || globMatch(scope, actionName))) {
+    const scopeMatches = (scope: string) => {
+      if (scope === "*" || scope === actionName || globMatch(scope, actionName)) return true;
+      const prefix = `${connectorDef.slug}.`;
+      return scope.startsWith(prefix) && globMatch(scope.slice(prefix.length), actionName);
+    };
+    if (scopeEnforced && !scopes.some(scopeMatches)) {
       const scopedAction = connectorDef.actions.find((entry) => entry.name === actionName);
       await recordAgentEvent({
         environmentId: auth.environment.id,
         organizationId: org.id,
         agentId: auth.agent.id,
         agentType: auth.agent.agentType,
+        endUserId,
+        trustRelationshipId,
         requestId: requestId(),
         connectorSlug: connectorDef.slug,
         action: actionName,
@@ -231,6 +270,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
         organizationId: org.id,
         agentId: auth.agent.id,
         agentType: auth.agent.agentType,
+        endUserId,
+        trustRelationshipId,
         requestId: rid,
         connectorSlug: connectorDef.slug,
         action: actionName,
@@ -262,6 +303,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
           reason: decision.reason,
           source: decision.source,
           ...(connectorDef.sandbox ? { sandbox: true } : {}),
+          ...(endUserClaim ? { endUser: { id: endUserId, externalUserId: endUserExternalId } } : {}),
+          ...(auth.agent.kind === "external"
+            ? { crossOrg: { externalAgentId: auth.agent.externalAgentId, externalOrgName: auth.agent.externalOrgName } }
+            : {}),
           input: redact(body.input ?? {}, connectorDef.redactedFields),
           trust: {
             egress: false,
@@ -308,6 +353,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
         organizationId: org.id,
         agentId: auth.agent.id,
         agentType: auth.agent.agentType,
+        endUserId,
+        trustRelationshipId,
         requestId: rid,
         connectorSlug: connectorDef.slug,
         action: actionName,
@@ -339,6 +386,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ connector: str
       requestId: rid,
       ip,
       delegationDepth: delegationDepthFromClaims(auth.claims),
+      endUserId,
+      endUserExternalId,
+      trustRelationshipId,
       decision: {
         effect: decision.effect,
         risk: decision.risk,

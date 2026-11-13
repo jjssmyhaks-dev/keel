@@ -43,6 +43,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     requireSecretKey(auth);
     const { id } = await ctx.params;
     const agent = await loadAgent(id, auth.environment.id);
+    if (agent.kind === "external") {
+      throw new ApiError(422, "external_agent_has_no_keys", "Shadow agents never hold client secrets. Use trust-exchange instead.");
+    }
     if (agent.status === "revoked") {
       throw new ApiError(409, "agent_revoked", "Revocation is permanent. Create a new agent before issuing secrets.");
     }

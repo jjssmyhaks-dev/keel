@@ -31,7 +31,7 @@ export async function previewPromotion(devAgentId: string) {
   });
 
   const prodCredentials = await db.credential.findMany({
-    where: { environmentId: prodEnv.id, revokedAt: null },
+    where: { environmentId: prodEnv.id, revokedAt: null, endUserId: null },
   });
 
   const readiness: Readiness = [];
@@ -154,7 +154,7 @@ export async function promoteAgent(opts: {
   if (existing) return { ok: false as const, error: `This agent is already in production as ${existing.name}.` };
 
   const prodCredentials = await db.credential.findMany({
-    where: { environmentId: prodEnv.id, revokedAt: null },
+    where: { environmentId: prodEnv.id, revokedAt: null, endUserId: null },
   });
 
   const readiness: Readiness = [];

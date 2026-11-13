@@ -32,7 +32,7 @@ export default async function PlaygroundPage() {
       select: { id: true, name: true, status: true, keyMode: true },
     }),
     db.credential.findFirst({
-      where: { environmentId: ctx.environment.id, connectorSlug: "sandbox" },
+      where: { environmentId: ctx.environment.id, connectorSlug: "sandbox", endUserId: null },
       orderBy: { createdAt: "asc" },
       select: { id: true },
     }),

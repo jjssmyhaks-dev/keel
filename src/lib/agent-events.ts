@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { auditEvent } from "./audit";
 
 export const AGENT_EVENT_DECISIONS = [
   "allowed",
@@ -46,8 +47,12 @@ const SOURCE_REASON: Record<string, DecisionReasonCode> = {
   "grant.actions": "action_not_granted",
   "grant.resource": "resource_not_granted",
   "grant.conditions": "condition_failed",
+  "grant.conditions.amount": "approval_required",
+  "grant.approval_mode": "approval_required",
   "grant.expired": "grant_expired",
   "grant.just_in_time": "jit_pending",
+  external_agent: "approval_required",
+  safe_launch: "approval_required",
   autonomous: "allowed_autonomous",
 };
 
@@ -95,6 +100,9 @@ export type AgentEventInput = {
   isSandbox?: boolean;
   contributes?: boolean;
   credentialId?: string | null;
+  endUserId?: string | null;
+  /** When set, the write is mirrored to the external agent's environment. */
+  trustRelationshipId?: string | null;
 };
 
 export type AgentEventRow = {
@@ -119,6 +127,7 @@ export type AgentEventRow = {
   isSandbox: boolean;
   contributes: boolean;
   credentialId: string | null;
+  endUserId: string | null;
 };
 
 /**
@@ -147,6 +156,7 @@ export const AGENT_EVENT_FIELDS = [
   "isSandbox",
   "contributes",
   "credentialId",
+  "endUserId",
 ] as const;
 
 export function buildAgentEventRow(input: AgentEventInput): AgentEventRow {
@@ -178,6 +188,7 @@ export function buildAgentEventRow(input: AgentEventInput): AgentEventRow {
     isSandbox: Boolean(input.isSandbox),
     contributes: Boolean(input.contributes),
     credentialId: input.credentialId ?? null,
+    endUserId: input.endUserId ?? null,
   };
 }
 
@@ -201,9 +212,55 @@ export async function recordAgentEvent(input: AgentEventInput): Promise<void> {
       agentType = agent?.agentType;
     }
     await db.agentEvent.create({ data: buildAgentEventRow({ ...input, contributes, agentType }) });
+    if (input.trustRelationshipId) {
+      await mirrorTrustAudit(input).catch(() => null);
+    }
   } catch (error) {
     console.error("[authab] agent event write failed", error);
   }
+}
+
+/**
+ * A cross-organization call is recorded in the owner environment by the proxy.
+ * The external organization also gets a metadata-only mirror naming the owner
+ * organization, connector, action and outcome. Inputs never cross the border.
+ */
+async function mirrorTrustAudit(input: AgentEventInput) {
+  const relationship = await db.trustRelationship.findUnique({
+    where: { id: String(input.trustRelationshipId) },
+  });
+  if (!relationship) return;
+  const [externalAgent, ownerEnvironment] = await Promise.all([
+    db.agent.findUnique({ where: { id: relationship.externalAgentId }, select: { name: true } }),
+    db.environment.findUnique({
+      where: { id: relationship.ownerEnvironmentId },
+      select: { project: { select: { org: { select: { name: true } } } } },
+    }),
+  ]);
+  await auditEvent({
+    environmentId: relationship.externalEnvironmentId,
+    actorType: "agent",
+    actorId: relationship.externalAgentId,
+    actorName: externalAgent?.name ?? "External agent",
+    agentId: relationship.externalAgentId,
+    action: "trust.outbound_call",
+    resourceType: "trust",
+    resourceId: relationship.id,
+    outcome:
+      input.decision === "denied"
+        ? "denied"
+        : input.decision === "allowed" || input.decision === "approved"
+          ? "allowed"
+          : "recorded",
+    requestId: input.requestId,
+    payloadSummary: {
+      ownerOrgName: ownerEnvironment?.project.org.name ?? null,
+      connector: input.connectorSlug,
+      action: input.action,
+      outcome: input.decision,
+      requestId: input.requestId,
+    },
+  });
 }
 
 /**

@@ -55,6 +55,7 @@ test("the envelope carries exactly the documented fields", () => {
     "isSandbox",
     "contributes",
     "credentialId",
+    "endUserId",
   ]);
 });
 
@@ -73,6 +74,7 @@ test("the row builder applies defaults and rejects unknown enums", () => {
   assert.equal(row.isSandbox, false);
   assert.equal(row.contributes, false);
   assert.equal(row.credentialId, null);
+  assert.equal(row.endUserId, null);
 
   const fallback = buildAgentEventRow({
     ...BASE,
@@ -107,8 +109,12 @@ test("every Decision.source in policy.ts maps to a reason code", () => {
     "grant.actions": "action_not_granted",
     "grant.resource": "resource_not_granted",
     "grant.conditions": "condition_failed",
+    "grant.conditions.amount": "approval_required",
+    "grant.approval_mode": "approval_required",
     "grant.expired": "grant_expired",
     "grant.just_in_time": "jit_pending",
+    external_agent: "approval_required",
+    safe_launch: "approval_required",
     autonomous: "allowed_autonomous",
   };
   for (const [source, reason] of Object.entries(expected)) {
@@ -117,7 +123,9 @@ test("every Decision.source in policy.ts maps to a reason code", () => {
   assert.equal(mapPolicySource("not.a.source"), "internal_error");
 
   const policy = readSource("src/lib/policy.ts");
-  const sources = [...new Set([...policy.matchAll(/source:\s*"([^"]+)"/g)].map((match) => match[1]))].sort();
+  const sources = [
+    ...new Set([...policy.matchAll(/source(?::\s*|\s*=\s*)"([^"]+)"/g)].map((match) => match[1])),
+  ].sort();
   assert.deepEqual(sources, Object.keys(expected).sort());
   for (const source of sources) {
     assert.notEqual(mapPolicySource(source), "internal_error", `policy.ts uses unmapped source ${source}`);
@@ -310,9 +318,14 @@ test("retention runs nightly at 400 days and the migration matches the model", (
     /pruneAgentEvents\(new Date\(now - 400 \* 86_400_000\)\)/,
   );
   const migration = readSource("prisma/migrations/20261112100300_add_agent_events/migration.sql");
+  const consentMigration = readSource("prisma/migrations/20261113100000_add_end_user_consent/migration.sql");
   for (const field of AGENT_EVENT_FIELDS) {
-    assert.ok(migration.includes(`"${field}"`), `migration is missing ${field}`);
+    assert.ok(
+      migration.includes(`"${field}"`) || consentMigration.includes(`"${field}"`),
+      `migration is missing ${field}`,
+    );
   }
+  assert.match(consentMigration, /ALTER TABLE "AgentEvent" ADD COLUMN\s+"endUserId" TEXT/);
   assert.match(migration, /CREATE INDEX "AgentEvent_environmentId_occurredAt_idx"/);
   assert.match(migration, /CREATE INDEX "AgentEvent_agentId_occurredAt_idx"/);
   assert.match(migration, /CREATE INDEX "AgentEvent_organizationId_occurredAt_idx"/);

@@ -42,10 +42,10 @@ export default async function PermissionEditorPage({
 
   const [credentials, grants, policies, changes, connectorMap] = await Promise.all([
     db.credential.findMany({
-      where: { environmentId: ctx.environment.id, revokedAt: null },
+      where: { environmentId: ctx.environment.id, revokedAt: null, endUserId: null },
       orderBy: { connectorSlug: "asc" },
     }),
-    db.grant.findMany({ where: { agentId: agent.id, environmentId: ctx.environment.id } }),
+    db.grant.findMany({ where: { agentId: agent.id, environmentId: ctx.environment.id, endUserId: null } }),
     db.approvalPolicy.findMany({
       where: { environmentId: ctx.environment.id, OR: [{ agentId: agent.id }, { agentId: null }] },
       orderBy: [{ agentId: "desc" }, { actionPattern: "asc" }],

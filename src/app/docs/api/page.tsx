@@ -4,7 +4,7 @@ import { Callout, DocsAside, DocsShell } from "@/components/docs/docs-shell";
 
 export const metadata: Metadata = {
   title: "API reference",
-  description: "REST API for agents, identity documents, revocations, credentials, grants, approvals, audit and webhooks.",
+  description: "REST API for agents, identity documents, revocations, credentials, grants, approvals, consent, cross-org trust, configuration, audit and webhooks.",
 };
 
 const endpoints: { group: string; rows: [string, string, string, string][] }[] = [
@@ -65,6 +65,35 @@ const endpoints: { group: string; rows: [string, string, string, string][] }[] =
     ],
   },
   {
+    group: "End-user consent",
+    rows: [
+      ["POST", "/v1/consent/requests", "Secret key", "Create a hosted consent request; returns the URL to redirect the end user to."],
+      ["POST", "/v1/consent/token", "Secret key", "Exchange the one-time consent code for a consent-scoped agent token."],
+      ["POST", "/v1/consent/:id/token", "Secret key", "Mint another short-lived token for an active consent."],
+      ["POST", "/v1/consent/:id/revoke", "Secret key", "Revoke a consent and expire every grant created through it."],
+      ["GET", "/v1/end-users", "Secret key", "List end users with their consents and data requests."],
+      ["GET", "/v1/end-users/:externalUserId", "Secret key", "Consents, end-user connections and data requests for one end user."],
+      ["POST", "/v1/end-users/:externalUserId/control-link", "Secret key", "Issue a 15-minute link to the end user's own control center."],
+    ],
+  },
+  {
+    group: "Cross-organization trust",
+    rows: [
+      ["GET/POST", "/v1/trust-relationships", "Secret key", "List invitations by side (owner or external) or invite another organization's agent."],
+      ["POST", "/v1/trust-relationships/:id/accept", "Secret key", "Accept an invitation; creates the shadow agent in the owner's environment."],
+      ["POST", "/v1/trust-relationships/:id/decline", "Secret key", "Decline an invitation."],
+      ["POST", "/v1/trust-relationships/:id/revoke", "Secret key", "Revoke from either side; adds the shadow agent to the revocation list."],
+      ["POST", "/v1/tokens/trust-exchange", "Agent JWT", "External agent trades its token for a 5-minute shadow-agent token, narrowed to grants ∩ maxScopes ∩ request."],
+    ],
+  },
+  {
+    group: "Configuration as code",
+    rows: [
+      ["GET", "/v1/config/export", "API key", "Version 1 configuration as JSON or YAML. No secrets."],
+      ["POST", "/v1/config/apply", "Secret key", "Validate, diff and apply in one transaction; supports dryRun and prune."],
+    ],
+  },
+  {
     group: "Connectors",
     rows: [
       ["GET", "/v1/connectors", "API key", "Built-in and active custom connectors, plus custom metadata and versions."],
@@ -110,7 +139,7 @@ export default function ApiReferencePage() {
       eyebrow="Build"
       title="API reference"
       intro="The REST API is the source of truth. Every dashboard action maps to one of these endpoints, and every endpoint is scoped to the environment of the key or token that calls it."
-      updated="12 November 2026"
+      updated="13 November 2026"
       aside={
         <DocsAside
           links={[

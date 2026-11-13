@@ -42,9 +42,14 @@ export default async function NewConnectionPage({
           title="Pick a service."
           description="Each connection is sealed individually. Agents never receive the secret — the proxy injects it for allowed calls only."
           actions={
-            <Link href="/app/vault" className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
-              Back to vault
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link href="/app/vault/import" className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
+                Import .env
+              </Link>
+              <Link href="/app/vault" className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
+                Back to vault
+              </Link>
+            </div>
           }
         />
 
@@ -114,9 +119,14 @@ export default async function NewConnectionPage({
         title={`Connect ${def.name}.`}
         description={def.description}
         actions={
-          <Link href="/app/vault/new" className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
-            Choose another
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/app/vault/import" className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
+              Import .env
+            </Link>
+            <Link href="/app/vault/new" className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
+              Choose another
+            </Link>
+          </div>
         }
       />
 

@@ -44,9 +44,14 @@ export default async function SettingsPage({
         title="Names, keys and sessions."
         description="Organization-level identity, project naming and the devices currently holding a session. Environment guardrails live under Security."
         actions={
-          <Link href="/app/security" className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
-            Security settings
-          </Link>
+          <>
+            <Link href="/app/settings/consent" className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
+              Consent &amp; end users
+            </Link>
+            <Link href="/app/security" className="border border-black/45 bg-white px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] hover:border-black dark:border-white/40 dark:bg-card">
+              Security settings
+            </Link>
+          </>
         }
       />
 

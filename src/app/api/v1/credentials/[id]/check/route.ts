@@ -18,7 +18,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     requireSecretKey(auth);
     const { id } = await ctx.params;
     const credential = await db.credential.findFirst({
-      where: { id, environmentId: auth.environment.id },
+      where: { id, environmentId: auth.environment.id, endUserId: null },
     });
     if (!credential) {
       throw new ApiError(404, "credential_not_found", "No connection with that ID exists in this environment.");

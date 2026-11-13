@@ -27,7 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       select: { id: true, name: true, status: true },
     }),
     db.credential.findMany({
-      where: { environmentId: ctx.environment.id },
+      where: { environmentId: ctx.environment.id, endUserId: null },
       orderBy: { name: "asc" },
       take: 100,
       select: { id: true, name: true, connectorSlug: true },

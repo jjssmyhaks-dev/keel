@@ -21,6 +21,7 @@ import {
   resolveConnector,
   rollbackCustomConnector,
 } from "@/lib/custom-connectors";
+import { storeCredential } from "@/lib/credentials";
 import {
   createCheckoutSession,
   createPortalSession,
@@ -178,6 +179,7 @@ export async function rotateAgentKeyAction(formData: FormData) {
 
   const agent = await db.agent.findFirst({ where: { id: agentId, environmentId: ctx.environment.id } });
   if (!agent) redirect(`${back}?error=missing`);
+  if (agent.kind === "external") redirect(`${back}?error=external`);
   if (agent.keyMode === "client") redirect(`${back}?error=client_key`);
 
   const identity = generateAgentIdentity();
@@ -362,51 +364,28 @@ export async function createCredentialAction(formData: FormData) {
   const secretsPath = `/app/vault/new?connector=${connectorSlug}&error=secret`;
 
   const type = str(formData, "type") || connectorDef.defaultAuth;
-  const payload: Record<string, unknown> = {};
-  const metadata: Record<string, unknown> = {};
-  let maskedHint = "";
-
+  const fields: Record<string, string> = {};
   if (connectorDef.credentialFields?.length) {
     for (const field of connectorDef.credentialFields) {
       const value = str(formData, `field_${field.key}`);
-      if (!value) continue;
-      payload[field.key] = value;
-      if (field.secret) {
-        if (!maskedHint) maskedHint = `••••${value.slice(-4)}`;
-      } else {
-        metadata[field.key] = value;
-      }
+      if (value) fields[field.key] = value;
     }
-    const missing = connectorDef.credentialFields.filter((field) => field.required && !payload[field.key]);
-    if (missing.length) redirect(secretsPath);
-    if (connectorDef.requireAnyFields?.length && !connectorDef.requireAnyFields.some((key) => payload[key])) {
-      redirect(secretsPath);
-    }
-    if (!maskedHint && connectorDef.credentialFields.some((field) => field.secret)) redirect(secretsPath);
   } else {
     const secret = str(formData, "secret");
-    if (!secret) redirect(secretsPath);
-    const key = type === "api_key" ? "apiKey" : type === "oauth" ? "accessToken" : "token";
-    payload[key] = secret;
-    maskedHint = `••••${secret.slice(-4)}`;
+    if (secret) fields.secret = secret;
   }
 
-  const sealed = await encryptSecret(ctx.project.id, payload);
-  const credential = await db.credential.create({
-    data: {
-      environmentId: ctx.environment.id,
-      connectorSlug,
-      name: name || connectorDef.name,
-      type,
-      encryptedPayload: sealed.encryptedPayload,
-      dataKeyEncrypted: sealed.dataKeyEncrypted,
-      metadataJson: JSON.stringify(metadata),
-      maskedHint,
-      status: "unverified",
-      createdBy: ctx.user.id,
-      healthEvents: { create: { result: "stored", detail: "Stored and encrypted. Not yet verified by a provider call." } },
-    },
+  const stored = await storeCredential({
+    projectId: ctx.project.id,
+    environmentId: ctx.environment.id,
+    connectorSlug,
+    name: name || connectorDef.name,
+    type,
+    fields,
+    createdBy: ctx.user.id,
   });
+  if (!stored.ok) redirect(secretsPath);
+  const credential = stored.credential;
 
   const meta = await orgActor(ctx);
   await auditEvent({
@@ -419,7 +398,7 @@ export async function createCredentialAction(formData: FormData) {
     resourceId: credential.id,
     outcome: "recorded",
     ip: meta.ip,
-    payloadSummary: { connector: connectorSlug, name: credential.name, type },
+    payloadSummary: { connector: connectorSlug, name: credential.name, type: credential.type },
   });
   revalidatePath("/app", "layout");
   redirect(`/app/vault/${credential.id}?created=1`);
@@ -432,7 +411,7 @@ export async function rotateCredentialAction(formData: FormData) {
   if (!ctx.capabilities.manageCredentials) redirect(`${back}?error=permission`);
 
   const credential = await db.credential.findFirst({
-    where: { id: credentialId, environmentId: ctx.environment.id },
+    where: { id: credentialId, environmentId: ctx.environment.id, endUserId: null },
   });
   if (!credential) redirect(`${back}?error=missing`);
   if (credential.revokedAt) redirect(`${back}?error=revoked`);
@@ -520,7 +499,7 @@ export async function revokeCredentialAction(formData: FormData) {
   if (!ctx.capabilities.manageCredentials) redirect(`/app/vault/${credentialId}?error=permission`);
 
   const credential = await db.credential.findFirst({
-    where: { id: credentialId, environmentId: ctx.environment.id },
+    where: { id: credentialId, environmentId: ctx.environment.id, endUserId: null },
   });
   if (!credential) redirect("/app/vault?error=missing");
 
@@ -559,7 +538,7 @@ export async function saveGrantAction(formData: FormData) {
 
   const [agent, credential] = await Promise.all([
     db.agent.findFirst({ where: { id: agentId, environmentId: ctx.environment.id } }),
-    db.credential.findFirst({ where: { id: credentialId, environmentId: ctx.environment.id } }),
+    db.credential.findFirst({ where: { id: credentialId, environmentId: ctx.environment.id, endUserId: null } }),
   ]);
   if (!agent || !credential) redirect(`${back}?error=missing`);
 
@@ -766,9 +745,10 @@ export async function issueTokenAction(
   const agentId = str(formData, "agentId");
   const agent = await db.agent.findFirst({
     where: { id: agentId, environmentId: ctx.environment.id },
-    include: { grants: true },
+    include: { grants: { where: { endUserId: null } } },
   });
   if (!agent) return { error: "Agent not found." };
+  if (agent.kind === "external") return { error: "Shadow agents can only receive tokens through trust-exchange." };
   if (agent.status !== "active") return { error: `Agent is ${agent.status}.` };
   if (agent.keyMode === "client") return { error: "This agent uses a client-held key. Issue tokens from the API with a signed challenge." };
 

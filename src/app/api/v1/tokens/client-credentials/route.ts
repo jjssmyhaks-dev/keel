@@ -44,6 +44,13 @@ export async function POST(req: Request) {
     if (context.agent.id !== clientId) {
       throw new ApiError(401, "invalid_client", "The client secret does not belong to this client_id.");
     }
+    if (context.agent.kind === "external") {
+      throw new ApiError(
+        422,
+        "external_agent_has_no_keys",
+        "Shadow agents never hold client secrets. The external organization must use trust-exchange.",
+      );
+    }
 
     const rate = await consumeRateLimit(`token:client:${context.agent.id}`, 120);
     if (!rate.allowed) throw new ApiError(429, "rate_limited", "Too many token requests for this agent.");

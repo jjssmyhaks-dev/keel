@@ -8,6 +8,8 @@ Agents do not need long-lived provider keys. OAuth-connected credentials refresh
 
 Beyond the proxy path, Authab implements the enterprise and operational requirements around it: OIDC and SAML single sign-on, SCIM 2.0 provisioning, TOTP MFA, seven roles with capability grants, SIEM audit streaming, provider SLO dashboards, request error tracking, OpenTelemetry traces, an incident-backed status page, and tax-aware subscription billing.
 
+Part 2 adds the multi-party flows: hosted end-user consent with one-time codes and consent-scoped tokens, cross-organization trust built on shadow agents, a repository secret scanner with vault import, and configuration as code with dry runs and transactional apply.
+
 This repository contains the hosted application and documentation site, the TypeScript and Python SDKs, framework integrations, the CLI, the MCP stdio server, and the hosted MCP gateway.
 
 ## Repository layout
@@ -147,6 +149,9 @@ Every environment calls providers for real. Policy, approvals, rate limits, and 
 | Vault | `GET/POST /credentials`, `GET/PATCH/DELETE /credentials/:id`, `POST /credentials/:id/refresh`, `POST /credentials/:id/check` |
 | Grants | `GET/POST /grants`, `GET/PATCH/DELETE /grants/:id`, `POST /grants/request` (agent JWT, just-in-time) |
 | Policy | `POST /policy/simulate`, `GET/POST /approval-policies`, `GET/PATCH/DELETE /approval-policies/:id` |
+| End-user consent | `POST /consent/requests`, `POST /consent/token`, `POST /consent/:id/{token,revoke}`, `GET /end-users`, `GET /end-users/:externalUserId`, `POST /end-users/:externalUserId/control-link` |
+| Cross-org trust | `GET/POST /trust-relationships`, `POST /trust-relationships/:id/{accept,decline,revoke}`, `POST /tokens/trust-exchange` (agent JWT) |
+| Config | `GET /config/export` (JSON or YAML), `POST /config/apply` (dry run, prune, `x-authab-confirm`) |
 | Connectors | `POST /connectors` (OpenAPI 3 import), `GET/DELETE /connectors/:slug`, `POST /connectors/:slug/rollback` |
 | Approvals | `GET /approvals`, `GET/POST /approvals/:id` |
 | Proxy | `POST /proxy/:connector` (agent JWT; `Idempotency-Key` supported; `sandbox` runs the pipeline with no provider egress) |
@@ -198,6 +203,7 @@ AUTHAB_API_KEY=sk_dev_... AUTHAB_AGENT_ID=agt_atlas AUTHAB_CONNECTOR=slack AUTHA
 - [Python SDK and framework integrations](python/README.md)
 - [CLI usage](cli/README.md)
 - [MCP server and gateway](mcp/README.md)
+- [GitOps guide](docs/operations/gitops.md)
 
 ## Security properties
 
@@ -210,6 +216,10 @@ AUTHAB_API_KEY=sk_dev_... AUTHAB_AGENT_ID=agt_atlas AUTHAB_CONNECTOR=slack AUTHA
 - **Custom connectors.** Imports accept OpenAPI 3.0/3.1 only, require HTTPS servers, reject private and link-local base URLs, refuse required header or cookie parameters the proxy cannot forward, cap imports at 100 actions, and stay behind the Scale/Enterprise plan gate.
 - **Audit integrity.** Audit events are hash-chained per environment with `SHA-256(prevHash + ":" + canonicalJSON(event))`. Appends take a Postgres advisory lock so concurrent writes cannot fork the chain, and `GET /audit/verify` walks the chain. A database trigger rejects UPDATE, DELETE, and TRUNCATE unless a maintenance or restore job opts in with `SET LOCAL app.audit_maintenance = 'on'`. Streamed envelopes are signed with HMAC-SHA256 over the timestamp and body, queued once per event, and retried with backoff; sink secrets are envelope-encrypted.
 - **Human access.** Dashboard sessions are httpOnly and database-backed; API keys and SCIM tokens are stored hashed with a display prefix. Sign-in, sign-up, magic-link, and reset requests are throttled in the database. SSO state is a signed, single-use cookie; SAML responses are validated for signature and assertion conditions by `@node-saml/node-saml`, and OIDC uses discovery, PKCE, and a nonce check. MFA secrets are envelope-encrypted per user, and recovery codes are hashed and consumed once. Roles and capability grants are resolved server-side on every dashboard action; a grant can only narrow its role.
+- **End-user consent.** Consent requests are restricted to internal agents, scoped to a project allowlist and a risk ceiling, and bound to registered HTTPS redirect URIs. The one-time code is stored hashed, exchanged once, and expires after five minutes. Consent tokens live one hour, carry `consent` and `end_user` claims, and are re-checked against the consent record on every authenticated request. An end-user token can only reach that end user's connections (`403 credential_not_owned`), while organization tokens cannot see end-user connections at all (`404 credential_not_found`). Revoking a consent expires every grant it created.
+- **Cross-organization trust.** Trust relationships require matching environment types and different organizations; private agents cannot be invited. Accepting creates a keyless shadow agent in the owner's environment, and every exchange narrows scopes to grants ∩ `maxScopes` ∩ requested. Shadow tokens are capped at five minutes, carry `act`, `trust` and `x_org` claims, and are re-validated against the active relationship on every call. Revoking from either side revokes the shadow agent and adds it to the signed revocation list.
+- **Configuration as code.** Export omits secrets and end-user data. Apply validates first, diffs by natural keys, and commits creates, updates and deletes in one transaction; connections are never created or deleted, prune touches only grants, policies and webhooks, production prune requires an explicit confirmation header, and one-time private keys or webhook secrets are returned only in the apply result. Every apply writes a `config.applied` audit event.
+- **Secret scanning.** The CLI scanner and the dashboard importer share one pattern catalogue; findings never print a full value, `--write` refuses a dirty or non-git tree, and the server re-classifies imports so a live key cannot enter a development environment through a tampered browser request.
 - **Telemetry.** Proxy calls and request errors are wrapped in OpenTelemetry spans (`proxy.call`), and incoming `traceparent` values correlate errors. Spans are exported only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set; otherwise the tracing API is a no-op.
 - **Response headers.** Responses set HSTS, a same-origin Content Security Policy, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, and a same-origin opener policy.
 
@@ -223,7 +233,7 @@ See `/security` and `/docs/concepts/*` for the full model.
 | `npm run build` | Prisma generate and production build |
 | `npm run start` | Production server |
 | `npm run typecheck` | Route type generation and TypeScript check (`npm run lint` runs this) |
-| `npm test` | Unit tests: policy/CIDR, OpenAPI import, DPoP, OAuth refresh, invites, plans, MFA/TOTP, RBAC, SLO, status, sandbox, redaction, billing, MCP gateway |
+| `npm test` | Unit tests: policy/CIDR, OpenAPI import and route coverage, DPoP, OAuth refresh, invites, plans, MFA/TOTP, RBAC, SLO, status, sandbox, redaction, billing, MCP gateway, consent, trust, secret patterns, config apply |
 | `npm run connectors:check` | Validate connector manifests, action names, risk levels, hosts, and samples |
 | `npm run db:seed` | Reseed the demo workspace (blocked in production unless `ALLOW_DEMO_SEED=1`) |
 | `npm run db:migrate` | Apply pending Prisma migrations to Neon |

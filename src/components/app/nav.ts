@@ -6,6 +6,7 @@ import {
   CreditCard,
   FlaskConical,
   Gauge,
+  Handshake,
   Inbox,
   KeyRound,
   LayoutDashboard,
@@ -16,6 +17,7 @@ import {
   ShieldCheck,
   Siren,
   Users,
+  UserRoundCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -42,6 +44,8 @@ export const NAV: NavGroup[] = [
       { href: "/app/vault", label: "Vault", icon: KeyRound },
       { href: "/app/permissions", label: "Permissions", icon: ShieldCheck },
       { href: "/app/approvals", label: "Approvals", icon: Inbox, badge: "approvals" },
+      { href: "/app/trust", label: "Trust", icon: Handshake },
+      { href: "/app/end-users", label: "End users", icon: UserRoundCheck },
       { href: "/app/policy", label: "Policy lab", icon: FlaskConical },
       { href: "/app/activity", label: "Activity", icon: Activity },
     ],

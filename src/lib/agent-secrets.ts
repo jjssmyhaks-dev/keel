@@ -77,7 +77,7 @@ export async function authenticateClientSecret(raw: string): Promise<ClientSecre
 
 export async function agentGrantScopes(agentId: string) {
   const grants = await db.grant.findMany({
-    where: { agentId, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+    where: { agentId, endUserId: null, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
     include: { credential: { select: { revokedAt: true, status: true, expiresAt: true } } },
   });
   const scopes = new Set<string>();

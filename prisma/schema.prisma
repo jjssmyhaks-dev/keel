@@ -466,6 +466,10 @@ model Agent {
   ownerUserId         String?
   status              String              @default("active")
   agentType           String              @default("other")
+  kind                String              @default("internal")
+  externalAgentId     String?
+  externalEnvironmentId String?
+  externalOrgName     String?
   verificationVisibility String          @default("public")
   publicKey           String?
   fingerprint         String
@@ -490,6 +494,7 @@ model Agent {
 
   @@index([environmentId])
   @@index([ownerUserId])
+  @@index([externalAgentId])
 }
 
 model AgentKey {
@@ -545,6 +550,7 @@ model Credential {
   tokenExpiresAt    DateTime?
   refreshable       Boolean                 @default(false)
   lastHealthCheckAt DateTime?
+  endUserId         String?
   environment       Environment             @relation(fields: [environmentId], references: [id], onDelete: Cascade)
   grants            Grant[]
   approvalRequests  ApprovalRequest[]
@@ -552,6 +558,7 @@ model Credential {
 
   @@index([environmentId])
   @@index([connectorSlug])
+  @@index([endUserId])
 }
 
 model ConnectionHealthEvent {
@@ -580,6 +587,8 @@ model Grant {
   activatedAt      DateTime?
   createdBy        String?
   createdAt        DateTime          @default(now())
+  consentId        String?
+  endUserId        String?
   environment      Environment       @relation(fields: [environmentId], references: [id], onDelete: Cascade)
   agent            Agent             @relation(fields: [agentId], references: [id], onDelete: Cascade)
   credential       Credential        @relation(fields: [credentialId], references: [id], onDelete: Cascade)
@@ -587,6 +596,7 @@ model Grant {
 
   @@unique([agentId, credentialId])
   @@index([environmentId])
+  @@index([endUserId])
 }
 
 model ApprovalPolicy {
@@ -823,11 +833,114 @@ model EndUser {
   projectId      String
   externalUserId String
   email          String?
+  lastSeenAt     DateTime?
   createdAt      DateTime  @default(now())
   deletedAt      DateTime?
   consents       Consent[]
 
   @@unique([projectId, externalUserId])
+}
+
+model ConsentBranding {
+  id                      String    @id @default(cuid())
+  projectId               String    @unique
+  productName             String
+  logoDataUri             String?
+  primaryColor            String    @default("#111111")
+  supportUrl              String?
+  privacyUrl              String?
+  consentText             String    @default("")
+  consentTextVersion      Int       @default(1)
+  allowedRedirectUrisJson String    @default("[]")
+  allowedScopesJson       String    @default("[\"*\"]")
+  maxRisk                 String    @default("write")
+  maxGrantDays            Int       @default(90)
+  verifiedDomain          String?
+  domainVerificationToken String?
+  domainVerifiedAt        DateTime?
+  updatedAt               DateTime  @updatedAt
+}
+
+model ConsentRequest {
+  id                  String    @id @default(cuid())
+  projectId           String
+  environmentId       String
+  agentId             String
+  endUserId           String?
+  externalUserId      String
+  email               String?
+  scopesJson          String    @default("[]")
+  connectorSlugsJson  String    @default("[]")
+  redirectUri         String
+  state               String?
+  tokenHash           String    @unique
+  status              String    @default("pending")
+  codeHash            String?
+  codeExpiresAt       DateTime?
+  durationOptionsJson String    @default("[]")
+  consentId           String?
+  createdAt           DateTime  @default(now())
+  expiresAt           DateTime
+  completedAt         DateTime?
+
+  @@index([projectId, status])
+  @@index([environmentId])
+}
+
+model EndUserLink {
+  id        String    @id @default(cuid())
+  endUserId String
+  tokenHash String    @unique
+  purpose   String    @default("control_center")
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([endUserId])
+}
+
+model EndUserSession {
+  id        String   @id @default(cuid())
+  endUserId String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([endUserId])
+}
+
+model DataRequest {
+  id          String    @id @default(cuid())
+  endUserId   String
+  projectId   String
+  kind        String
+  status      String    @default("open")
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+  completedBy String?
+
+  @@index([projectId, status])
+  @@index([endUserId])
+}
+
+model TrustRelationship {
+  id                    String    @id @default(cuid())
+  ownerEnvironmentId    String
+  externalAgentId       String
+  externalEnvironmentId String
+  shadowAgentId         String?
+  status                String    @default("invited")
+  maxScopesJson         String    @default("[]")
+  note                  String?
+  invitedBy             String
+  invitedAt             DateTime  @default(now())
+  acceptedBy            String?
+  acceptedAt            DateTime?
+  revokedBy             String?
+  revokedAt             DateTime?
+
+  @@unique([ownerEnvironmentId, externalAgentId])
+  @@index([externalEnvironmentId])
 }
 
 model AgentIdentityDocument {
@@ -877,11 +990,13 @@ model AgentEvent {
   isSandbox           Boolean  @default(false)
   contributes         Boolean  @default(false)
   credentialId        String?
+  endUserId           String?
 
   @@index([environmentId, occurredAt])
   @@index([agentId, occurredAt])
   @@index([organizationId, occurredAt])
   @@index([connectorSlug, action])
+  @@index([endUserId, occurredAt])
 }
 
 model PolicyEvent {
@@ -922,15 +1037,20 @@ model Consent {
   id                 String    @id @default(cuid())
   endUserId          String
   projectId          String
+  environmentId      String
   agentId            String
   scopesJson         String    @default("[]")
   consentTextVersion String
+  consentRequestId   String?
+  grantIdsJson       String    @default("[]")
   grantedAt          DateTime  @default(now())
   expiresAt          DateTime?
   revokedAt          DateTime?
+  lastUsedAt         DateTime?
   ip                 String?
   userAgent          String?
   endUser            EndUser   @relation(fields: [endUserId], references: [id], onDelete: Cascade)
 
   @@index([agentId])
+  @@index([projectId, endUserId])
 }

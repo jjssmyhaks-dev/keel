@@ -42,6 +42,10 @@ export type ConnectStatePayload = {
   nonce: string;
   verifier?: string;
   issuedAt: number;
+  /** Set when the connection is started from a hosted consent page. */
+  consentRequestId?: string;
+  /** Signed, same-purpose return path ("/consent/<token>") for the hosted flow. */
+  consentReturnTo?: string;
 };
 
 export type OAuthTokens = {
@@ -181,6 +185,8 @@ export function createConnectState(input: {
   userId: string;
   clientId: string;
   verifier?: string;
+  consentRequestId?: string;
+  consentReturnTo?: string;
 }): { state: string; cookie: string; payload: ConnectStatePayload } {
   const nonce = randomToken(24);
   const payload: ConnectStatePayload = {
@@ -200,6 +206,7 @@ export function verifyConnectState(token: string | null | undefined): ConnectSta
     const parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as ConnectStatePayload;
     if (!parsed.nonce || !parsed.connectorSlug || !parsed.environmentId || !parsed.userId) return null;
     if (Date.now() - parsed.issuedAt > CONNECT_TTL_MS) return null;
+    if (parsed.consentReturnTo && !parsed.consentReturnTo.startsWith("/consent/")) return null;
     return parsed;
   } catch {
     return null;
@@ -640,6 +647,9 @@ export async function createOAuthCredential(input: {
   tokens: OAuthTokens;
   profile?: { secret: Record<string, unknown>; metadata: Record<string, unknown> };
   name?: string;
+  /** When set, the credential belongs to an end user and is never listed for the org. */
+  endUserId?: string | null;
+  endUserAccount?: string | null;
 }) {
   const environment = await db.environment.findUnique({
     where: { id: input.environmentId },
@@ -650,6 +660,7 @@ export async function createOAuthCredential(input: {
   const { connector } = await import("./connectors");
   const connectorDef = connector(input.connectorSlug);
   const connectorName = connectorDef?.name ?? input.client.label;
+  const endUserId = input.endUserId ?? null;
 
   const payload: Record<string, unknown> = {
     access_token: input.tokens.accessToken,
@@ -660,12 +671,15 @@ export async function createOAuthCredential(input: {
   };
   const metadata = { ...(input.profile?.metadata ?? {}), oauth: true };
   const sealed = await encryptSecret(environment.projectId, payload);
+  const displayName = endUserId
+    ? `${connectorName} (${input.endUserAccount || endUserId.slice(0, 12)})`
+    : input.name || `${connectorName} OAuth`;
 
   const credential = await db.credential.create({
     data: {
       environmentId: input.environmentId,
       connectorSlug: input.connectorSlug,
-      name: (input.name || `${connectorName} OAuth`).slice(0, 80),
+      name: displayName.slice(0, 80),
       type: "oauth",
       encryptedPayload: sealed.encryptedPayload,
       dataKeyEncrypted: sealed.dataKeyEncrypted,
@@ -678,7 +692,8 @@ export async function createOAuthCredential(input: {
       tokenExpiresAt: input.tokens.expiresAt ?? null,
       refreshable: Boolean(input.tokens.refreshToken),
       expiresAt: input.tokens.expiresAt ?? null,
-      createdBy: input.userId,
+      createdBy: endUserId ? `enduser:${endUserId}` : input.userId,
+      endUserId,
       healthEvents: {
         create: {
           result: "connected",
@@ -690,9 +705,9 @@ export async function createOAuthCredential(input: {
 
   await auditEvent({
     environmentId: input.environmentId,
-    actorType: "human",
-    actorId: input.userId,
-    actorName: "OAuth connect",
+    actorType: endUserId ? "system" : "human",
+    actorId: endUserId ? `enduser:${endUserId}` : input.userId,
+    actorName: endUserId ? "End user" : "OAuth connect",
     action: "credential.connected",
     resourceType: "credential",
     resourceId: credential.id,
@@ -703,6 +718,7 @@ export async function createOAuthCredential(input: {
       source: input.client.source,
       scopes: input.tokens.scopes.slice(0, 20),
       refreshable: Boolean(input.tokens.refreshToken),
+      ...(endUserId ? { endUserId } : {}),
     },
   }).catch(() => null);
 
