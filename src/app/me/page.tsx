@@ -6,6 +6,7 @@ import { headersClientIp } from "@/lib/api";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { END_USER_COOKIE, endUserSessionWithUser } from "@/lib/consent";
 import { endUserControlData } from "@/lib/control-center";
+import { BackLink } from "./back-link";
 
 export const metadata: Metadata = {
   title: "Your control center",
@@ -324,12 +325,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <div className="mx-auto max-w-4xl px-6 pt-8">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-black"
-        >
-          ← Back to Authab
-        </Link>
+        <BackLink />
       </div>
       <div className="mx-auto max-w-4xl px-6 py-14 md:py-20">{children}</div>
       <footer className="mx-auto max-w-4xl px-6 pb-12 text-[11px] leading-relaxed text-muted-foreground">
