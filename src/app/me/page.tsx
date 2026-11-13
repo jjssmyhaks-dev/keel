@@ -323,6 +323,14 @@ function Shell({ children }: { children: React.ReactNode }) {
           <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">End-user control center</span>
         </div>
       </header>
+      <div className="mx-auto max-w-4xl px-6 pt-8">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-black"
+        >
+          ← Back to Authab
+        </Link>
+      </div>
       <div className="mx-auto max-w-4xl px-6 py-14 md:py-20">{children}</div>
       <footer className="mx-auto max-w-4xl px-6 pb-12 text-[11px] leading-relaxed text-muted-foreground">
         Authab is the permission layer between you and AI agents. Revoking here takes effect on the next agent call.
