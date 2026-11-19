@@ -123,6 +123,11 @@ export async function verifyAuditChain(environmentId: string, fromSeq?: number, 
     orderBy: { seq: "asc" },
   });
   if (!events.length) return { valid: true, checked: 0, brokenAt: null as number | null };
+  if (!fromSeq || fromSeq === 1) {
+    if (events[0].seq !== 1 || events[0].prevHash !== GENESIS) {
+      return { valid: false, checked: 0, brokenAt: events[0].seq };
+    }
+  }
   let prev = events[0].prevHash;
   let checked = 0;
   for (const event of events) {

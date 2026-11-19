@@ -2,6 +2,7 @@ import {
   createCipheriv,
   createDecipheriv,
   createHash,
+  createHmac,
   generateKeyPairSync,
   randomBytes,
   randomUUID,
@@ -189,7 +190,8 @@ export function apiKeyLookup(key: string) {
 
 export function signedLinkToken(parts: string[]) {
   const payload = parts.join(".");
-  return `${payload}.${sha256(`${payload}:${Buffer.from(masterKeyBytes()).toString("hex")}`).slice(0, 32)}`;
+  const signature = createHmac("sha256", masterKeyBytes()).update(payload).digest("hex");
+  return `${payload}.${signature}`;
 }
 
 export function verifySignedLinkToken(token: string) {
@@ -197,8 +199,10 @@ export function verifySignedLinkToken(token: string) {
   if (segments.length < 2) return null;
   const signature = segments.pop()!;
   const payload = segments.join(".");
-  const expected = sha256(`${payload}:${Buffer.from(masterKeyBytes()).toString("hex")}`).slice(0, 32);
-  return constantTimeEqual(signature, expected) ? payload : null;
+  const expected = createHmac("sha256", masterKeyBytes()).update(payload).digest("hex");
+  if (constantTimeEqual(signature, expected)) return payload;
+  const legacy = sha256(`${payload}:${Buffer.from(masterKeyBytes()).toString("hex")}`).slice(0, 32);
+  return constantTimeEqual(signature, legacy) ? payload : null;
 }
 
 export { jwtPrivateKeyDer };
